@@ -23,15 +23,19 @@ from .parser_tools import MIN_REPEAT
 from .parser_tools import parse
 from .parser_tools import PREDICATE_OPCODES
 
-_Follow = defaultdict[int, OrderedSet[int]]
+Follow = defaultdict[int, OrderedSet[int]]
 
 
 class PositionAutomaton:
     """Position automaton representation."""
 
-    def __init__(self, states: dict[int, Any], follow: _Follow) -> None:
+    def __init__(self, states: dict[int, Any], follow: Follow) -> None:
         self.states = states
         self.follow = follow
+
+    @property
+    def initial(self) -> OrderedSet[int]:
+        return self.follow[0]
 
     @property
     def final(self) -> OrderedSet[int]:
@@ -40,10 +44,6 @@ class PositionAutomaton:
             for state, adjacent_states in self.follow.items()
             if -1 in adjacent_states
         )
-
-    @property
-    def initial(self) -> OrderedSet[int]:
-        return self.follow[0]
 
     @property
     def nullable(self) -> bool:
@@ -193,24 +193,24 @@ class _PositionConstructionCallback:
     def __init__(self) -> None:
         self.state = 0
 
-    def _call_empty(self) -> PositionAutomaton:
-        follow: _Follow = defaultdict(OrderedSet)
+    def call_empty(self) -> PositionAutomaton:
+        follow: Follow = defaultdict(OrderedSet)
         follow[0].append(-1)
         return PositionAutomaton({}, follow)
 
-    def _call_predicate(self, x: tuple[str, Any]) -> PositionAutomaton:
+    def call_predicate(self, x: tuple[str, Any]) -> PositionAutomaton:
         self.state += 1
         _, operand = x
 
-        follow: _Follow = defaultdict(OrderedSet)
+        follow: Follow = defaultdict(OrderedSet)
         follow[0].append(self.state)
         follow[self.state].append(-1)
         return PositionAutomaton({self.state: operand}, follow)
 
-    def _call_at(self, x: tuple[str, Any]) -> PositionAutomaton:
+    def call_at(self, x: tuple[str, Any]) -> PositionAutomaton:
         raise NotImplementedError("Anchor is not supported")
 
-    def _call_catenation(
+    def call_catenation(
         self, y1: PositionAutomaton, y2: PositionAutomaton
     ) -> PositionAutomaton:
         assert y1.states.keys().isdisjoint(y2.states.keys())
@@ -225,7 +225,7 @@ class _PositionConstructionCallback:
         y1.states.update(y2.states)
         return y1
 
-    def _call_union(
+    def call_union(
         self, y1: PositionAutomaton, y2: PositionAutomaton
     ) -> PositionAutomaton:
         assert y1.states.keys().isdisjoint(y2.states.keys())
@@ -238,27 +238,25 @@ class _PositionConstructionCallback:
         y1.states.update(y2.states)
         return y1
 
-    def _call_star(self, y: PositionAutomaton, lazy: bool) -> PositionAutomaton:
-        y = self._call_plus(y, lazy)
-        y = self._call_question(y, lazy)
+    def call_star(self, y: PositionAutomaton, lazy: bool) -> PositionAutomaton:
+        y = self.call_plus(y, lazy)
+        y = self.call_question(y, lazy)
         return y
 
-    def _call_plus(self, y: PositionAutomaton, lazy: bool) -> PositionAutomaton:
-        if lazy:
-            for state in y.final:
-                y.follow[state].substitute(-1, y.initial)
+    def call_plus(self, y: PositionAutomaton, lazy: bool) -> PositionAutomaton:
+        for state in y.final:
+            y.follow[state].substitute(-1, y.initial)
+            if lazy:
                 y.follow[state].prepend(-1)
-        else:
-            for state in y.final:
-                y.follow[state].substitute(-1, y.initial)
+            else:
                 y.follow[state].append(-1)
         return y
 
-    def _call_question(
+    def call_question(
         self, y: PositionAutomaton, lazy: bool
     ) -> PositionAutomaton:
         if lazy:
-            if -1 in y.follow[0]:
+            if y.nullable:
                 y.follow[0].remove(-1)
             y.follow[0].prepend(-1)
         else:
@@ -272,26 +270,26 @@ class _PositionConstructionCallback:
     ) -> PositionAutomaton:
 
         if x is None:
-            return reduce(self._call_catenation, ys, self._call_empty())
+            return reduce(self.call_catenation, ys, self.call_empty())
 
         opcode, operand = x
         if opcode in PREDICATE_OPCODES:
-            return self._call_predicate(x)
+            return self.call_predicate(x)
         elif opcode is AT:
-            return self._call_at(x)
+            return self.call_at(x)
         elif opcode == BRANCH:
-            return reduce(self._call_union, ys)
+            return reduce(self.call_union, ys)
         elif opcode in {MIN_REPEAT, MAX_REPEAT}:
             y = next(iter(ys))
             lazy = opcode == MIN_REPEAT
 
             m, n = operand
             if m == 0 and n is MAXREPEAT:
-                return self._call_star(y, lazy)
+                return self.call_star(y, lazy)
             if m == 1 and n is MAXREPEAT:
-                return self._call_plus(y, lazy)
+                return self.call_plus(y, lazy)
             if m == 0 and n == 1:
-                return self._call_question(y, lazy)
+                return self.call_question(y, lazy)
             else:
                 raise NotImplementedError("Counter not supported")
         elif opcode in {ATOMIC_GROUP, SUBPATTERN}:

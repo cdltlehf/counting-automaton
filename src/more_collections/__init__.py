@@ -48,7 +48,11 @@ class OrderedSet(Generic[T]):
         return self._root.next
 
     def _remove_duplicates(self, reverse: bool = False) -> None:
-        """Time complexity: O(n)"""
+        """Time complexity: O(n). Remove duplicates from the set. If reverse is
+        True, the last occurrence of a value is kept. Otherwise, the first
+        occurrence of a value is kept.
+        """
+
         seen = set()
         root = self._root
         if reverse:
