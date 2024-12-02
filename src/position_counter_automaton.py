@@ -3,6 +3,7 @@
 from collections import defaultdict
 from enum import StrEnum
 from functools import reduce
+from itertools import chain
 import logging
 import re._compiler as compiler  # type: ignore[import-untyped]
 from re._constants import _NamedIntConstant as NamedIntConstant  # type: ignore[import-untyped]
@@ -12,7 +13,7 @@ from re._constants import BRANCH
 from re._constants import MAXREPEAT
 from re._constants import SUBPATTERN
 from re._parser import SubPattern  # type: ignore[import-untyped]
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, Union
 
 from .more_collections import OrderedSet
 from .parser_tools import fold
@@ -40,6 +41,7 @@ Guard = Iterable[tuple[Counter, CounterPredicate]]
 Action = Iterable[tuple[Counter, CounterOperationComponent]]
 
 Follow = defaultdict[int, OrderedSet[tuple[Guard, Action, int]]]
+Config = tuple[int, CounterVec]
 
 
 def eval_guard(guard: Guard, counter_vec: CounterVec) -> bool:
@@ -168,26 +170,7 @@ class PositionCounterAutomaton:
             ]
         )
 
-    def get_next_configs(
-        self, config: tuple[int, CounterVec], symbol: str
-    ) -> OrderedSet[tuple[int, CounterVec]]:
-        cur_state, counter_vec = config
-        next_configs: OrderedSet[tuple[int, CounterVec]] = OrderedSet()
-
-        for guard, action, adjacent_state in self.follow[cur_state]:
-            if not eval_guard(guard, counter_vec):
-                continue
-            if not self.eval_state(adjacent_state, symbol):
-                continue
-
-            counter_vec = apply_action(action, counter_vec)
-            next_configs.append((adjacent_state, counter_vec))
-        return next_configs
-
-    def __call__(self, w: str) -> bool:
-        raise NotImplementedError("Use backtrack instead")
-
-    def check_final(self, config: tuple[int, CounterVec]) -> bool:
+    def check_final(self, config: Config) -> bool:
         cur_state, counter_vec = config
         for guard, _, adjacent_state in self.follow[cur_state]:
             if adjacent_state != -1:
@@ -197,12 +180,48 @@ class PositionCounterAutomaton:
             return True
         return False
 
+    def get_next_configs(
+        self, cur_configs: Union[Iterable[Config], Config], symbol: str
+    ) -> OrderedSet[Config]:
+        assert len(symbol) == 1
+
+        if isinstance(cur_configs, tuple):
+            config = cur_configs
+            cur_state, counter_vec = config
+            next_configs: OrderedSet[Config] = OrderedSet()
+
+            for guard, action, adjacent_state in self.follow[cur_state]:
+                if not eval_guard(guard, counter_vec):
+                    continue
+                if not self.eval_state(adjacent_state, symbol):
+                    continue
+
+                next_counter_vec = apply_action(action, counter_vec)
+                next_configs.append((adjacent_state, next_counter_vec))
+            return next_configs
+        else:
+            next_configs = OrderedSet(
+                chain.from_iterable(
+                    self.get_next_configs(config, symbol)
+                    for config in cur_configs
+                )
+            )
+            return next_configs
+
+    def __call__(self, w: str) -> bool:
+        return self.match(w)
+
+    def match(self, w: str) -> bool:
+        initial_config = (0, (1,) * self.counter)
+        last_configs = reduce(
+            self.get_next_configs, w, OrderedSet([initial_config])
+        )
+        return any(self.check_final(config) for config in last_configs)
+
     def backtrack(self, w: str) -> bool:
         logging.debug("Backtrack matching")
 
-        def _backtrack(
-            w: str, config: tuple[int, CounterVec], index: int
-        ) -> bool:
+        def _backtrack(w: str, config: Config, index: int) -> bool:
             logging.debug("%s", w)
             logging.debug("%s", " " * index + "^")
             logging.debug("%d %s", index, str(config))

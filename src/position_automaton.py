@@ -84,39 +84,33 @@ class PositionAutomaton:
 
         return fold(callback, tree)
 
-    def eval_state(self, state: int, c: str) -> bool:
-        if len(c) != 1:
-            raise ValueError("c must be a single character")
+    def eval_state(self, state: int, symbol: str) -> bool:
+        assert len(symbol) == 1
+
         if state == -1:
             return True
         elif state not in self.states:
             raise ValueError(f"state {state} not found")
         elif isinstance(self.states[state], str):
-            return bool(self.states[state] == c)
+            return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
             compiled = compiler.compile(self.states[state])
-            return compiled.fullmatch(c) is not None
+            return compiled.fullmatch(symbol) is not None
         assert False, type(self.states[state])
 
     def get_next_states(
-        self,
-        cur_states: Optional[Union[Iterable[int], int]],
-        c: str,
+        self, cur_states: Union[Iterable[int], int], symbol: str
     ) -> OrderedSet[int]:
-        if len(c) != 1:
-            raise ValueError("c must be a single character")
+        assert len(symbol) == 1
 
         if isinstance(cur_states, int):
             cur_states = [cur_states]
 
-        if cur_states is None:
-            adjacent_states = self.initial
-        else:
-            adjacent_states = OrderedSet(
-                chain.from_iterable(self.follow[p] for p in cur_states)
-            )
+        adjacent_states = OrderedSet(
+            chain.from_iterable(self.follow[p] for p in cur_states)
+        )
         next_states = OrderedSet(
-            state for state in adjacent_states if self.eval_state(state, c)
+            state for state in adjacent_states if self.eval_state(state, symbol)
         )
         return next_states
 
