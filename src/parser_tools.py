@@ -4,13 +4,30 @@
 # pylint: disable=useless-import-alias
 
 from itertools import chain
+import re
 from re._constants import _NamedIntConstant as NamedIntConstant
 from re._constants import ANY as ANY
 from re._constants import ASSERT as ASSERT
 from re._constants import ASSERT_NOT as ASSERT_NOT
 from re._constants import AT as AT
+from re._constants import AT_BEGINNING as AT_BEGINNING
+from re._constants import AT_BEGINNING_STRING as AT_BEGINNING_STRING
+from re._constants import AT_BOUNDARY as AT_BOUNDARY
+from re._constants import AT_END as AT_END
+from re._constants import AT_END_STRING as AT_END_STRING
+from re._constants import AT_NON_BOUNDARY as AT_NON_BOUNDARY
 from re._constants import ATOMIC_GROUP as ATOMIC_GROUP
 from re._constants import BRANCH as BRANCH
+from re._constants import CATEGORY as CATEGORY
+from re._constants import CATEGORY_DIGIT as CATEGORY_DIGIT
+from re._constants import CATEGORY_LINEBREAK as CATEGORY_LINEBREAK
+from re._constants import CATEGORY_NOT_DIGIT as CATEGORY_NOT_DIGIT
+from re._constants import CATEGORY_NOT_LINEBREAK as CATEGORY_NOT_LINEBREAK
+from re._constants import CATEGORY_NOT_SPACE as CATEGORY_NOT_SPACE
+from re._constants import CATEGORY_NOT_WORD as CATEGORY_NOT_WORD
+from re._constants import CATEGORY_SPACE as CATEGORY_SPACE
+from re._constants import CATEGORY_WORD as CATEGORY_WORD
+from re._constants import FAILURE as FAILURE
 from re._constants import GROUPREF as GROUPREF
 from re._constants import GROUPREF_EXISTS as GROUPREF_EXISTS
 from re._constants import IN as IN
@@ -18,8 +35,10 @@ from re._constants import LITERAL as LITERAL
 from re._constants import MAX_REPEAT as MAX_REPEAT
 from re._constants import MAXREPEAT as MAXREPEAT
 from re._constants import MIN_REPEAT as MIN_REPEAT
+from re._constants import NEGATE as NEGATE
 from re._constants import NOT_LITERAL as NOT_LITERAL
 from re._constants import POSSESSIVE_REPEAT as POSSESSIVE_REPEAT
+from re._constants import RANGE as RANGE
 from re._constants import SUBPATTERN as SUBPATTERN
 from re._parser import State
 from re._parser import SubPattern
@@ -75,7 +94,7 @@ def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
         assert value[0] in {1, -1}, value
         # value[0] == 1 -> lookahead
         # value[0] == -1 -> lookbehind
-        lookbehind = value[0] == 1
+        lookbehind = value[0] != 1
         return lookbehind, [value[1]]
     elif opcode is GROUPREF_EXISTS:
         assert len(value) == 3, value
@@ -83,6 +102,8 @@ def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
         return ref, [e for e in value[1:] if e is not None]
     elif opcode is ATOMIC_GROUP:
         return None, [value]
+    elif opcode is FAILURE:
+        raise NotImplementedError(f"Unknown opcode: {opcode}")
     else:
         assert False, f"Unknown opcode: {opcode}"
 
@@ -109,6 +130,150 @@ def dfs(tree: SubPattern) -> Iterable[tuple[str, Any]]:
         lambda x, ys: chain([] if x is None else [x], chain.from_iterable(ys)),
         tree,
     )
+
+
+def in_to_string(xs: list[Any]) -> str:
+    result = ["["]
+    for opcode, operand in xs:
+        if opcode is NEGATE:
+            result.append("^")
+        elif opcode is LITERAL:
+            result.append(re.escape(chr(operand)))
+        elif opcode is RANGE:
+            start, end = operand
+            result.append(f"{re.escape(chr(start))}-{re.escape(chr(end))}")
+        elif opcode is CATEGORY:
+            result.append(category_to_string(operand))
+        else:
+            raise NotImplementedError(f"Unknown opcode: {opcode}")
+    result.append("]")
+    return "".join(result)
+
+
+def category_to_string(category: NamedIntConstant) -> str:
+    try:
+        return {
+            CATEGORY_WORD: "\\w",
+            CATEGORY_NOT_WORD: "\\W",
+            CATEGORY_SPACE: "\\s",
+            CATEGORY_NOT_SPACE: "\\S",
+            CATEGORY_LINEBREAK: "\\b",
+            CATEGORY_NOT_LINEBREAK: "\\B",
+            CATEGORY_DIGIT: "\\d",
+            CATEGORY_NOT_DIGIT: "\\D",
+        }[category]
+    except KeyError as e:
+        raise NotImplementedError(f"Unknown category: {category}") from e
+
+
+def repeat_to_string(
+    opcode: NamedIntConstant, operand: Any, ys: Iterable[str]
+) -> str:
+    repeat_ch = {
+        MIN_REPEAT: "?",
+        MAX_REPEAT: "",
+        POSSESSIVE_REPEAT: "+",
+    }[opcode]
+
+    m, n = operand
+    if n is MAXREPEAT:
+        return f"(?:{''.join(ys)}){{{m},}}{repeat_ch}"
+    return f"(?:{''.join(ys)}){{{m},{n}}}{repeat_ch}"
+
+
+def subpattern_to_string(
+    opcode: NamedIntConstant, operand: Any, ys: Iterable[str]
+) -> str:
+    if opcode is SUBPATTERN:
+        _, add_flags, del_flags = operand
+        if (add_flags, del_flags) == (0, 0):
+            return f"({''.join(ys)})"
+        else:
+            raise NotImplementedError("Flags not supported")
+    else:
+        lookbehind = operand
+        assert_ch = {
+            ASSERT: "=",
+            ASSERT_NOT: "!",
+            ATOMIC_GROUP: ">",
+        }[opcode]
+        lookbehind_ch = "<" if lookbehind else ""
+
+        return f"(?{lookbehind_ch}{assert_ch}{''.join(ys)})"
+
+
+def at_to_string(at: NamedIntConstant) -> str:
+    try:
+        return {
+            AT_BEGINNING: "^",
+            AT_BEGINNING_STRING: "\\A",
+            AT_BOUNDARY: "\\b",
+            AT_END: "$",
+            AT_END_STRING: "\\Z",
+            AT_NON_BOUNDARY: "\\B",
+        }[at]
+    except KeyError as e:
+        raise NotImplementedError(f"Unknown at: {at}") from e
+
+
+def to_string(tree: SubPattern) -> str:
+    def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
+        if x is None:
+            return "".join(ys)
+        opcode, operand = x
+        if opcode is LITERAL:
+            return f"{re.escape(operand)}"
+        elif opcode is ANY:
+            return "."
+        elif opcode is NOT_LITERAL:
+            _, [(_, c)] = x
+            return f"[^{re.escape(chr(c))}]"
+        elif opcode is IN:
+            _, [(_, zs)] = x
+            return in_to_string(zs)
+        elif opcode is AT:
+            [(_, at)] = operand
+            return at_to_string(at)
+        elif opcode is BRANCH:
+            return f"(?:{'|'.join(ys)})"
+        elif opcode in REPEAT_OPCODES:
+            return repeat_to_string(opcode, operand, ys)
+        elif opcode is GROUPREF:
+            [(_, ref)] = operand
+            return f"\\{ref}(?:)"
+        elif opcode in SUBPATTERN_OPCODES:
+            return subpattern_to_string(opcode, operand, ys)
+        else:
+            raise NotImplementedError(f"Unknown opcode: {opcode}")
+
+    return fold(f, tree)
+
+
+def normalize(tree: SubPattern) -> SubPattern:
+    raise NotImplementedError()
+
+    def f(
+        x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[SubPattern]
+    ) -> SubPattern:
+        if x is None:
+            return SubPattern(State(), list(ys))
+        opcode, operand = x
+        if opcode in PREDICATE_OPCODES:
+            return SubPattern(State(), list(ys))
+        elif opcode in ACTION_OPCODES:
+            return SubPattern(State(), list(ys))
+        elif opcode is SUBPATTERN:
+            return SubPattern(State(), list(ys) + [operand])
+        elif opcode in REPEAT_OPCODES:
+            return SubPattern(State(), list(ys) + [operand])
+        elif opcode is BRANCH:
+            return SubPattern(State(), [None, list(ys)])
+        elif opcode in SUBPATTERN_OPCODES:
+            return SubPattern(State(), list(ys) + [operand])
+        else:
+            assert False, f"Unknown opcode: {opcode}"
+
+    return fold(f, tree)
 
 
 def is_nullable(tree: SubPattern) -> bool:
