@@ -53,27 +53,31 @@ class OrderedSet(Generic[T]):
         occurrence of a value is kept.
         """
 
-        seen = set()
+        seen: set[T] = set()
         root = self._root
         if reverse:
             curr = root.prev
             while curr is not root:
+                assert curr.value is not None
                 if curr.value in seen:
                     prev = curr.prev
                     prev.next = curr.next
                     curr.next.prev = prev
                 else:
                     seen.add(curr.value)
+                    self._map[curr.value] = curr
                 curr = curr.prev
         else:
             curr = root.next
             while curr is not root:
+                assert curr.value is not None
                 if curr.value in seen:
                     prev = curr.prev
                     prev.next = curr.next
                     curr.next.prev = prev
                 else:
                     seen.add(curr.value)
+                    self._map[curr.value] = curr
                 curr = curr.next
 
     def append_iterable(
