@@ -5,7 +5,7 @@
 
 from itertools import chain
 import re
-from re._constants import _NamedIntConstant as NamedIntConstant
+from re._constants import _NamedIntConstant as Constant
 from re._constants import ANY as ANY
 from re._constants import ASSERT as ASSERT
 from re._constants import ASSERT_NOT as ASSERT_NOT
@@ -41,11 +41,16 @@ from re._constants import POSSESSIVE_REPEAT as POSSESSIVE_REPEAT
 from re._constants import RANGE as RANGE
 from re._constants import SUBPATTERN as SUBPATTERN
 from re._parser import State
-from re._parser import SubPattern
+from re._parser import SubPattern as SubPattern
 import re._parser as parser
+from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Optional, TypeVar
+import warnings
 
 T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 PREDICATE_OPCODES = frozenset({LITERAL, ANY, NOT_LITERAL, IN})
@@ -61,6 +66,43 @@ EXTENDED_OPCODES = frozenset(
         ATOMIC_GROUP,
         GROUPREF_EXISTS,
     }
+)
+
+constants = SimpleNamespace(
+    ANY = ANY,
+    ASSERT = ASSERT,
+    ASSERT_NOT = ASSERT_NOT,
+    AT = AT,
+    AT_BEGINNING = AT_BEGINNING,
+    AT_BEGINNING_STRING = AT_BEGINNING_STRING,
+    AT_BOUNDARY = AT_BOUNDARY,
+    AT_END = AT_END,
+    AT_END_STRING = AT_END_STRING,
+    AT_NON_BOUNDARY = AT_NON_BOUNDARY,
+    ATOMIC_GROUP = ATOMIC_GROUP,
+    BRANCH = BRANCH,
+    CATEGORY = CATEGORY,
+    CATEGORY_DIGIT = CATEGORY_DIGIT,
+    CATEGORY_LINEBREAK = CATEGORY_LINEBREAK,
+    CATEGORY_NOT_DIGIT = CATEGORY_NOT_DIGIT,
+    CATEGORY_NOT_LINEBREAK = CATEGORY_NOT_LINEBREAK,
+    CATEGORY_NOT_SPACE = CATEGORY_NOT_SPACE,
+    CATEGORY_NOT_WORD = CATEGORY_NOT_WORD,
+    CATEGORY_SPACE = CATEGORY_SPACE,
+    CATEGORY_WORD = CATEGORY_WORD,
+    FAILURE = FAILURE,
+    GROUPREF = GROUPREF,
+    GROUPREF_EXISTS = GROUPREF_EXISTS,
+    IN = IN,
+    LITERAL = LITERAL,
+    MAX_REPEAT = MAX_REPEAT,
+    MAXREPEAT = MAXREPEAT,
+    MIN_REPEAT = MIN_REPEAT,
+    NEGATE = NEGATE,
+    NOT_LITERAL = NOT_LITERAL,
+    POSSESSIVE_REPEAT = POSSESSIVE_REPEAT,
+    RANGE = RANGE,
+    SUBPATTERN = SUBPATTERN,
 )
 
 
@@ -109,7 +151,7 @@ def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
 
 
 def fold(
-    f: Callable[[Optional[tuple[NamedIntConstant, Any]], Iterable[T]], T],
+    f: Callable[[Optional[tuple[Constant, Any]], Iterable[T]], T],
     tree: SubPattern,
 ) -> T:
 
@@ -150,7 +192,7 @@ def in_to_string(xs: list[Any]) -> str:
     return "".join(result)
 
 
-def category_to_string(category: NamedIntConstant) -> str:
+def category_to_string(category: Constant) -> str:
     try:
         return {
             CATEGORY_WORD: "\\w",
@@ -167,7 +209,7 @@ def category_to_string(category: NamedIntConstant) -> str:
 
 
 def repeat_to_string(
-    opcode: NamedIntConstant, operand: Any, ys: Iterable[str]
+    opcode: Constant, operand: Any, ys: Iterable[str]
 ) -> str:
     repeat_ch = {
         MIN_REPEAT: "?",
@@ -182,7 +224,7 @@ def repeat_to_string(
 
 
 def subpattern_to_string(
-    opcode: NamedIntConstant, operand: Any, ys: Iterable[str]
+    opcode: Constant, operand: Any, ys: Iterable[str]
 ) -> str:
     if opcode is SUBPATTERN:
         _, add_flags, del_flags = operand
@@ -202,7 +244,7 @@ def subpattern_to_string(
         return f"(?{lookbehind_ch}{assert_ch}{''.join(ys)})"
 
 
-def at_to_string(at: NamedIntConstant) -> str:
+def at_to_string(at: Constant) -> str:
     try:
         return {
             AT_BEGINNING: "^",
@@ -217,7 +259,7 @@ def at_to_string(at: NamedIntConstant) -> str:
 
 
 def to_string(tree: SubPattern) -> str:
-    def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
+    def f(x: Optional[tuple[Constant, Any]], ys: Iterable[str]) -> str:
         if x is None:
             return "".join(ys)
         opcode, operand = x
@@ -250,30 +292,54 @@ def to_string(tree: SubPattern) -> str:
 
 
 def normalize(tree: SubPattern) -> SubPattern:
-    raise NotImplementedError()
+    """Normalize a regular expression pattern.
+    1. Remove anchors (at).
+    2. Remove flags in subpatterns.
+    3. Turn atomic and capturing groups into non-capturing groups.
+    4. Turn possessive quantifiers into greedy quantifiers.
+    5. Remove look-ahead and look-behind assertions.
+    6. Raise error if the pattern has back-references.
+    7. Raise error if the pattern has other features that are not supported.
+    """
 
-    def f(
-        x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[SubPattern]
-    ) -> SubPattern:
+    def f(x: Optional[tuple[Constant, Any]], ys: Iterable[str]) -> str:
         if x is None:
-            return SubPattern(State(), list(ys))
+            return "".join(ys)
         opcode, operand = x
-        if opcode in PREDICATE_OPCODES:
-            return SubPattern(State(), list(ys))
-        elif opcode in ACTION_OPCODES:
-            return SubPattern(State(), list(ys))
-        elif opcode is SUBPATTERN:
-            return SubPattern(State(), list(ys) + [operand])
-        elif opcode in REPEAT_OPCODES:
-            return SubPattern(State(), list(ys) + [operand])
+        if opcode is LITERAL:
+            return f"{re.escape(operand)}"
+        elif opcode is ANY:
+            return "."
+        elif opcode is NOT_LITERAL:
+            _, [(_, c)] = x
+            return f"[^{re.escape(chr(c))}]"
+        elif opcode is IN:
+            _, [(_, zs)] = x
+            return in_to_string(zs)
+        elif opcode is AT:
+            # 1.
+            return "(?:)"
         elif opcode is BRANCH:
-            return SubPattern(State(), [None, list(ys)])
-        elif opcode in SUBPATTERN_OPCODES:
-            return SubPattern(State(), list(ys) + [operand])
+            return f"(?:{'|'.join(ys)})"
+        elif opcode in {ATOMIC_GROUP, SUBPATTERN}:
+            # 2., 3.
+            if opcode is ATOMIC_GROUP:
+                opcode = SUBPATTERN
+            operand = (0, 0, 0)
+            return subpattern_to_string(opcode, operand, ys)
+        elif opcode in REPEAT_OPCODES:
+            # 4.
+            if opcode is POSSESSIVE_REPEAT:
+                opcode = MAX_REPEAT
+            return repeat_to_string(opcode, operand, ys)
+        elif opcode in {ASSERT, ASSERT_NOT}:
+            # 5.
+            return "(?:)"
         else:
-            assert False, f"Unknown opcode: {opcode}"
+            # 6., 7.
+            raise NotImplementedError(f"Unknown opcode: {opcode}")
 
-    return fold(f, tree)
+    return parse(fold(f, tree))
 
 
 def is_nullable(tree: SubPattern) -> bool:
@@ -281,7 +347,7 @@ def is_nullable(tree: SubPattern) -> bool:
         raise ValueError("Pattern has extended features")
 
     def f(
-        x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[bool]
+        x: Optional[tuple[Constant, Any]], ys: Iterable[bool]
     ) -> bool:
         if x is None:
             return all(ys)
@@ -305,7 +371,7 @@ def is_nullable(tree: SubPattern) -> bool:
 
 def is_problematic(tree: SubPattern) -> bool:
     def f(
-        x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[bool]
+        x: Optional[tuple[Constant, Any]], ys: Iterable[bool]
     ) -> bool:
         if x is None:
             return any(ys)
