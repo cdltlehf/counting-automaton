@@ -1,6 +1,7 @@
 """Position counter automaton."""
 
-from collections import defaultdict
+from collections import defaultdict as dd
+from copy import copy
 from enum import StrEnum
 from functools import reduce
 from itertools import chain
@@ -13,7 +14,7 @@ from re._constants import BRANCH
 from re._constants import MAXREPEAT
 from re._constants import SUBPATTERN
 from re._parser import SubPattern  # type: ignore[import-untyped]
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Hashable, Iterable, Iterator, Mapping, Optional
 
 from .more_collections import OrderedSet
 from .parser_tools import fold
@@ -24,82 +25,142 @@ from .parser_tools import PREDICATE_OPCODES
 
 
 class CounterOperationComponent(StrEnum):
+    INACTIVATE = " = None"
     INCREMENT = "++"
-    RESET = " = 1"
+    RESET_OR_ACTIVATE = " = 1"
 
 
 class CounterPredicateType(StrEnum):
-    GE = " >= "
-    LE = " <= "
-    LT = " < "
+    NOT_LESS_THAN = " >= "
+    NOT_GREATER_THAN = " <= "
+    LESS_THAN = " < "
 
 
-Counter = int
-CounterVec = tuple[Counter, ...]
+CounterVariable = int
+CounterValue = int
+
 CounterPredicate = tuple[CounterPredicateType, int]
-Guard = Iterable[tuple[Counter, CounterPredicate]]
-Action = Iterable[tuple[Counter, CounterOperationComponent]]
-
-Follow = defaultdict[int, OrderedSet[tuple[Guard, Action, int]]]
-Config = tuple[int, CounterVec]
-
-
-def eval_guard(guard: Guard, counter_vec: CounterVec) -> bool:
-    for counter, (predicate_type, value) in guard:
-        if predicate_type is CounterPredicateType.GE:
-            if counter_vec[counter] < value:
-                return False
-        elif predicate_type is CounterPredicateType.LE:
-            if counter_vec[counter] > value:
-                return False
-        elif predicate_type is CounterPredicateType.LT:
-            if counter_vec[counter] >= value:
-                return False
-        else:
-            assert False, predicate_type
-    return True
+# TODO: Redefine guard and action
+# Guard = dd[CounterVariable, CounterPredicate]
+# Action = dd[CounterVariable, CounterOperationComponent]
+Guard = tuple[tuple[CounterVariable, CounterPredicate], ...]
+Action = tuple[tuple[CounterVariable, CounterOperationComponent], ...]
 
 
-def apply_action(action: Action, counter_vec: CounterVec) -> CounterVec:
+class CounterVector(Mapping[CounterVariable, CounterValue], Hashable):
+    """Counter vector."""
 
-    def apply(
-        counter_vec: CounterVec,
-        operation: tuple[int, CounterOperationComponent],
-    ) -> CounterVec:
-        counter, op_type = operation
-        if op_type is CounterOperationComponent.INCREMENT:
-            return tuple(
-                e + 1 if i == counter else e for i, e in enumerate(counter_vec)
-            )
-        elif op_type is CounterOperationComponent.RESET:
-            return tuple(
-                1 if i == counter else e for i, e in enumerate(counter_vec)
-            )
-        assert False, operation
+    def __init__(self, counters: dict[CounterVariable, int]) -> None:
+        """Initialize a counter vector."""
+        self._values: tuple[Optional[CounterValue], ...]
+        self._values = tuple([None] * len(counters))
+        self._upper_bound = counters
 
-    return reduce(apply, action, counter_vec)
+    def upper_bound(self, counter_variable: CounterVariable) -> int:
+        return self._upper_bound[counter_variable]
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, CounterVector):
+            return NotImplemented
+        return self._values == other._values
+
+    def __str__(self) -> str:
+        return str(self._values)
+
+    def __iter__(self) -> Iterator[CounterVariable]:
+        return iter(self._upper_bound)
+
+    def __setitem__(self, key: CounterVariable, value: CounterValue) -> None:
+        self._values = tuple(
+            value if i == key else self._values[i]
+            for i in range(len(self._values))
+        )
+
+    def __getitem__(self, key: CounterVariable) -> CounterValue:
+        value = self._values[key]
+        if value is None:
+            raise KeyError(key)
+        return value
+
+    def __delitem__(self, key: CounterVariable) -> None:
+        self._values = tuple(
+            None if i == key else self._values[i]
+            for i in range(len(self._values))
+        )
+
+    def __len__(self) -> int:
+        return len(self._values)
+
+    def __copy__(self) -> "CounterVector":
+        new = CounterVector(self._upper_bound)
+        new._values = self._values
+        return new
+
+    def __hash__(self) -> int:
+        return hash(self._values)
+
+    def evalutate_guard(self, guard: Guard) -> bool:
+        def eval_predicate(
+            predicate: CounterPredicate,
+            counter_value: CounterValue
+        ) -> bool:
+            (predicate_type, value) = predicate
+            if predicate_type is CounterPredicateType.NOT_LESS_THAN:
+                return counter_value >= value
+            elif predicate_type is CounterPredicateType.NOT_GREATER_THAN:
+                return counter_value <= value
+            elif predicate_type is CounterPredicateType.LESS_THAN:
+                return counter_value < value
+            else:
+                assert False, predicate_type
+
+        return all(
+            eval_predicate(predicate, self[counter_variable])
+            for counter_variable, predicate in guard
+        )
+
+    def clone(self) -> "CounterVector":
+        return copy(self)
+
+    def apply_action(self, action: Action) -> "CounterVector":
+        for counter_variable, operation in action:
+            if operation is CounterOperationComponent.INCREMENT:
+                assert counter_variable in self, counter_variable
+                counter_value = self[counter_variable]
+                upper_bound = self.upper_bound(counter_variable)
+                self[counter_variable] = min(counter_value + 1, upper_bound)
+            elif operation is CounterOperationComponent.RESET_OR_ACTIVATE:
+                assert counter_variable not in self, counter_variable
+                self[counter_variable] = 1
+            elif operation is CounterOperationComponent.INACTIVATE:
+                assert counter_variable in self, counter_variable
+                del self[counter_variable]
+            else:
+                assert False, operation
+        return self
+
+State = int
+SymbolPredicate = Any
+Arc = tuple[Guard, Action, State]
+Follow = dd[State, OrderedSet[Arc]]
+Config = tuple[State, CounterVector]
+SuperConfig = OrderedSet[Config]
+
+INITIAL_STATE: State = 0
+FINAL_STATE: State = -1
 
 class PositionCounterAutomaton:
     """Position counter automaton."""
 
     def __init__(
         self,
-        states: dict[int, Any],
+        states: dict[State, SymbolPredicate],
+        counters: dict[CounterVariable, int],
         follow: Follow,
-        counter: int,
     ) -> None:
         self.states = states
+        self.counters = counters
         self.follow = follow
-        self.counter = counter
-
-    @property
-    def final(self) -> OrderedSet[int]:
-        final_states: OrderedSet[int] = OrderedSet()
-        for state, arcs in self.follow.items():
-            if any(-1 == adjacent_state for _, _, adjacent_state in arcs):
-                final_states.append(state)
-        return final_states
 
     @classmethod
     def create(cls, pattern: str) -> "PositionCounterAutomaton":
@@ -119,11 +180,8 @@ class PositionCounterAutomaton:
 
         return fold(callback, tree)
 
-    def eval_state(self, state: int, symbol: str) -> bool:
+    def eval_state(self, state: State, symbol: str) -> bool:
         assert len(symbol) == 1
-        if state == -1:
-            return True
-
         if isinstance(self.states[state], str):
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
@@ -144,79 +202,130 @@ class PositionCounterAutomaton:
                 f"c[{counter}]{operation}" for counter, operation in action
             )
 
-        def arc_to_str(arc: tuple[Guard, Action, int]) -> str:
+        def arc_to_str(arc: Arc) -> str:
             guard, action, adjacent_state = arc
             return (
-                f"{guard_to_str(guard)}; {action_to_str(action)}"
-                + f" -> {adjacent_state}"
+                f"--{{{guard_to_str(guard)}; {action_to_str(action)}}}"
+                + f"-> {adjacent_state}"
             )
-
-        def follow_to_str(follow: OrderedSet[tuple[Guard, Action, int]]) -> str:
-            return ",\n    ".join(arc_to_str(arc) for arc in follow)
 
         follow_string = (
-            "{\n"
-            + ",\n".join(
-                f"  {state}:\n    {follow_to_str(follow)}"
+            "\n".join(
+                "\n".join(
+                    f"- {state} {arc_to_str(arc)}"
+                    for arc in follow
+                )
                 for state, follow in self.follow.items()
             )
-            + "\n}"
         )
         return "\n".join(
             [
                 f"states: {self.states}",
-                f"follow: {follow_string}",
-                f"counter: {self.counter}",
+                f"follow:\n{follow_string}",
+                f"counter: {self.counters}",
             ]
         )
 
     def check_final(self, config: Config) -> bool:
-        cur_state, counter_vec = config
+        cur_state, counter_vector = config
+        logging.debug(self.config_to_str(config))
         for guard, _, adjacent_state in self.follow[cur_state]:
-            if adjacent_state != -1:
+            if adjacent_state is not FINAL_STATE:
                 continue
-            if not eval_guard(guard, counter_vec):
+            if not counter_vector.evalutate_guard(guard):
                 continue
             return True
         return False
 
-    def get_next_configs(
-        self, cur_configs: Union[Iterable[Config], Config], symbol: str
-    ) -> OrderedSet[Config]:
-        assert len(symbol) == 1
+    def is_nullable(self) -> bool:
+        for _, _, adjacent_state in self.follow[INITIAL_STATE]:
+            if adjacent_state is FINAL_STATE:
+                return True
+        return False
 
-        if isinstance(cur_configs, tuple):
-            config = cur_configs
-            cur_state, counter_vec = config
-            next_configs: OrderedSet[Config] = OrderedSet()
+    def get_next_config(
+        self,
+        config: Config,
+        symbol: str
+    ) -> SuperConfig:
+        cur_state, counter_vector = config
+        next_configs: SuperConfig = OrderedSet()
 
-            for guard, action, adjacent_state in self.follow[cur_state]:
-                if not eval_guard(guard, counter_vec):
-                    continue
+        for guard, action, adjacent_state in self.follow[cur_state]:
+            if not counter_vector.evalutate_guard(guard):
+                continue
+
+            if adjacent_state is not FINAL_STATE:
                 if not self.eval_state(adjacent_state, symbol):
                     continue
 
-                next_counter_vec = apply_action(action, counter_vec)
-                next_configs.append((adjacent_state, next_counter_vec))
-            return next_configs
-        else:
-            next_configs = OrderedSet(
-                chain.from_iterable(
-                    self.get_next_configs(config, symbol)
-                    for config in cur_configs
-                )
+            # TODO: Optimization. If there is only one possible action,
+            # we can avoid cloning the counter vector.
+            next_counter_vector = counter_vector.clone()
+            next_counter_vector.apply_action(action)
+            next_configs.append((adjacent_state, next_counter_vector))
+        return next_configs
+
+    def get_next_super_config(
+        self,
+        super_config: SuperConfig,
+        symbol: str
+    ) -> SuperConfig:
+        assert len(symbol) == 1
+
+        next_configs = OrderedSet(
+            chain.from_iterable(
+                self.get_next_config(config, symbol)
+                for config in super_config
             )
-            return next_configs
+        )
+        return next_configs
+
+    @staticmethod
+    def config_to_str(config: Config) -> str:
+        state, counter_vector = config
+        return f"({state}, {counter_vector})"
+
+    @staticmethod
+    def super_config_to_str(super_config: SuperConfig) -> str:
+        return "{" + ", ".join(
+            map(PositionCounterAutomaton.config_to_str, super_config)
+        ) + "}"
+
+    def iterate_super_configs(self, w: str) -> Iterable[SuperConfig]:
+        initial_config: Config = (INITIAL_STATE, CounterVector(self.counters))
+        yield OrderedSet({initial_config})
+
+        current_super_config = OrderedSet([initial_config])
+        for index, symbol in enumerate(w):
+            logging.debug("%s", w)
+            logging.debug("%s", " " * index + "^" + symbol)
+            logging.debug(self.super_config_to_str(current_super_config))
+            current_super_config = self.get_next_super_config(
+                current_super_config,
+                symbol
+            )
+            yield current_super_config
+
+    def match(self, w: str) -> bool:
+        logging.debug("Matching")
+
+        if not w:
+            return self.is_nullable()
+
+        super_config: SuperConfig
+        for super_config in self.iterate_super_configs(w):
+            if not super_config:
+                return False
+
+        logging.debug("%s", w)
+        logging.debug("%s", " " * len(w) + "^")
+        logging.debug(self.super_config_to_str(super_config))
+        logging.debug("Matching end")
+        return any(self.check_final(config) for config in super_config)
 
     def __call__(self, w: str) -> bool:
         return self.match(w)
-
-    def match(self, w: str) -> bool:
-        initial_config = (0, (1,) * self.counter)
-        last_configs = reduce(
-            self.get_next_configs, w, OrderedSet([initial_config])
-        )
-        return any(self.check_final(config) for config in last_configs)
 
     def backtrack(self, w: str) -> bool:
         logging.debug("Backtrack matching")
@@ -228,12 +337,12 @@ class PositionCounterAutomaton:
             if len(w) == index:
                 return self.check_final(config)
 
-            next_configs = self.get_next_configs(config, w[index])
+            next_configs = self.get_next_config(config, w[index])
             return any(
                 _backtrack(w, config, index + 1) for config in next_configs
             )
 
-        initial_counter = (1,) * self.counter
+        initial_counter = CounterVector(self.counters)
         return _backtrack(w, (0, initial_counter), 0)
 
 
@@ -243,32 +352,32 @@ class _PositionConstructionCallback:
 
     def __init__(self) -> None:
         self.state = 0
-        self.counter = 0
+        self.counter = -1
 
     @staticmethod
-    def find_final_arc(
-        arcs: OrderedSet[tuple[Guard, Action, int]],
-    ) -> tuple[Guard, Action, int]:
-        for guard, action, adjacent_state in arcs:
-            if adjacent_state == -1:
-                return guard, action, adjacent_state
-        assert False
+    def get_final_arcs(follow: Follow) -> list[tuple[State, Arc]]:
+        final_arcs: list[tuple[State, Arc]] = []
+        for state, arcs in follow.items():
+            for arc in arcs:
+                _, _, adjacent_state = arc
+                if adjacent_state is FINAL_STATE:
+                    final_arcs.append((state, arc))
+        return final_arcs
 
     def call_empty(self) -> PositionCounterAutomaton:
-        follow: Follow = defaultdict(OrderedSet)
-        follow[0].append((tuple(), tuple(), -1))
-        return PositionCounterAutomaton({}, follow, self.counter)
+        follow: Follow = dd(OrderedSet)
+        follow[INITIAL_STATE].append((tuple(), tuple(), FINAL_STATE))
+        return PositionCounterAutomaton({}, {}, follow)
 
     def call_predicate(self, x: tuple[str, Any]) -> PositionCounterAutomaton:
-        self.state += 1
         _, operand = x
+        self.state += 1
 
-        follow: Follow = defaultdict(OrderedSet)
-        follow[0].append((tuple(), tuple(), self.state))
-        follow[self.state].append((tuple(), tuple(), -1))
-        return PositionCounterAutomaton(
-            {self.state: operand}, follow, self.counter
-        )
+        follow: Follow = dd(OrderedSet)
+        follow[INITIAL_STATE].append((tuple(), tuple(), self.state))
+        follow[self.state].append((tuple(), tuple(), FINAL_STATE))
+
+        return PositionCounterAutomaton({self.state: operand}, {}, follow)
 
     def call_at(self, x: tuple[str, Any]) -> PositionCounterAutomaton:
         raise NotImplementedError("Anchor is not supported")
@@ -278,23 +387,26 @@ class _PositionConstructionCallback:
     ) -> PositionCounterAutomaton:
         assert y1.states.keys().isdisjoint(y2.states.keys())
 
-        for state in y1.final:
-            final_arc = self.find_final_arc(y1.follow[state])
+        for final_state, final_arc in self.get_final_arcs(y1.follow):
             guard, action, _ = final_arc
 
-            arcs: list[tuple[Guard, Action, int]] = []
-            for initial_guard, initial_action, initial_state in y2.follow[0]:
+            arcs: list[Arc] = []
+            for initial_arc in y2.follow[INITIAL_STATE]:
+                initial_guard, initial_action, initial_state = initial_arc
                 new_guard = (*guard, *initial_guard)
                 new_action = (*action, *initial_action)
                 arcs.append((new_guard, new_action, initial_state))
-            y1.follow[state].substitute(final_arc, arcs)
+            y1.follow[final_state].substitute(final_arc, arcs)
 
         for state in y2.states:
+            if state == INITIAL_STATE:
+                continue
             assert state not in y1.follow, str(y1.follow.keys())
             y1.follow[state] = y2.follow[state]
 
+        # NOTE: we can optimize this, but it is not necessary.
         y1.states.update(y2.states)
-        y1.counter = self.counter
+        y1.counters.update(y2.counters)
         return y1
 
     def call_union(
@@ -302,13 +414,14 @@ class _PositionConstructionCallback:
     ) -> PositionCounterAutomaton:
         assert y1.states.keys().isdisjoint(y2.states.keys())
 
-        y1.follow[0].append_iterable(y2.follow[0])
+        y1.follow[INITIAL_STATE].append_iterable(y2.follow[INITIAL_STATE])
         for state in y2.states:
             assert state not in y1.follow
             y1.follow[state] = y2.follow[state]
 
+        # NOTE: we can optimize this, but it is not necessary.
         y1.states.update(y2.states)
-        y1.counter = self.counter
+        y1.counters.update(y2.counters)
         return y1
 
     def call_star(
@@ -316,93 +429,122 @@ class _PositionConstructionCallback:
     ) -> PositionCounterAutomaton:
         y = self.call_plus(y, lazy)
         y = self.call_question(y, lazy)
-        y.counter = self.counter
         return y
 
     def call_plus(
         self, y: PositionCounterAutomaton, lazy: bool
     ) -> PositionCounterAutomaton:
-        for state in y.final:
-            final_arc = self.find_final_arc(y.follow[state])
+        for final_state, final_arc in self.get_final_arcs(y.follow):
             guard, action, _ = final_arc
 
-            arcs: list[tuple[Guard, Action, int]] = []
-            for initial_guard, initial_action, initial_state in y.follow[0]:
+            arcs: list[Arc] = []
+            for initial_arc in y.follow[INITIAL_STATE]:
+                initial_guard, initial_action, initial_state = initial_arc
                 new_guard = (*guard, *initial_guard)
                 new_action = (*action, *initial_action)
                 arcs.append((new_guard, new_action, initial_state))
-            y.follow[state].substitute(final_arc, arcs)
+            y.follow[final_state].substitute(final_arc, arcs)
             if lazy:
-                y.follow[state].prepend(final_arc)
+                y.follow[final_state].prepend(final_arc)
             else:
-                y.follow[state].append(final_arc)
-        y.counter = self.counter
+                y.follow[final_state].append(final_arc)
         return y
 
     def call_question(
         self, y: PositionCounterAutomaton, lazy: bool
     ) -> PositionCounterAutomaton:
         if lazy:
-            y.follow[0].prepend((tuple(), tuple(), -1))
+            y.follow[INITIAL_STATE].prepend((tuple(), tuple(), FINAL_STATE))
         else:
-            y.follow[0].append((tuple(), tuple(), -1))
-        y.counter = self.counter
+            y.follow[INITIAL_STATE].append((tuple(), tuple(), FINAL_STATE))
         return y
 
     def call_repeat(
         self,
         y: PositionCounterAutomaton,
-        m: int,
-        n: Optional[int],
+        lower_bound: int,
+        upper_bound: Optional[int],
         lazy: bool,
     ) -> PositionCounterAutomaton:
-        for state in y.final:
-            # final_arc: state --(_; _)-> -1
-            final_arc = self.find_final_arc(y.follow[state])
+        self.counter += 1
+
+        final_arcs = self.get_final_arcs(y.follow)
+        initial_arcs = y.follow[INITIAL_STATE]
+
+        for last_state, final_arc in final_arcs:
             guard, action, _ = final_arc
 
-            # Back-edge
-            repeat_arcs: list[tuple[Guard, Action, int]] = []
-            for initial_guard, initial_action, initial_state in y.follow[0]:
+            if last_state == INITIAL_STATE:
+                continue
+
+            # Back-edge: last_state -> first_state
+            # where Initial -> first_state and last_state -> Final
+            repeat_arcs: list[Arc] = []
+            for initial_arc in initial_arcs:
+                initial_guard, initial_action, initial_state = initial_arc
+                if initial_state == FINAL_STATE:
+                    continue
+
                 repeat_guard = guard
-                if n is not None:
-                    upper_predicate = (CounterPredicateType.LT, n)
+                if upper_bound is not None:
+                    upper_predicate = (
+                        CounterPredicateType.LESS_THAN, upper_bound)
                     repeat_guard = (
                         *repeat_guard,
                         (self.counter, upper_predicate),
                     )
                 repeat_guard = (*repeat_guard, *initial_guard)
 
-                repeat_action = action
                 operation = (self.counter, CounterOperationComponent.INCREMENT)
-                repeat_action = (*repeat_action, operation, *initial_action)
+                repeat_action = (*action, operation, *initial_action)
                 repeat_arc = (repeat_guard, repeat_action, initial_state)
-                repeat_arcs.append(repeat_arc)
-            y.follow[state].substitute(final_arc, repeat_arcs)
 
-            # Final edge
-            lower_predicate = (CounterPredicateType.GE, m)
+                repeat_arcs.append(repeat_arc)
+            y.follow[last_state].substitute(final_arc, repeat_arcs)
+
+            # Final edge: last_state -> Final
+            lower_predicate = (CounterPredicateType.NOT_LESS_THAN, lower_bound)
             final_guard = (*guard, (self.counter, lower_predicate))
-            if n is not None:
-                upper_predicate = (CounterPredicateType.LE, n)
+            if upper_bound is not None:
+                upper_predicate = (
+                    CounterPredicateType.NOT_GREATER_THAN, upper_bound)
                 final_guard = (*final_guard, (self.counter, upper_predicate))
 
-            final_operation = (self.counter, CounterOperationComponent.RESET)
+            final_operation = (
+                self.counter, CounterOperationComponent.INACTIVATE)
             final_action = (*action, final_operation)
-            final_arc = (final_guard, final_action, -1)
+            final_arc = (final_guard, final_action, FINAL_STATE)
             if lazy:
-                y.follow[state].prepend(final_arc)
+                y.follow[last_state].prepend(final_arc)
             else:
-                y.follow[state].append(final_arc)
+                y.follow[last_state].append(final_arc)
 
-        if m == 0:
+        # Initial-edge: Initial -> first_state
+        new_initial_arcs: list[Arc] = []
+        for initial_arc in initial_arcs:
+            initial_guard, initial_action, first_state = initial_arc
+
+            if first_state != FINAL_STATE:
+                initial_operation = (
+                    self.counter, CounterOperationComponent.RESET_OR_ACTIVATE)
+                initial_action = (*initial_action, initial_operation)
+            initial_arc = (tuple(), initial_action, first_state)
+            new_initial_arcs.append(initial_arc)
+
+        y.follow[INITIAL_STATE] = OrderedSet(new_initial_arcs)
+
+        if lower_bound == 0:
+            nullable_arc: Arc = (tuple(), tuple(), FINAL_STATE)
             if lazy:
-                y.follow[0].prepend((tuple(), tuple(), -1))
+                y.follow[INITIAL_STATE].prepend(nullable_arc)
             else:
-                y.follow[0].append((tuple(), tuple(), -1))
+                y.follow[INITIAL_STATE].append(nullable_arc)
 
-        self.counter += 1
-        y.counter = self.counter
+        if upper_bound is None:
+            # Special
+            y.counters[self.counter] = lower_bound
+        else:
+            y.counters[self.counter] = upper_bound
         return y
 
     def __call__(
