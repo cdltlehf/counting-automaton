@@ -1,0 +1,35 @@
+data/super_config_sequence/regexlib_crawled.json
+total: 223
+deterministic: 29
+strong_cartesian: 55
+weak_cartesian: 222
+counter_boxed: 219
+counter_deterministic: 206
+single_counter_active: 208
+
+data/super_config_sequence/snort29.json
+total: 353
+deterministic: 243
+strong_cartesian: 254
+weak_cartesian: 353
+counter_boxed: 343
+counter_deterministic: 309
+single_counter_active: 340
+
+data/super_config_sequence/snort30.json
+total: 355
+deterministic: 243
+strong_cartesian: 254
+weak_cartesian: 355
+counter_boxed: 349
+counter_deterministic: 308
+single_counter_active: 341
+
+data/super_config_sequence/polyglot.json
+total: 28796
+deterministic: 12263
+strong_cartesian: 16757
+weak_cartesian: 28739
+counter_boxed: 28547
+counter_deterministic: 27118
+single_counter_active: 27969

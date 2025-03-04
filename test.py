@@ -1,49 +1,40 @@
 """Test"""
 
+from json import dumps
 import logging
-import os
-import re
-import sys
-import warnings
 
-from src.position_automaton import PositionAutomaton
 from src.position_counter_automaton import PositionCounterAutomaton
+from src.position_counter_automaton import super_config_to_json
+
+
+def main() -> None:
+    pattern = input()
+    automaton = PositionCounterAutomaton.create(pattern)
+    print(automaton)
+    while True:
+        text = input()
+        if text == "END":
+            break
+
+        # super_congis = automaton.iterate_super_configs(text)
+        # counter_cartesian_super_configs = (
+        #     automaton.iterate_counter_cartesian_super_configs(text)
+        # )
+        # for super_config, counter_cartesian_super_config in zip(
+        #     super_congis, counter_cartesian_super_configs
+        # ):
+        #     print(dumps(super_config_to_json(super_config)))
+        #     print(dumps(counter_cartesian_super_config.unfold()))
+
+        #     print(dumps(counter_cartesian_super_config.to_json()))
+        #     print()
+        super_congis = automaton.iterate_super_configs(text)
+        for super_config in super_congis:
+            print(dumps(super_config_to_json(super_config)))
+        #     print(dumps(counter_cartesian_super_config.to_json()))
+        #     print()
+        print(automaton(text))
 
 if __name__ == "__main__":
-    logging.basicConfig(level=os.environ.get("LOGLEVEL", "WARNING"))
-    warnings.simplefilter(action="ignore", category=FutureWarning)
-
-    pattern = sys.argv[1]
-    text = sys.argv[2]
-
-    logging.info("Pattern: %s", pattern)
-    logging.info("Text: %s", text)
-
-    compiled = re.compile(pattern)
-    re_result = compiled.fullmatch(text) is not None
-
-    try:
-        automaton = PositionAutomaton.create(pattern)
-        thompson_result = automaton(text)
-        backtrack_result = automaton.backtrack(text)
-
-        if re_result != thompson_result or re_result != backtrack_result:
-            logging.error("  Pattern: %s", pattern)
-            logging.error("     Text: %s", text)
-            logging.error("       re: %s", re_result)
-            logging.error(" Thompson: %s", thompson_result)
-            logging.error("Backtrack: %s", backtrack_result)
-    except NotImplementedError as e:
-        logging.error("Automaton Error: %s", e)
-
-    try:
-        counter_automaton = PositionCounterAutomaton.create(pattern)
-        counter_backtrack_result = counter_automaton.backtrack(text)
-
-        if re_result != counter_backtrack_result:
-            logging.error("          Pattern: %s", pattern)
-            logging.error("             Text: %s", text)
-            logging.error("               re: %s", re_result)
-            logging.error("Counter Backtrack: %s", counter_backtrack_result)
-    except NotADirectoryError as e:
-        logging.error("Counter Automaton Error: %s", e)
+    # logging.basicConfig(level=logging.DEBUG)
+    main()

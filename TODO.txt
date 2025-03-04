@@ -1,0 +1,23 @@
+[v] Generate `raw-data/{polyglot,snort29,snort30,regexlib}.txt files. Each line
+of files contain an escaped pattern.
+[v] Implement Normalization
+  [v] Implement `scripts/normalize.py`. It reads a pattern and (1) don't print
+  anything if it contains non-supported features, (2) remove anchors and print
+  it.
+  [v] Implement `make data/normalized/*.txt` to generate normalized patterns.
+[v] Implement test cases generation
+  [v] Implement `scripts/generate_test_cases.py`. It reads a pattern and print
+  a line of "{pattern}\t{testcase0}\t ... \t{testcase10}".
+  [v] Implement `make data/testcases/*.txt` to generate test cases.
+
+[v] Test the engine with the test cases
+[v] Compute configs using the engine
+[ ] Compress the representation of configuration
+
+[v] Check deterministic cases (single configuration)
+[v] Check counter unambiguous case (single assignment for each state in configurations)
+[v] Check counter (semi?) unambiguous case (we "can" track single assignment (max or min) for each state in configurations)
+
+[v] Check how many regex contains counter operation on problematic subexpressions
+
+[ ] Use CountingSet~ to generate inputs
