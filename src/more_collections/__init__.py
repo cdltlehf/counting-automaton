@@ -80,9 +80,7 @@ class OrderedSet(Generic[T]):
                     self._map[curr.value] = curr
                 curr = curr.next
 
-    def append_iterable(
-        self, values: Iterable[T], at: Optional[T] = None
-    ) -> None:
+    def append_iterable(self, values: Iterable[T], at: Optional[T] = None) -> None:
         """Time complexity: O(n)"""
         if at is None:
             node = self._last_node
@@ -102,9 +100,7 @@ class OrderedSet(Generic[T]):
         """Time complexity: O(1)"""
         self.append_iterable([value], at)
 
-    def prepend_iterable(
-        self, values: Iterable[T], at: Optional[T] = None
-    ) -> None:
+    def prepend_iterable(self, values: Iterable[T], at: Optional[T] = None) -> None:
         """Time complexity: O(1)"""
         if at is None:
             node = self._first_node.prev

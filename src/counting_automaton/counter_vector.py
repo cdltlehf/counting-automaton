@@ -1,69 +1,45 @@
 """Counter vector."""
 
 from copy import copy
-from enum import StrEnum
-from typing import Any, Hashable, Iterator, Mapping, Optional
+from enum import Enum
+from typing import Any, Hashable, Mapping, Optional, TypeVar
+from collections import defaultdict
 
-CounterVariable = int
-CounterValue = int
+class StrEnum(str, Enum):
+    pass
 
+T = TypeVar("T", bound=Hashable)
 
-class CounterVector(Mapping[CounterVariable, CounterValue], Hashable):
+class CounterVector(dict[T, int], Hashable):
     """Counter vector."""
 
-    def __init__(self, counters: dict[CounterVariable, int]) -> None:
+    def __init__(self, variables: list[T]) -> None:
         """Initialize a counter vector."""
-        self._values: tuple[Optional[CounterValue], ...]
-        self._values = tuple([None] * len(counters))
-        self._upper_bound = counters
+        self.variables = variables
+        self._index: dict[T, int] = {c: i for i, c in enumerate(variables)}
 
-    def upper_bound(self, counter_variable: CounterVariable) -> int:
-        return self._upper_bound[counter_variable]
+    @property
+    def index(self) -> int:
+        return self._index
 
-    def to_list(self) -> list[Optional[CounterValue]]:
-        return list(self._values)
+    def to_list(self) -> list[Optional[int]]:
+        return [self.get(c, None) for c in self.variables]
+
+    def to_tuple(self) -> tuple[Optional[int]]:
+        return tuple(self.to_list())
+
+    def __setitem__(self, key: T, value: int) -> None:
+        if key not in self.index:
+            raise ValueError(f"Invalid counter variable: {key}")
+        super().__setitem__(key, value)
+
+    def __hash__(self) -> int:
+        return hash(self.to_tuple())
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, CounterVector):
             return NotImplemented
-        return self._values == other._values
-
-    def __str__(self) -> str:
-        return str(self._values)
-
-    def __iter__(self) -> Iterator[CounterVariable]:
-        for i in range(len(self._values)):
-            if self._values[i] is not None:
-                yield i
-
-    def __setitem__(self, key: CounterVariable, value: CounterValue) -> None:
-        self._values = tuple(
-            value if i == key else self._values[i]
-            for i in range(len(self._values))
-        )
-
-    def __getitem__(self, key: CounterVariable) -> CounterValue:
-        value = self._values[key]
-        if value is None:
-            raise KeyError(key)
-        return value
-
-    def __delitem__(self, key: CounterVariable) -> None:
-        self._values = tuple(
-            None if i == key else self._values[i]
-            for i in range(len(self._values))
-        )
-
-    def __len__(self) -> int:
-        return len(self._values)
-
-    def __copy__(self) -> "CounterVector":
-        new = CounterVector(self._upper_bound)
-        new._values = self._values
-        return new
-
-    def __hash__(self) -> int:
-        return hash(self._values)
+        return hash(self) == hash(other)
 
 
 class CounterPredicateType(StrEnum):
@@ -75,9 +51,7 @@ class CounterPredicateType(StrEnum):
 class CounterPredicate(Hashable):
     """Counter Predicate"""
 
-    def __init__(
-        self, predicate_type: CounterPredicateType, value: int
-    ) -> None:
+    def __init__(self, predicate_type: CounterPredicateType, value: int) -> None:
         self.predicate_type = predicate_type
         self.value = value
 
@@ -96,7 +70,7 @@ class CounterPredicate(Hashable):
     def __hash__(self) -> int:
         return hash((self.predicate_type, self.value))
 
-    def __call__(self, counter_value: CounterValue) -> bool:
+    def __call__(self, counter_value: int) -> bool:
         if self.predicate_type is CounterPredicateType.NOT_LESS_THAN:
             return counter_value >= self.value
         elif self.predicate_type is CounterPredicateType.NOT_GREATER_THAN:
@@ -108,66 +82,34 @@ class CounterPredicate(Hashable):
         return f"{self.predicate_type}{self.value}"
 
 
-class Guard(Mapping[CounterVariable, list[CounterPredicate]], Hashable):
+class Guard(defaultdict[T, list[CounterPredicate]], Hashable):
     """Guard"""
 
     def __init__(
         self,
-        guard: Optional[
-            Mapping[CounterVariable, list[CounterPredicate]]
-        ] = None,
+        guard: Optional[Mapping[T, list[CounterPredicate]]] = None,
     ) -> None:
-        if guard is None:
-            guard = {}
-        self._guard = {
-            counter_variable: copy(predicates)
-            for counter_variable, predicates in guard.items()
-        }
+        super().__init__(list)
+        if guard is not None:
+            self.update(guard)
 
     @classmethod
-    def less_than(
-        cls, counter_variable: CounterVariable, value: int
-    ) -> "Guard":
+    def less_than(cls, counter_variable: T, value: int) -> "Guard":
         return cls({counter_variable: [CounterPredicate.less_than(value)]})
 
     @classmethod
-    def not_less_than(
-        cls, counter_variable: CounterVariable, value: int
-    ) -> "Guard":
+    def not_less_than(cls, counter_variable: T, value: int) -> "Guard":
         return cls({counter_variable: [CounterPredicate.not_less_than(value)]})
 
     @classmethod
-    def not_greater_than(
-        cls, counter_variable: CounterVariable, value: int
-    ) -> "Guard":
-        return cls(
-            {counter_variable: [CounterPredicate.not_greater_than(value)]}
-        )
+    def not_greater_than(cls, counter_variable: T, value: int) -> "Guard":
+        return cls({counter_variable: [CounterPredicate.not_greater_than(value)]})
 
     def __hash__(self) -> int:
-        return hash(
-            tuple((key, tuple(value)) for key, value in self._guard.items())
-        )
-
-    def __getitem__(self, key: CounterVariable) -> list[CounterPredicate]:
-        if key not in self._guard:
-            return []
-        return self._guard[key]
-
-    def __iter__(self) -> Iterator[CounterVariable]:
-        return iter(self._guard)
-
-    def __len__(self) -> int:
-        return len(self._guard)
-
-    def __setitem__(
-        self, key: CounterVariable, value: list[CounterPredicate]
-    ) -> None:
-        self._guard[key] = value
+        return hash(tuple((key, tuple(value)) for key, value in self.items()))
 
     def __call__(self, counter_vector: CounterVector) -> bool:
         for counter_variable, predicates in self.items():
-            # assert len(predicates) < 2, "Maybe?"
             for predicate in predicates:
                 if not predicate(counter_vector[counter_variable]):
                     return False
@@ -201,9 +143,7 @@ class CounterOperationComponent(StrEnum):
     INCREASE = "++"
     INACTIVATE = " = None"
 
-    def __call__(
-        self, counter_value: Optional[CounterValue]
-    ) -> Optional[CounterValue]:
+    def __call__(self, counter_value: Optional[int]) -> Optional[int]:
         if self is CounterOperationComponent.NO_OPERATION:
             return counter_value
         elif self is CounterOperationComponent.ACTIVATE_OR_RESET:
@@ -230,36 +170,27 @@ class CounterOperationComponent(StrEnum):
         assert False, other
 
 
-class Action(
-    Mapping[CounterVariable, CounterOperationComponent], Hashable
-):
+class Action(defaultdict[T, CounterOperationComponent], Hashable):
     """Action"""
 
     def __init__(
         self,
-        action: Optional[
-            Mapping[CounterVariable, CounterOperationComponent]
-        ] = None,
+        action: Optional[Mapping[T, CounterOperationComponent]] = None,
     ) -> None:
-        if action is None:
-            action = {}
-        self._action = {
-            counter_variable: copy(components)
-            for counter_variable, components in action.items()
-        }
+        super().__init__(lambda: CounterOperationComponent.NO_OPERATION)
+        if action is not None:
+            self.update(action)
 
     @classmethod
-    def increase(cls, counter_variable: CounterVariable) -> "Action":
+    def increase(cls, counter_variable: T) -> "Action":
         return cls({counter_variable: CounterOperationComponent.INCREASE})
 
     @classmethod
-    def activate(cls, counter_variable: CounterVariable) -> "Action":
-        return cls(
-            {counter_variable: CounterOperationComponent.ACTIVATE_OR_RESET}
-        )
+    def activate(cls, counter_variable: T) -> "Action":
+        return cls({counter_variable: CounterOperationComponent.ACTIVATE_OR_RESET})
 
     @classmethod
-    def inactivate(cls, counter_variable: CounterVariable) -> "Action":
+    def inactivate(cls, counter_variable: T) -> "Action":
         return cls({counter_variable: CounterOperationComponent.INACTIVATE})
 
     def move_and_apply(self, counter_vector: CounterVector) -> CounterVector:
@@ -274,33 +205,13 @@ class Action(
         return counter_vector
 
     def __hash__(self) -> int:
-        return hash(
-            tuple((key, tuple(value)) for key, value in self._action.items())
-        )
+        return hash(tuple((key, tuple(value)) for key, value in self.items()))
 
     def __call__(self, counter_vector: CounterVector) -> CounterVector:
         return self.move_and_apply(copy(counter_vector))
 
     def __copy__(self) -> "Action":
         return Action(self)
-
-    def __getitem__(
-        self, key: CounterVariable
-    ) -> CounterOperationComponent:
-        if key not in self._action:
-            return CounterOperationComponent.NO_OPERATION
-        return self._action[key]
-
-    def __setitem__(
-        self, key: CounterVariable, value: CounterOperationComponent
-    ) -> None:
-        self._action[key] = value
-
-    def __len__(self) -> int:
-        return len(self._action)
-
-    def __iter__(self) -> Iterator[CounterVariable]:
-        return iter(self._action)
 
     def __iadd__(self, other: "Action") -> "Action":
         for variable in other:
@@ -314,11 +225,10 @@ class Action(
 
     def __str__(self) -> str:
         return ", ".join(
-            f"c[{counter}]{operation}"
-            for counter, operation in self.items()
+            f"c[{counter}]{operation}" for counter, operation in self.items()
         )
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Action):
             return NotImplemented
-        return self._action == other._action
+        return hash(self) == hash(other)

@@ -1,41 +1,101 @@
 """Constants used by the re module."""
-from re._constants import _NamedIntConstant as NamedIntConstant  # type: ignore
-from re._constants import ANY
-from re._constants import ASSERT
-from re._constants import ASSERT_NOT
-from re._constants import AT
-from re._constants import AT_BEGINNING
-from re._constants import AT_BEGINNING_STRING
-from re._constants import AT_BOUNDARY
-from re._constants import AT_END
-from re._constants import AT_END_STRING
-from re._constants import AT_NON_BOUNDARY
-from re._constants import ATOMIC_GROUP
-from re._constants import BRANCH
-from re._constants import CATEGORY
-from re._constants import CATEGORY_DIGIT
-from re._constants import CATEGORY_LINEBREAK
-from re._constants import CATEGORY_NOT_DIGIT
-from re._constants import CATEGORY_NOT_LINEBREAK
-from re._constants import CATEGORY_NOT_SPACE
-from re._constants import CATEGORY_NOT_WORD
-from re._constants import CATEGORY_SPACE
-from re._constants import CATEGORY_WORD
-from re._constants import FAILURE
-from re._constants import GROUPREF
-from re._constants import GROUPREF_EXISTS
-from re._constants import IN
-from re._constants import LITERAL
-from re._constants import MAX_REPEAT
-from re._constants import MAXGROUPS
-from re._constants import MAXREPEAT
-from re._constants import MIN_REPEAT
-from re._constants import NEGATE
-from re._constants import NOT_LITERAL
-from re._constants import POSSESSIVE_REPEAT
-from re._constants import RANGE
-from re._constants import SUBPATTERN
-from re._constants import SUCCESS
+try:
+    from re._constants import ANY
+    from re._constants import ASSERT
+    from re._constants import ASSERT_NOT
+    from re._constants import AT
+    from re._constants import ATOMIC_GROUP
+    from re._constants import AT_BEGINNING
+    from re._constants import AT_BEGINNING_STRING
+    from re._constants import AT_BOUNDARY
+    from re._constants import AT_END
+    from re._constants import AT_END_STRING
+    from re._constants import AT_NON_BOUNDARY
+    from re._constants import BRANCH
+    from re._constants import CATEGORY
+    from re._constants import CATEGORY_DIGIT
+    from re._constants import CATEGORY_LINEBREAK
+    from re._constants import CATEGORY_NOT_DIGIT
+    from re._constants import CATEGORY_NOT_LINEBREAK
+    from re._constants import CATEGORY_NOT_SPACE
+    from re._constants import CATEGORY_NOT_WORD
+    from re._constants import CATEGORY_SPACE
+    from re._constants import CATEGORY_WORD
+    from re._constants import FAILURE
+    from re._constants import GROUPREF
+    from re._constants import GROUPREF_EXISTS
+    from re._constants import IN
+    from re._constants import LITERAL
+    from re._constants import MAXGROUPS
+    from re._constants import MAXREPEAT
+    from re._constants import MAX_REPEAT
+    from re._constants import MIN_REPEAT
+    from re._constants import NEGATE
+    from re._constants import NOT_LITERAL
+    from re._constants import POSSESSIVE_REPEAT
+    from re._constants import RANGE
+    from re._constants import SRE_FLAG_ASCII
+    from re._constants import SRE_FLAG_DEBUG
+    from re._constants import SRE_FLAG_DOTALL
+    from re._constants import SRE_FLAG_IGNORECASE
+    from re._constants import SRE_FLAG_LOCALE
+    from re._constants import SRE_FLAG_MULTILINE
+    from re._constants import SRE_FLAG_UNICODE
+    from re._constants import SRE_FLAG_VERBOSE
+    from re._constants import SUBPATTERN
+    from re._constants import SUCCESS
+    from re._constants import _NamedIntConstant as NamedIntConstant  # type: ignore
+    from re._constants import error
+
+except ImportError:
+    from sre_constants import ANY
+    from sre_constants import ASSERT
+    from sre_constants import ASSERT_NOT
+    from sre_constants import AT
+    from sre_constants import AT_BEGINNING
+    from sre_constants import AT_BEGINNING_STRING
+    from sre_constants import AT_BOUNDARY
+    from sre_constants import AT_END
+    from sre_constants import AT_END_STRING
+    from sre_constants import AT_NON_BOUNDARY
+    from sre_constants import BRANCH
+    from sre_constants import CATEGORY
+    from sre_constants import CATEGORY_DIGIT
+    from sre_constants import CATEGORY_LINEBREAK
+    from sre_constants import CATEGORY_NOT_DIGIT
+    from sre_constants import CATEGORY_NOT_LINEBREAK
+    from sre_constants import CATEGORY_NOT_SPACE
+    from sre_constants import CATEGORY_NOT_WORD
+    from sre_constants import CATEGORY_SPACE
+    from sre_constants import CATEGORY_WORD
+    from sre_constants import FAILURE
+    from sre_constants import GROUPREF
+    from sre_constants import GROUPREF_EXISTS
+    from sre_constants import IN
+    from sre_constants import LITERAL
+    from sre_constants import MAXGROUPS
+    from sre_constants import MAXREPEAT
+    from sre_constants import MAX_REPEAT
+    from sre_constants import MIN_REPEAT
+    from sre_constants import NEGATE
+    from sre_constants import NOT_LITERAL
+    from sre_constants import RANGE
+    from sre_constants import SRE_FLAG_ASCII
+    from sre_constants import SRE_FLAG_DEBUG
+    from sre_constants import SRE_FLAG_DOTALL
+    from sre_constants import SRE_FLAG_IGNORECASE
+    from sre_constants import SRE_FLAG_LOCALE
+    from sre_constants import SRE_FLAG_MULTILINE
+    from sre_constants import SRE_FLAG_UNICODE
+    from sre_constants import SRE_FLAG_VERBOSE
+    from sre_constants import SUBPATTERN
+    from sre_constants import SUCCESS
+    from sre_constants import _NamedIntConstant as NamedIntConstant  # type: ignore
+    from sre_constants import error
+    from sre_constants import _NamedIntConstant
+
+    ATOMIC_GROUP = _NamedIntConstant(0x0000, "ATOMIC_GROUP")
+    POSSESSIVE_REPEAT = _NamedIntConstant(0x0000, "POSSESSIVE_REPEAT")
 
 __all__ = [
     "NamedIntConstant",
@@ -76,4 +136,13 @@ __all__ = [
     "MAXREPEAT",
     "MAXGROUPS",
     "SUCCESS",
+    "SRE_FLAG_ASCII",
+    "SRE_FLAG_DEBUG",
+    "SRE_FLAG_DOTALL",
+    "SRE_FLAG_IGNORECASE",
+    "SRE_FLAG_LOCALE",
+    "SRE_FLAG_MULTILINE",
+    "SRE_FLAG_UNICODE",
+    "SRE_FLAG_VERBOSE",
+    "error",
 ]

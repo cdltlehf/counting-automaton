@@ -1,39 +1,33 @@
 """Test"""
 
-from json import dumps
-import logging
-
-from src.position_counter_automaton import PositionCounterAutomaton
-from src.position_counter_automaton import super_config_to_json
+import counting_automaton.position_counting_automaton as pca
+import parser_tools as pt
+import utils as ut
 
 
 def main() -> None:
-    pattern = input()
-    automaton = PositionCounterAutomaton.create(pattern)
-    print(automaton)
-    while True:
-        text = input()
-        if text == "END":
-            break
+    patterns = map(
+        ut.unescape,
+        open("./data/patterns/examples.txt", "r", encoding="utf-8").readlines(),
+    )
+    for pattern in patterns:
+        print(f"Pattern: {pattern}")
+        parsed = pt.parse(pattern)
+        normalized = pt.normalize(parsed)
+        pattern = pt.to_string(normalized)
+        print(f"Normalized: {pattern}")
+        automaton = pca.PositionCountingAutomaton.create(pattern)
+        print(f"Automaton:\n{automaton}")
 
-        # super_congis = automaton.iterate_super_configs(text)
-        # counter_cartesian_super_configs = (
-        #     automaton.iterate_counter_cartesian_super_configs(text)
-        # )
-        # for super_config, counter_cartesian_super_config in zip(
-        #     super_congis, counter_cartesian_super_configs
-        # ):
-        #     print(dumps(super_config_to_json(super_config)))
-        #     print(dumps(counter_cartesian_super_config.unfold()))
+        w = "aaaaaaaaaaaa"
+        print(f"String: {w}")
 
-        #     print(dumps(counter_cartesian_super_config.to_json()))
-        #     print()
-        super_congis = automaton.iterate_super_configs(text)
-        for super_config in super_congis:
-            print(dumps(super_config_to_json(super_config)))
-        #     print(dumps(counter_cartesian_super_config.to_json()))
-        #     print()
-        print(automaton(text))
+        super_configs = automaton.iterate_super_configs(w)
+        for super_config in super_configs:
+            print(f"Super config: {pca.super_config_to_json(super_config)}")
+        match = automaton.match(w)
+        print(f"Match: {match}")
+
 
 if __name__ == "__main__":
     # logging.basicConfig(level=logging.DEBUG)

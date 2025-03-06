@@ -3,14 +3,13 @@
 # mypy: disable-error-code=import-untyped
 # pylint: disable=useless-import-alias
 
-from itertools import chain
 import re
-from re._parser import State
-from re._parser import SubPattern as SubPattern
+import warnings
+from itertools import chain
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Optional, TypeVar
-import warnings
 
+from _re import State, SubPattern
 from .constants import *
 from .parser import parse as parse
 
@@ -33,6 +32,7 @@ T_co = TypeVar("T_co", covariant=True)
 #         GROUPREF_EXISTS,
 #     }
 # )
+
 
 def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
     opcode, value = node
@@ -78,7 +78,6 @@ def fold(
     f: Callable[[Optional[tuple[NamedIntConstant, Any]], Iterable[T]], T],
     tree: SubPattern,
 ) -> T:
-
     def _fold(tree: SubPattern) -> Iterable[T]:
         for node in tree:
             opcode, _ = node
@@ -133,7 +132,9 @@ def category_to_string(category: NamedIntConstant) -> str:
 
 
 def repeat_to_string(
-    opcode: NamedIntConstant, operand: Any, ys: Iterable[str]
+    opcode: NamedIntConstant,
+    operand: Any,
+    ys: Iterable[str],
 ) -> str:
     repeat_ch = {
         MIN_REPEAT: "?",
@@ -142,9 +143,11 @@ def repeat_to_string(
     }[opcode]
 
     m, n = operand
+    ys = list(ys)
+    ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
     if n is MAXREPEAT:
-        return f"(?:{''.join(ys)}){{{m},}}{repeat_ch}"
-    return f"(?:{''.join(ys)}){{{m},{n}}}{repeat_ch}"
+        return f"{ys_str}{{{m},}}{repeat_ch}"
+    return f"{ys_str}{{{m},{n}}}{repeat_ch}"
 
 
 def subpattern_to_string(
@@ -181,10 +184,8 @@ def at_to_string(at: NamedIntConstant) -> str:
     except KeyError as e:
         raise NotImplementedError(f"Unknown at: {at}") from e
 
-def to_string_f(
-    x: Optional[tuple[NamedIntConstant, Any]],
-    ys: Iterable[str]
-) -> str:
+
+def to_string_f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
     if x is None:
         return "".join(ys)
     opcode, operand = x
@@ -212,6 +213,7 @@ def to_string_f(
         return subpattern_to_string(opcode, operand, ys)
     else:
         raise NotImplementedError(f"Unknown opcode: {opcode}")
+
 
 def to_string(tree: SubPattern) -> str:
     return fold(to_string_f, tree)

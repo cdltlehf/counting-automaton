@@ -1,29 +1,22 @@
-"""Position counter automaton."""
+"""Position counting automaton."""
 
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 
+import logging
 from collections import defaultdict as dd
 from copy import copy
 from functools import reduce
 from json import dumps
-import logging
-import re._compiler as compiler  # type: ignore[import-untyped]
-from re._parser import SubPattern  # type: ignore[import-untyped]
 from typing import Any, Iterable, Optional
 
-from .counter_cartesian_super_config import CounterCartesianSuperConfig
-from .counter_cartesian_super_config import StateMap
-from .counter_vector import Action
-from .counter_vector import CounterVariable
-from .counter_vector import CounterVector
-from .counter_vector import Guard
-from .more_collections import OrderedSet
-from .parser_tools import fold
-from .parser_tools import MAX_REPEAT
-from .parser_tools import MIN_REPEAT
-from .parser_tools import parse
-from .parser_tools.constants import *
+from more_collections import OrderedSet
+from parser_tools import MAX_REPEAT, MIN_REPEAT, fold, parse
+from parser_tools.constants import *
+
+from _re import SubPattern, _compile
+from .counter_cartesian_super_config import CounterCartesianSuperConfig, StateMap
+from .counter_vector import Action, CounterVector, Guard
 
 State = int
 SymbolPredicate = Any
@@ -68,13 +61,13 @@ def super_config_to_json(
     }
 
 
-class PositionCounterAutomaton:
+class PositionCountingAutomaton:
     """Position counter automaton."""
 
     def __init__(
         self,
         states: dict[State, SymbolPredicate],
-        counters: dict[CounterVariable, int],
+        counters: dict[int, int],
         follow: Follow,
     ) -> None:
         self.states = states
@@ -82,15 +75,15 @@ class PositionCounterAutomaton:
         self.follow = follow
 
     @classmethod
-    def create(cls, pattern: str) -> "PositionCounterAutomaton":
+    def create(cls, pattern: str) -> "PositionCountingAutomaton":
         tree = parse(pattern)
         logging.debug(tree)
         callback_object = _PositionConstructionCallback()
 
         def callback(
             x: Optional[tuple[NamedIntConstant, Any]],
-            ys: Iterable[PositionCounterAutomaton],
-        ) -> PositionCounterAutomaton:
+            ys: Iterable[PositionCountingAutomaton],
+        ) -> PositionCountingAutomaton:
             automaton = callback_object(x, ys)
             logging.debug(x)
             logging.debug(automaton)
@@ -104,7 +97,7 @@ class PositionCounterAutomaton:
         if isinstance(self.states[state], str):
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
-            compiled = compiler.compile(self.states[state])
+            compiled = _compile(self.states[state])
             return compiled.fullmatch(symbol) is not None
         assert False, type(self.states[state])
 
@@ -207,8 +200,7 @@ class PositionCounterAutomaton:
         logging.debug(dumps(super_config_to_json(super_config)))
         logging.debug("Matching end")
         return any(
-            self.check_final(config)
-            for config in iterate_super_config(super_config)
+            self.check_final(config) for config in iterate_super_config(super_config)
         )
 
     def __call__(self, w: str) -> bool:
@@ -229,22 +221,9 @@ class PositionCounterAutomaton:
                 )
 
                 if result is None:
-                    logging.warning(
-                        "(%s, %s) %s (failed)",
-                        state,
-                        dumps(counter_set_vector),
-                        arc_to_str(arc),
-                    )
                     continue
 
                 adjacent_state, adjacent_counter_set_vector = result
-                logging.warning(
-                    "(%s, %s) %s; %s",
-                    state,
-                    dumps(counter_set_vector),
-                    arc_to_str(arc),
-                    dumps(adjacent_counter_set_vector),
-                )
 
                 if adjacent_state is FINAL_STATE:
                     continue
@@ -253,15 +232,15 @@ class PositionCounterAutomaton:
                     continue
 
                 if adjacent_state not in next_counter_set_vectors:
-                    next_counter_set_vectors[adjacent_state] = (
-                        adjacent_counter_set_vector
-                    )
+                    next_counter_set_vectors[
+                        adjacent_state
+                    ] = adjacent_counter_set_vector
                 else:
-                    next_counter_set_vectors[adjacent_state] = (
-                        super_config.union_counter_set_vector(
-                            next_counter_set_vectors[adjacent_state],
-                            adjacent_counter_set_vector,
-                        )
+                    next_counter_set_vectors[
+                        adjacent_state
+                    ] = super_config.union_counter_set_vector(
+                        next_counter_set_vectors[adjacent_state],
+                        adjacent_counter_set_vector,
                     )
             super_config.free_counter_set_vector(counter_set_vector)
         super_config.counter_set_vectors = next_counter_set_vectors
@@ -320,9 +299,7 @@ class PositionCounterAutomaton:
                 return self.check_final(config)
 
             next_configs = self.get_next_configs(config, w[index])
-            return any(
-                _backtrack(w, config, index + 1) for config in next_configs
-            )
+            return any(_backtrack(w, config, index + 1) for config in next_configs)
 
         initial_counter = CounterVector(self.counters)
         return _backtrack(w, (0, initial_counter), 0)
@@ -334,7 +311,7 @@ class _PositionConstructionCallback:
 
     def __init__(self) -> None:
         self.state = 0
-        self.counter = -1
+        self.counter = 0
 
     @staticmethod
     def get_final_arcs(follow: Follow) -> list[tuple[State, Arc]]:
@@ -350,26 +327,26 @@ class _PositionConstructionCallback:
     def create_simple_arc(state: State) -> Arc:
         return (Guard(), Action(), state)
 
-    def call_empty(self) -> PositionCounterAutomaton:
+    def call_empty(self) -> PositionCountingAutomaton:
         follow: Follow = dd(OrderedSet)
         follow[INITIAL_STATE].append(self.create_simple_arc(FINAL_STATE))
-        return PositionCounterAutomaton({}, {}, follow)
+        return PositionCountingAutomaton({}, {}, follow)
 
-    def call_predicate(self, x: tuple[str, Any]) -> PositionCounterAutomaton:
+    def call_predicate(self, x: tuple[str, Any]) -> PositionCountingAutomaton:
         _, operand = x
         self.state += 1
 
         follow: Follow = dd(OrderedSet)
         follow[INITIAL_STATE].append(self.create_simple_arc(self.state))
         follow[self.state].append(self.create_simple_arc(FINAL_STATE))
-        return PositionCounterAutomaton({self.state: operand}, {}, follow)
+        return PositionCountingAutomaton({self.state: operand}, {}, follow)
 
-    def call_at(self, x: tuple[str, Any]) -> PositionCounterAutomaton:
+    def call_at(self, x: tuple[str, Any]) -> PositionCountingAutomaton:
         raise NotImplementedError("Anchor is not supported")
 
     def call_catenation(
-        self, y1: PositionCounterAutomaton, y2: PositionCounterAutomaton
-    ) -> PositionCounterAutomaton:
+        self, y1: PositionCountingAutomaton, y2: PositionCountingAutomaton
+    ) -> PositionCountingAutomaton:
         assert y1.states.keys().isdisjoint(y2.states.keys())
 
         for final_state, final_arc in self.get_final_arcs(y1.follow):
@@ -395,8 +372,8 @@ class _PositionConstructionCallback:
         return y1
 
     def call_union(
-        self, y1: PositionCounterAutomaton, y2: PositionCounterAutomaton
-    ) -> PositionCounterAutomaton:
+        self, y1: PositionCountingAutomaton, y2: PositionCountingAutomaton
+    ) -> PositionCountingAutomaton:
         assert y1.states.keys().isdisjoint(y2.states.keys())
 
         y1.follow[INITIAL_STATE].append_iterable(y2.follow[INITIAL_STATE])
@@ -410,15 +387,15 @@ class _PositionConstructionCallback:
         return y1
 
     def call_star(
-        self, y: PositionCounterAutomaton, lazy: bool
-    ) -> PositionCounterAutomaton:
+        self, y: PositionCountingAutomaton, lazy: bool
+    ) -> PositionCountingAutomaton:
         y = self.call_plus(y, lazy)
         y = self.call_question(y, lazy)
         return y
 
     def call_plus(
-        self, y: PositionCounterAutomaton, lazy: bool
-    ) -> PositionCounterAutomaton:
+        self, y: PositionCountingAutomaton, lazy: bool
+    ) -> PositionCountingAutomaton:
         for final_state, final_arc in self.get_final_arcs(y.follow):
             guard, action, _ = final_arc
 
@@ -436,8 +413,8 @@ class _PositionConstructionCallback:
         return y
 
     def call_question(
-        self, y: PositionCounterAutomaton, lazy: bool
-    ) -> PositionCounterAutomaton:
+        self, y: PositionCountingAutomaton, lazy: bool
+    ) -> PositionCountingAutomaton:
         if lazy:
             y.follow[INITIAL_STATE].prepend(self.create_simple_arc(FINAL_STATE))
         else:
@@ -446,11 +423,11 @@ class _PositionConstructionCallback:
 
     def call_repeat(
         self,
-        y: PositionCounterAutomaton,
+        y: PositionCountingAutomaton,
         lower_bound: int,
         upper_bound: Optional[int],
         lazy: bool,
-    ) -> PositionCounterAutomaton:
+    ) -> PositionCountingAutomaton:
         self.counter += 1
 
         final_arcs = self.get_final_arcs(y.follow)
@@ -524,8 +501,8 @@ class _PositionConstructionCallback:
     def __call__(
         self,
         x: Optional[tuple[NamedIntConstant, Any]],
-        ys: Iterable[PositionCounterAutomaton],
-    ) -> PositionCounterAutomaton:
+        ys: Iterable[PositionCountingAutomaton],
+    ) -> PositionCountingAutomaton:
 
         if x is None:
             return reduce(self.call_catenation, ys, self.call_empty())

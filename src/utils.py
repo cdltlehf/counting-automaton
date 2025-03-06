@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Iterable
+from typing import Iterable, Union
 
 
 def escape(text: str) -> str:
@@ -17,10 +17,11 @@ def unescape(text: str) -> str:
 
 
 def load_test_cases(
-    path: os.PathLike[str] | str
+    path: Union[os.PathLike[str], str]
 ) -> Iterable[tuple[str, list[str]]]:
     with open(path, "r", encoding="utf-8") as dataset:
         yield from read_test_cases(dataset)
+
 
 def read_test_cases(dataset: Iterable[str]) -> Iterable[tuple[str, list[str]]]:
     for line in dataset:
