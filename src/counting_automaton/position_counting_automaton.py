@@ -3,28 +3,32 @@
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 
-import logging
 from collections import defaultdict as dd
 from copy import copy
 from functools import reduce
 from json import dumps
+import logging
 from typing import Any, Iterable, Optional
 
+from _re import _compile  # type: ignore
+from _re import SubPattern
 from more_collections import OrderedSet
-from parser_tools import MAX_REPEAT, MIN_REPEAT, fold, parse
+from parser_tools import fold
+from parser_tools import MAX_REPEAT
+from parser_tools import MIN_REPEAT
+from parser_tools import parse  # type: ignore
 from parser_tools.constants import *
 
-from _re import SubPattern, _compile
-from .counter_cartesian_super_config import CounterCartesianSuperConfig, StateMap
-from .counter_vector import Action, CounterVector, Guard
+from .counter_vector import Action
+from .counter_vector import CounterVector
+from .counter_vector import Guard
 
 State = int
+CounterVariable = int
 SymbolPredicate = Any
-Arc = tuple[Guard, Action, State]
+Arc = tuple[Guard[CounterVariable], Action[CounterVariable], State]
 Follow = dd[State, OrderedSet[Arc]]
-Config = tuple[State, CounterVector]
-# SuperConfig = OrderedSet[Config]
-SuperConfig = dd[State, OrderedSet[CounterVector]]
+Config = tuple[State, CounterVector[CounterVariable]]
 
 INITIAL_STATE: State = 0
 FINAL_STATE: State = -1
@@ -35,14 +39,8 @@ def arc_to_str(arc: Arc) -> str:
     return f"-{{{guard}; {action}}}-> {adjacent_state}"
 
 
-def iterate_super_config(super_config: SuperConfig) -> Iterable[Config]:
-    for state, counter_vectors in super_config.items():
-        for counter_vector in counter_vectors:
-            yield (state, counter_vector)
-
-
 def counter_vector_to_json(
-    counter_vector: CounterVector,
+    counter_vector: CounterVector[CounterVariable],
 ) -> list[Optional[int]]:
     return counter_vector.to_list()
 
@@ -52,13 +50,13 @@ def config_to_json(config: Config) -> tuple[State, list[Optional[int]]]:
     return (state, counter_vector_to_json(counter_vector))
 
 
-def super_config_to_json(
-    super_config: SuperConfig,
-) -> dict[State, list[list[Optional[int]]]]:
-    return {
-        state: [counter_vector_to_json(config) for config in configs]
-        for state, configs in super_config.items()
-    }
+# def super_config_to_json(
+#     super_config: SuperConfig,
+# ) -> dict[State, list[list[Optional[int]]]]:
+#     return {
+#         state: [counter_vector_to_json(config) for config in configs]
+#         for state, configs in super_config.items()
+#     }
 
 
 class PositionCountingAutomaton:
@@ -115,16 +113,6 @@ class PositionCountingAutomaton:
             ]
         )
 
-    def check_final(self, config: Config) -> bool:
-        cur_state, counter_vector = config
-        logging.debug(dumps(config_to_json(config)))
-        for guard, _, adjacent_state in self.follow[cur_state]:
-            if adjacent_state is not FINAL_STATE:
-                continue
-            if guard(counter_vector):
-                return True
-        return False
-
     def is_nullable(self) -> bool:
         for _, _, adjacent_state in self.follow[INITIAL_STATE]:
             if adjacent_state is FINAL_STATE:
@@ -150,159 +138,37 @@ class PositionCountingAutomaton:
             next_configs.append((adjacent_state, next_counter_vector))
         return next_configs
 
-    def get_next_super_config(
-        self, super_config: SuperConfig, symbol: str
-    ) -> SuperConfig:
-        assert len(symbol) == 1
-
-        next_super_config: SuperConfig = dd(OrderedSet)
-        for config in iterate_super_config(super_config):
-            next_configs = self.get_next_configs(config, symbol)
-            for state, counter_vector in next_configs:
-                next_super_config[state].append(counter_vector)
-        return next_super_config
+    def check_final(self, config: Config) -> bool:
+        cur_state, counter_vector = config
+        logging.debug(dumps(config_to_json(config)))
+        for guard, _, adjacent_state in self.follow[cur_state]:
+            if adjacent_state is not FINAL_STATE:
+                continue
+            if guard(counter_vector):
+                return True
+        return False
 
     def get_initial_config(self) -> Config:
-        return (INITIAL_STATE, CounterVector(self.counters))
+        initial_counter = CounterVector(self.counters.keys())
+        initial_config = (0, initial_counter)
+        return initial_config
 
-    def get_initial_super_config(self) -> SuperConfig:
-        initial_config = self.get_initial_config()
-        initial_state, initial_counter_vector = initial_config
-
-        super_config: SuperConfig = dd(OrderedSet)
-        super_config[initial_state].append(initial_counter_vector)
-        return super_config
-
-    def iterate_super_configs(self, w: str) -> Iterable[SuperConfig]:
-        super_config = self.get_initial_super_config()
-        yield super_config
-
-        for index, symbol in enumerate(w):
-            logging.debug("%s", w)
-            logging.debug("%s", " " * index + "^" + symbol)
-            logging.debug(dumps(super_config_to_json(super_config)))
-            super_config = self.get_next_super_config(super_config, symbol)
-            yield super_config
-
-    def match(self, w: str) -> bool:
-        logging.debug("Matching")
-
-        if not w:
-            return self.is_nullable()
-
-        super_config: SuperConfig
-        for super_config in self.iterate_super_configs(w):
-            if not super_config:
-                return False
-
+    def backtrack(self, w: str, config: Config, index: int) -> bool:
         logging.debug("%s", w)
-        logging.debug("%s", " " * len(w) + "^")
-        logging.debug(dumps(super_config_to_json(super_config)))
-        logging.debug("Matching end")
+        logging.debug("%s", " " * index + "^")
+        logging.debug("%d %s", index, str(config))
+        if len(w) == index:
+            return self.check_final(config)
+
+        next_configs = self.get_next_configs(config, w[index])
         return any(
-            self.check_final(config) for config in iterate_super_config(super_config)
+            self.backtrack(w, config, index + 1) for config in next_configs
         )
 
     def __call__(self, w: str) -> bool:
-        return self.match(w)
-
-    def get_next_counter_cartesian_super_config(
-        self, super_config: CounterCartesianSuperConfig, symbol: str
-    ) -> CounterCartesianSuperConfig:
-
-        next_counter_set_vectors: StateMap = {}
-        for (
-            state,
-            counter_set_vector,
-        ) in super_config.counter_set_vectors.items():
-            for arc in self.follow[state]:
-                result = super_config.apply_arc_to_counter_set_vector(
-                    counter_set_vector, arc
-                )
-
-                if result is None:
-                    continue
-
-                adjacent_state, adjacent_counter_set_vector = result
-
-                if adjacent_state is FINAL_STATE:
-                    continue
-
-                if not self.eval_state(adjacent_state, symbol):
-                    continue
-
-                if adjacent_state not in next_counter_set_vectors:
-                    next_counter_set_vectors[
-                        adjacent_state
-                    ] = adjacent_counter_set_vector
-                else:
-                    next_counter_set_vectors[
-                        adjacent_state
-                    ] = super_config.union_counter_set_vector(
-                        next_counter_set_vectors[adjacent_state],
-                        adjacent_counter_set_vector,
-                    )
-            super_config.free_counter_set_vector(counter_set_vector)
-        super_config.counter_set_vectors = next_counter_set_vectors
-        return super_config
-
-    def iterate_counter_cartesian_super_configs(
-        self, w: str
-    ) -> Iterable[CounterCartesianSuperConfig]:
-        super_config = CounterCartesianSuperConfig(INITIAL_STATE, self.counters)
-        yield super_config
-        for index, symbol in enumerate(w):
-            logging.debug("%s", w)
-            logging.debug("%s", " " * index + "^" + symbol)
-            logging.debug(dumps(super_config.to_json()))
-            super_config = self.get_next_counter_cartesian_super_config(
-                super_config, symbol
-            )
-            yield super_config
-
-    def counter_cartesian_check_final(
-        self, super_config: CounterCartesianSuperConfig
-    ) -> bool:
-        for state, counter_set_vector in super_config.items():
-            for guard, _, adjacent_state in self.follow[state]:
-                if adjacent_state is not FINAL_STATE:
-                    continue
-                if super_config.evaluate_guard(guard, counter_set_vector):
-                    return True
-        return False
-
-    def counter_cartesian_match(self, w: str) -> bool:
-        logging.debug("Counter Cartesian matching")
-
-        if not w:
-            return self.is_nullable()
-
-        super_config: CounterCartesianSuperConfig
-        for super_config in self.iterate_counter_cartesian_super_configs(w):
-            if not super_config:
-                return False
-
-        logging.debug("%s", w)
-        logging.debug("%s", " " * len(w) + "^")
-        # logging.debug(dumps(super_config_to_json(super_config)))
-        logging.debug("Matching end")
-        return self.counter_cartesian_check_final(super_config)
-
-    def backtrack(self, w: str) -> bool:
         logging.debug("Backtrack matching")
-
-        def _backtrack(w: str, config: Config, index: int) -> bool:
-            logging.debug("%s", w)
-            logging.debug("%s", " " * index + "^")
-            logging.debug("%d %s", index, str(config))
-            if len(w) == index:
-                return self.check_final(config)
-
-            next_configs = self.get_next_configs(config, w[index])
-            return any(_backtrack(w, config, index + 1) for config in next_configs)
-
-        initial_counter = CounterVector(self.counters)
-        return _backtrack(w, (0, initial_counter), 0)
+        initial_config = self.get_initial_config()
+        return self.backtrack(w, initial_config, 0)
 
 
 class _PositionConstructionCallback:

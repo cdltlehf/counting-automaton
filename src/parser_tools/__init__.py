@@ -3,35 +3,22 @@
 # mypy: disable-error-code=import-untyped
 # pylint: disable=useless-import-alias
 
-import re
-import warnings
 from itertools import chain
+import re
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Optional, TypeVar
+import warnings
 
-from _re import State, SubPattern
+from _re import State
+from _re import SubPattern
+
 from .constants import *
-from .parser import parse as parse
+from .parser import parse
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-
-# PREDICATE_OPCODES = frozenset({LITERAL, ANY, NOT_LITERAL, IN})
-# ACTION_OPCODES = frozenset({GROUPREF, AT, GROUPREF_EXISTS})
-# REPEAT_OPCODES = frozenset({MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT})
-# OPERATION_OPCODES = REPEAT_OPCODES | {BRANCH}
-# SUBPATTERN_OPCODES = frozenset({SUBPATTERN, ASSERT, ASSERT_NOT, ATOMIC_GROUP})
-# EXTENDED_OPCODES = frozenset(
-#     {
-#         GROUPREF,
-#         ASSERT,
-#         ASSERT_NOT,
-#         ATOMIC_GROUP,
-#         GROUPREF_EXISTS,
-#     }
-# )
 
 
 def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
@@ -185,7 +172,9 @@ def at_to_string(at: NamedIntConstant) -> str:
         raise NotImplementedError(f"Unknown at: {at}") from e
 
 
-def to_string_f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
+def to_string_f(
+    x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]
+) -> str:
     if x is None:
         return "".join(ys)
     opcode, operand = x

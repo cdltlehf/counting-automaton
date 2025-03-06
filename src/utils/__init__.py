@@ -17,7 +17,7 @@ def unescape(text: str) -> str:
 
 
 def load_test_cases(
-    path: Union[os.PathLike[str], str]
+    path: Union[os.PathLike[str], str],
 ) -> Iterable[tuple[str, list[str]]]:
     with open(path, "r", encoding="utf-8") as dataset:
         yield from read_test_cases(dataset)

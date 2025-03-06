@@ -52,7 +52,9 @@ class PositionAutomaton:
     def __str__(self) -> str:
         follow_string = (
             "{"
-            + ", ".join(f"{state}: {follow}" for state, follow in self.follow.items())
+            + ", ".join(
+                f"{state}: {follow}" for state, follow in self.follow.items()
+            )
             + "}"
         )
         return "\n".join(
@@ -170,7 +172,9 @@ class PositionAutomaton:
     def is_one_unambiguous(self) -> bool:
         flag = True
         for p in self.states:
-            if any(len(self.get_next_states(p, c)) > 1 for c in string.printable):
+            if any(
+                len(self.get_next_states(p, c)) > 1 for c in string.printable
+            ):
                 flag = False
                 break
         return flag
@@ -242,7 +246,9 @@ class _PositionConstructionCallback:
                 y.follow[state].append(-1)
         return y
 
-    def call_question(self, y: PositionAutomaton, lazy: bool) -> PositionAutomaton:
+    def call_question(
+        self, y: PositionAutomaton, lazy: bool
+    ) -> PositionAutomaton:
         if lazy:
             if y.nullable:
                 y.follow[0].remove(-1)

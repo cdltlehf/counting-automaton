@@ -46,7 +46,9 @@ def is_literal_sequence(tree: SubPattern) -> bool:
 
 
 def is_anchored_literal_sequence(tree: SubPattern) -> bool:
-    return all(opcode in {LITERAL, AT} | SUBPATTERN_OPCODES for opcode, _ in dfs(tree))
+    return all(
+        opcode in {LITERAL, AT} | SUBPATTERN_OPCODES for opcode, _ in dfs(tree)
+    )
 
 
 def is_anchored_predicate_sequence(tree: SubPattern) -> bool:

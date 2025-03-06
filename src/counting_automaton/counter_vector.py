@@ -1,31 +1,34 @@
 """Counter vector."""
 
+from collections import defaultdict
 from copy import copy
 from enum import Enum
-from typing import Any, Hashable, Mapping, Optional, TypeVar
-from collections import defaultdict
+from typing import Any, Generic, Hashable, Iterable, Mapping, Optional, TypeVar
+
 
 class StrEnum(str, Enum):
     pass
 
+
 T = TypeVar("T", bound=Hashable)
 
-class CounterVector(dict[T, int], Hashable):
+
+class CounterVector(Generic[T], dict[T, int], Hashable):
     """Counter vector."""
 
-    def __init__(self, variables: list[T]) -> None:
+    def __init__(self, variables: Iterable[T]) -> None:
         """Initialize a counter vector."""
         self.variables = variables
         self._index: dict[T, int] = {c: i for i, c in enumerate(variables)}
 
     @property
-    def index(self) -> int:
+    def index(self) -> dict[T, int]:
         return self._index
 
     def to_list(self) -> list[Optional[int]]:
         return [self.get(c, None) for c in self.variables]
 
-    def to_tuple(self) -> tuple[Optional[int]]:
+    def to_tuple(self) -> tuple[Optional[int], ...]:
         return tuple(self.to_list())
 
     def __setitem__(self, key: T, value: int) -> None:
@@ -51,7 +54,9 @@ class CounterPredicateType(StrEnum):
 class CounterPredicate(Hashable):
     """Counter Predicate"""
 
-    def __init__(self, predicate_type: CounterPredicateType, value: int) -> None:
+    def __init__(
+        self, predicate_type: CounterPredicateType, value: int
+    ) -> None:
         self.predicate_type = predicate_type
         self.value = value
 
@@ -94,36 +99,38 @@ class Guard(defaultdict[T, list[CounterPredicate]], Hashable):
             self.update(guard)
 
     @classmethod
-    def less_than(cls, counter_variable: T, value: int) -> "Guard":
+    def less_than(cls, counter_variable: T, value: int) -> "Guard[T]":
         return cls({counter_variable: [CounterPredicate.less_than(value)]})
 
     @classmethod
-    def not_less_than(cls, counter_variable: T, value: int) -> "Guard":
+    def not_less_than(cls, counter_variable: T, value: int) -> "Guard[T]":
         return cls({counter_variable: [CounterPredicate.not_less_than(value)]})
 
     @classmethod
-    def not_greater_than(cls, counter_variable: T, value: int) -> "Guard":
-        return cls({counter_variable: [CounterPredicate.not_greater_than(value)]})
+    def not_greater_than(cls, counter_variable: T, value: int) -> "Guard[T]":
+        return cls(
+            {counter_variable: [CounterPredicate.not_greater_than(value)]}
+        )
 
     def __hash__(self) -> int:
         return hash(tuple((key, tuple(value)) for key, value in self.items()))
 
-    def __call__(self, counter_vector: CounterVector) -> bool:
+    def __call__(self, counter_vector: CounterVector[T]) -> bool:
         for counter_variable, predicates in self.items():
             for predicate in predicates:
                 if not predicate(counter_vector[counter_variable]):
                     return False
         return True
 
-    def __copy__(self) -> "Guard":
+    def __copy__(self) -> "Guard[T]":
         return Guard(self)
 
-    def __iadd__(self, other: "Guard") -> "Guard":
+    def __iadd__(self, other: "Guard[T]") -> "Guard[T]":
         for variable in other:
             self[variable] += other[variable]
         return self
 
-    def __add__(self, other: "Guard") -> "Guard":
+    def __add__(self, other: "Guard[T]") -> "Guard[T]":
         new = copy(self)
         new += other
         return new
@@ -170,7 +177,7 @@ class CounterOperationComponent(StrEnum):
         assert False, other
 
 
-class Action(defaultdict[T, CounterOperationComponent], Hashable):
+class Action(Generic[T], defaultdict[T, CounterOperationComponent], Hashable):
     """Action"""
 
     def __init__(
@@ -182,18 +189,22 @@ class Action(defaultdict[T, CounterOperationComponent], Hashable):
             self.update(action)
 
     @classmethod
-    def increase(cls, counter_variable: T) -> "Action":
+    def increase(cls, counter_variable: T) -> "Action[T]":
         return cls({counter_variable: CounterOperationComponent.INCREASE})
 
     @classmethod
-    def activate(cls, counter_variable: T) -> "Action":
-        return cls({counter_variable: CounterOperationComponent.ACTIVATE_OR_RESET})
+    def activate(cls, counter_variable: T) -> "Action[T]":
+        return cls(
+            {counter_variable: CounterOperationComponent.ACTIVATE_OR_RESET}
+        )
 
     @classmethod
-    def inactivate(cls, counter_variable: T) -> "Action":
+    def inactivate(cls, counter_variable: T) -> "Action[T]":
         return cls({counter_variable: CounterOperationComponent.INACTIVATE})
 
-    def move_and_apply(self, counter_vector: CounterVector) -> CounterVector:
+    def move_and_apply(
+        self, counter_vector: CounterVector[T]
+    ) -> CounterVector[T]:
         for variable in self:
             value = counter_vector.get(variable, None)
             # value = reduce(lambda x, y: y(x), self[variable], value)
@@ -207,18 +218,18 @@ class Action(defaultdict[T, CounterOperationComponent], Hashable):
     def __hash__(self) -> int:
         return hash(tuple((key, tuple(value)) for key, value in self.items()))
 
-    def __call__(self, counter_vector: CounterVector) -> CounterVector:
+    def __call__(self, counter_vector: CounterVector[T]) -> CounterVector[T]:
         return self.move_and_apply(copy(counter_vector))
 
-    def __copy__(self) -> "Action":
+    def __copy__(self) -> "Action[T]":
         return Action(self)
 
-    def __iadd__(self, other: "Action") -> "Action":
+    def __iadd__(self, other: "Action[T]") -> "Action[T]":
         for variable in other:
             self[variable] *= other[variable]
         return self
 
-    def __add__(self, other: "Action") -> "Action":
+    def __add__(self, other: "Action[T]") -> "Action[T]":
         new = copy(self)
         new += other
         return new

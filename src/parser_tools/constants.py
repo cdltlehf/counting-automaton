@@ -1,16 +1,18 @@
 """Constants used by the re module."""
+
 try:
+    from re._constants import _NamedIntConstant as NamedIntConstant  # type: ignore
     from re._constants import ANY
     from re._constants import ASSERT
     from re._constants import ASSERT_NOT
     from re._constants import AT
-    from re._constants import ATOMIC_GROUP
     from re._constants import AT_BEGINNING
     from re._constants import AT_BEGINNING_STRING
     from re._constants import AT_BOUNDARY
     from re._constants import AT_END
     from re._constants import AT_END_STRING
     from re._constants import AT_NON_BOUNDARY
+    from re._constants import ATOMIC_GROUP
     from re._constants import BRANCH
     from re._constants import CATEGORY
     from re._constants import CATEGORY_DIGIT
@@ -21,14 +23,15 @@ try:
     from re._constants import CATEGORY_NOT_WORD
     from re._constants import CATEGORY_SPACE
     from re._constants import CATEGORY_WORD
+    from re._constants import error
     from re._constants import FAILURE
     from re._constants import GROUPREF
     from re._constants import GROUPREF_EXISTS
     from re._constants import IN
     from re._constants import LITERAL
+    from re._constants import MAX_REPEAT
     from re._constants import MAXGROUPS
     from re._constants import MAXREPEAT
-    from re._constants import MAX_REPEAT
     from re._constants import MIN_REPEAT
     from re._constants import NEGATE
     from re._constants import NOT_LITERAL
@@ -44,10 +47,9 @@ try:
     from re._constants import SRE_FLAG_VERBOSE
     from re._constants import SUBPATTERN
     from re._constants import SUCCESS
-    from re._constants import _NamedIntConstant as NamedIntConstant  # type: ignore
-    from re._constants import error
 
 except ImportError:
+    from sre_constants import _NamedIntConstant as NamedIntConstant
     from sre_constants import ANY
     from sre_constants import ASSERT
     from sre_constants import ASSERT_NOT
@@ -68,14 +70,15 @@ except ImportError:
     from sre_constants import CATEGORY_NOT_WORD
     from sre_constants import CATEGORY_SPACE
     from sre_constants import CATEGORY_WORD
+    from sre_constants import error
     from sre_constants import FAILURE
     from sre_constants import GROUPREF
     from sre_constants import GROUPREF_EXISTS
     from sre_constants import IN
     from sre_constants import LITERAL
+    from sre_constants import MAX_REPEAT
     from sre_constants import MAXGROUPS
     from sre_constants import MAXREPEAT
-    from sre_constants import MAX_REPEAT
     from sre_constants import MIN_REPEAT
     from sre_constants import NEGATE
     from sre_constants import NOT_LITERAL
@@ -90,26 +93,22 @@ except ImportError:
     from sre_constants import SRE_FLAG_VERBOSE
     from sre_constants import SUBPATTERN
     from sre_constants import SUCCESS
-    from sre_constants import _NamedIntConstant as NamedIntConstant  # type: ignore
-    from sre_constants import error
-    from sre_constants import _NamedIntConstant
 
-    ATOMIC_GROUP = _NamedIntConstant(0x0000, "ATOMIC_GROUP")
-    POSSESSIVE_REPEAT = _NamedIntConstant(0x0000, "POSSESSIVE_REPEAT")
+    ATOMIC_GROUP = NamedIntConstant(0x0000, "ATOMIC_GROUP")
+    POSSESSIVE_REPEAT = NamedIntConstant(0x0000, "POSSESSIVE_REPEAT")
 
 __all__ = [
-    "NamedIntConstant",
     "ANY",
     "ASSERT",
     "ASSERT_NOT",
     "AT",
+    "ATOMIC_GROUP",
     "AT_BEGINNING",
     "AT_BEGINNING_STRING",
     "AT_BOUNDARY",
     "AT_END",
     "AT_END_STRING",
     "AT_NON_BOUNDARY",
-    "ATOMIC_GROUP",
     "BRANCH",
     "CATEGORY",
     "CATEGORY_DIGIT",
@@ -125,17 +124,16 @@ __all__ = [
     "GROUPREF_EXISTS",
     "IN",
     "LITERAL",
-    "MAX_REPEAT",
+    "MAXGROUPS",
     "MAXREPEAT",
+    "MAXREPEAT",
+    "MAX_REPEAT",
     "MIN_REPEAT",
     "NEGATE",
     "NOT_LITERAL",
+    "NamedIntConstant",
     "POSSESSIVE_REPEAT",
     "RANGE",
-    "SUBPATTERN",
-    "MAXREPEAT",
-    "MAXGROUPS",
-    "SUCCESS",
     "SRE_FLAG_ASCII",
     "SRE_FLAG_DEBUG",
     "SRE_FLAG_DOTALL",
@@ -144,5 +142,7 @@ __all__ = [
     "SRE_FLAG_MULTILINE",
     "SRE_FLAG_UNICODE",
     "SRE_FLAG_VERBOSE",
+    "SUBPATTERN",
+    "SUCCESS",
     "error",
 ]

@@ -50,7 +50,9 @@ class CounterCartesianSuperConfig(Mapping[State, CounterSetVector]):
         self._reference_counter: ReferenceCounter = dd(int)
         self._reference_table: ReferenceTable = []
         self.counters = counters
-        self.counter_set_vectors: StateMap = {initial_state: dd(lambda: (None, None))}
+        self.counter_set_vectors: StateMap = {
+            initial_state: dd(lambda: (None, None))
+        }
 
     def __getitem__(self, state: State) -> CounterSetVector:
         return self.counter_set_vectors[state]
@@ -84,7 +86,9 @@ class CounterCartesianSuperConfig(Mapping[State, CounterSetVector]):
         counter_set_vector_1: CounterSetVector,
         counter_set_vector_2: CounterSetVector,
     ) -> CounterSetVector:
-        new_counter_set_vector = self.copy_counter_set_vector(counter_set_vector_1)
+        new_counter_set_vector = self.copy_counter_set_vector(
+            counter_set_vector_1
+        )
         for counter_variable, counter_set_2 in counter_set_vector_2.items():
             counter_set_1 = new_counter_set_vector[counter_variable]
             new_counter_set_vector[counter_variable] = self.union_counter_set(
@@ -145,7 +149,9 @@ class CounterCartesianSuperConfig(Mapping[State, CounterSetVector]):
         for counter_variable, predicates in guard.items():
             counter_set = counter_set_vector[counter_variable]
             for predicate in predicates:
-                if not self.evaluate_predicate_on_counter_set(counter_set, predicate):
+                if not self.evaluate_predicate_on_counter_set(
+                    counter_set, predicate
+                ):
                     return False
         return True
 
@@ -155,7 +161,9 @@ class CounterCartesianSuperConfig(Mapping[State, CounterSetVector]):
             return
         self.reset(ptr)
 
-    def free_counter_set_vector(self, counter_set_vector: CounterSetVector) -> None:
+    def free_counter_set_vector(
+        self, counter_set_vector: CounterSetVector
+    ) -> None:
         for counter_set in counter_set_vector.values():
             self.free_counter_set(counter_set)
 
@@ -226,7 +234,9 @@ class CounterCartesianSuperConfig(Mapping[State, CounterSetVector]):
             return None, ptr
         raise NotImplementedError()
 
-    def evaluate_counter_set(self, counter_set: CounterSet) -> list[Optional[int]]:
+    def evaluate_counter_set(
+        self, counter_set: CounterSet
+    ) -> list[Optional[int]]:
         offset, ptr = counter_set
         if offset is None:
             return [None]
