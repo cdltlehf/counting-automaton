@@ -6,26 +6,23 @@ from itertools import product
 import json
 from typing import Iterator, Mapping, Optional, TypedDict
 
+from more_collections import OrderedSet
+
 from .counter_vector import Action
 from .counter_vector import CounterOperationComponent
 from .counter_vector import CounterPredicate
 from .counter_vector import CounterPredicateType
 from .counter_vector import Guard
-from more_collections import OrderedSet
 
 ListPtr = int
 CounterVariable = int
 CounterValue = Optional[int]
 Values = deque[int]  # TODO: deque[tuple[int, int]]
-# (None, None) -> [None]
-# (n, None) -> [n]
-# (n, ptr) -> [n + v for v in access(ptr)]
-# TODO: Optional[int] -> set[int]
 CounterSet = tuple[Optional[int], Optional[ListPtr]]
 CounterSetVector = dd[CounterVariable, CounterSet]
 State = int
 StateMap = dict[State, CounterSetVector]
-Arc = tuple[Guard, Action, State]
+Arc = tuple[Guard[CounterVariable], Action[CounterVariable], State]
 Follow = dd[State, OrderedSet[Arc]]
 ReferenceCounter = dd[ListPtr, int]
 ReferenceTable = list[Values]
@@ -134,11 +131,14 @@ class CounterCartesianSuperConfig(Mapping[State, CounterSetVector]):
 
         if ptr is not None:
             values = self.access(ptr)
-            value = offset - {
-                CounterPredicateType.NOT_LESS_THAN: values[-1],
-                CounterPredicateType.NOT_GREATER_THAN: values[0],
-                CounterPredicateType.LESS_THAN: values[0],
-            }[predicate.predicate_type]
+            value = (
+                offset
+                - {
+                    CounterPredicateType.NOT_LESS_THAN: values[-1],
+                    CounterPredicateType.NOT_GREATER_THAN: values[0],
+                    CounterPredicateType.LESS_THAN: values[0],
+                }[predicate.predicate_type]
+            )
         else:
             value = offset
         return predicate(value)
@@ -208,9 +208,9 @@ class CounterCartesianSuperConfig(Mapping[State, CounterSetVector]):
                 counter_variable, CounterOperationComponent.NO_OPERATION
             )
             counter_set = counter_set_vector[counter_variable]
-            new_counter_set_vector[
-                counter_variable
-            ] = self.apply_operation_to_counter_set(counter_set, operation)
+            new_counter_set_vector[counter_variable] = (
+                self.apply_operation_to_counter_set(counter_set, operation)
+            )
         return new_counter_set_vector
 
     def apply_operation_to_counter_set(

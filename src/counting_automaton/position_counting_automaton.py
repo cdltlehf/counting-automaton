@@ -10,14 +10,14 @@ from json import dumps
 import logging
 from typing import Any, Iterable, Optional
 
-from _re import _compile  # type: ignore
-from _re import SubPattern
 from more_collections import OrderedSet
 from parser_tools import fold
 from parser_tools import MAX_REPEAT
 from parser_tools import MIN_REPEAT
 from parser_tools import parse  # type: ignore
 from parser_tools.constants import *
+from parser_tools.re import _compile
+from parser_tools.re import SubPattern
 
 from .counter_vector import Action
 from .counter_vector import CounterVector

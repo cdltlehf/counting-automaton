@@ -4,16 +4,15 @@
 # pylint: disable=useless-import-alias
 
 from itertools import chain
-import re
+from re import escape
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
 
-from _re import State
-from _re import SubPattern
-
 from .constants import *
-from .parser import parse
+from .parser import parse  # type: ignore
+from .re import State
+from .re import SubPattern
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -90,10 +89,10 @@ def in_to_string(xs: list[Any]) -> str:
         if opcode is NEGATE:
             result.append("^")
         elif opcode is LITERAL:
-            result.append(re.escape(chr(operand)))
+            result.append(escape(chr(operand)))
         elif opcode is RANGE:
             start, end = operand
-            result.append(f"{re.escape(chr(start))}-{re.escape(chr(end))}")
+            result.append(f"{escape(chr(start))}-{escape(chr(end))}")
         elif opcode is CATEGORY:
             result.append(category_to_string(operand))
         else:
@@ -179,12 +178,12 @@ def to_string_f(
         return "".join(ys)
     opcode, operand = x
     if opcode is LITERAL:
-        return f"{re.escape(operand)}"
+        return f"{escape(operand)}"
     elif opcode is ANY:
         return "."
     elif opcode is NOT_LITERAL:
         _, [(_, c)] = x
-        return f"[^{re.escape(chr(c))}]"
+        return f"[^{escape(chr(c))}]"
     elif opcode is IN:
         _, [(_, zs)] = x
         return in_to_string(zs)
@@ -225,12 +224,12 @@ def normalize(tree: SubPattern) -> SubPattern:
             return "".join(ys)
         opcode, operand = x
         if opcode is LITERAL:
-            return f"{re.escape(operand)}"
+            return f"{escape(operand)}"
         elif opcode is ANY:
             return "."
         elif opcode is NOT_LITERAL:
             _, [(_, c)] = x
-            return f"[^{re.escape(chr(c))}]"
+            return f"[^{escape(chr(c))}]"
         elif opcode is IN:
             _, [(_, zs)] = x
             return in_to_string(zs)

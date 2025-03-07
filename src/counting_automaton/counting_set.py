@@ -1,7 +1,9 @@
 """Counting set"""
-from typing import Iterable, Optional
-from more_collections import Node
+
+from typing import Iterable, Iterator, Optional
+
 from more_collections import LinkedList
+from more_collections import Node
 
 
 class CountingSet(Iterable[int]):
@@ -14,24 +16,23 @@ class CountingSet(Iterable[int]):
         self.list: LinkedList[int] = LinkedList()
         self.max_node: Optional[Node[int]] = None
 
-    def __iter__(self) -> Iterable[int]:
+    def __iter__(self) -> Iterator[int]:
         for node in self.list:
             yield self.offset - node.value
 
     def increase(self) -> "CountingSet":
         self.offset += 1
-        if self.max_node is None:
-            return
-
-        if self.max_node.value < self.offset - self.high:
-            self.max_node = self.max_node.prev
+        if self.max_node is not None:
+            if self.max_node.value < self.offset - self.high:
+                self.max_node = self.max_node.prev
+        return self
 
     def merge(self, other: "CountingSet") -> "CountingSet":
         if self.offset < other.offset:
             raise ValueError("Cannot merge with a set that has a higher offset")
-        self.list.merge(other.list)
-        return self
-
+        raise NotImplementedError("Not implemented")
+        # self.list.merge(other.list)
+        # return self
 
     def check(self) -> bool:
         if self.max_node is None:
@@ -42,6 +43,7 @@ class CountingSet(Iterable[int]):
         self.list.prepend(self.offset - 1)
         if self.max_node is None:
             self.max_node = self.list.tail
+        return self
 
     def __copy__(self) -> "CountingSet":
         return CountingSet.from_list(list(self), self.low, self.high)
@@ -74,7 +76,9 @@ class CountingSet(Iterable[int]):
 
         return s
 
+
 class SparseCountingSet(CountingSet):
+    """Sparse counting set"""
 
     def increase(self) -> "SparseCountingSet":
         tail = self.list.tail
@@ -83,6 +87,7 @@ class SparseCountingSet(CountingSet):
             return self
         if self.offset - tail.value > self.high:
             self.list.remove(tail)
+        return self
 
     @property
     def k(self) -> int:
@@ -92,6 +97,7 @@ class SparseCountingSet(CountingSet):
         super().add_one()
 
         head = self.list.head
+        assert head is not None
         head2 = head.next
         if head2 is None:
             return self
@@ -101,4 +107,3 @@ class SparseCountingSet(CountingSet):
         if head3.value + self.k >= head.value:
             self.list.remove(head2)
         return self
-

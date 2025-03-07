@@ -36,7 +36,7 @@ class CounterVector(Generic[T], dict[T, int], Hashable):
             raise ValueError(f"Invalid counter variable: {key}")
         super().__setitem__(key, value)
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # type: ignore
         return hash(self.to_tuple())
 
     def __eq__(self, other: Any) -> bool:
@@ -112,7 +112,7 @@ class Guard(defaultdict[T, list[CounterPredicate]], Hashable):
             {counter_variable: [CounterPredicate.not_greater_than(value)]}
         )
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # type: ignore
         return hash(tuple((key, tuple(value)) for key, value in self.items()))
 
     def __call__(self, counter_vector: CounterVector[T]) -> bool:
@@ -215,7 +215,7 @@ class Action(Generic[T], defaultdict[T, CounterOperationComponent], Hashable):
                 del counter_vector[variable]
         return counter_vector
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # type: ignore
         return hash(tuple((key, tuple(value)) for key, value in self.items()))
 
     def __call__(self, counter_vector: CounterVector[T]) -> CounterVector[T]:
