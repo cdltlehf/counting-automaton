@@ -1,6 +1,6 @@
 """Position automaton"""
 
-from collections import defaultdict
+from collections import dd
 from functools import reduce
 from itertools import chain
 from itertools import takewhile
@@ -23,7 +23,7 @@ from .parser_tools import MIN_REPEAT
 from .parser_tools import parse
 from .parser_tools import PREDICATE_OPCODES
 
-Follow = defaultdict[int, OrderedSet[int]]
+Follow = dd[int, OrderedSet[int]]
 
 
 class PositionAutomaton:
@@ -188,7 +188,7 @@ class _PositionConstructionCallback:
         self.state = 0
 
     def call_empty(self) -> PositionAutomaton:
-        follow: Follow = defaultdict(OrderedSet)
+        follow: Follow = dd(OrderedSet)
         follow[0].append(-1)
         return PositionAutomaton({}, follow)
 
@@ -196,7 +196,7 @@ class _PositionConstructionCallback:
         self.state += 1
         _, operand = x
 
-        follow: Follow = defaultdict(OrderedSet)
+        follow: Follow = dd(OrderedSet)
         follow[0].append(self.state)
         follow[self.state].append(-1)
         return PositionAutomaton({self.state: operand}, follow)

@@ -1,6 +1,6 @@
 """Counter cartesian super config"""
 
-from collections import defaultdict as dd
+from collections import dd as dd
 from collections import deque
 from itertools import product
 import json

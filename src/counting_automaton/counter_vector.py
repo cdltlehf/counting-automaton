@@ -1,9 +1,9 @@
 """Counter vector."""
 
-from collections import defaultdict
+from collections import defaultdict as dd
 from copy import copy
 from enum import Enum
-from typing import Any, Generic, Hashable, Iterable, Mapping, Optional, TypeVar
+from typing import Any, Hashable, Iterable, Mapping, Optional, TypeVar
 
 
 class StrEnum(str, Enum):
@@ -13,7 +13,7 @@ class StrEnum(str, Enum):
 T = TypeVar("T", bound=Hashable)
 
 
-class CounterVector(Generic[T], dict[T, int], Hashable):
+class CounterVector(dict[T, int], Hashable):
     """Counter vector."""
 
     def __init__(self, variables: Iterable[T]) -> None:
@@ -45,49 +45,46 @@ class CounterVector(Generic[T], dict[T, int], Hashable):
         return hash(self) == hash(other)
 
 
-class CounterPredicateType(StrEnum):
-    NOT_LESS_THAN = " >= "
-    NOT_GREATER_THAN = " <= "
-    LESS_THAN = " < "
-
-
 class CounterPredicate(Hashable):
     """Counter Predicate"""
 
-    def __init__(
-        self, predicate_type: CounterPredicateType, value: int
-    ) -> None:
-        self.predicate_type = predicate_type
+    class Type(StrEnum):
+        NOT_LESS_THAN = " >= "
+        NOT_GREATER_THAN = " <= "
+        LESS_THAN = " < "
+
+    def __init__(self, predicate_type: Type, value: int) -> None:
+        self.type = predicate_type
         self.value = value
 
     @classmethod
     def less_than(cls, value: int) -> "CounterPredicate":
-        return cls(CounterPredicateType.LESS_THAN, value)
+        return cls(CounterPredicate.Type.LESS_THAN, value)
 
     @classmethod
     def not_less_than(cls, value: int) -> "CounterPredicate":
-        return cls(CounterPredicateType.NOT_LESS_THAN, value)
+        return cls(CounterPredicate.Type.NOT_LESS_THAN, value)
 
     @classmethod
     def not_greater_than(cls, value: int) -> "CounterPredicate":
-        return cls(CounterPredicateType.NOT_GREATER_THAN, value)
+        return cls(CounterPredicate.Type.NOT_GREATER_THAN, value)
 
     def __hash__(self) -> int:
-        return hash((self.predicate_type, self.value))
+        return hash((self.type, self.value))
 
     def __call__(self, counter_value: int) -> bool:
-        if self.predicate_type is CounterPredicateType.NOT_LESS_THAN:
+        if self.type is CounterPredicate.Type.NOT_LESS_THAN:
             return counter_value >= self.value
-        elif self.predicate_type is CounterPredicateType.NOT_GREATER_THAN:
+        elif self.type is CounterPredicate.Type.NOT_GREATER_THAN:
             return counter_value <= self.value
-        elif self.predicate_type is CounterPredicateType.LESS_THAN:
+        elif self.type is CounterPredicate.Type.LESS_THAN:
             return counter_value < self.value
 
     def __str__(self) -> str:
-        return f"{self.predicate_type}{self.value}"
+        return f"{self.type}{self.value}"
 
 
-class Guard(defaultdict[T, list[CounterPredicate]], Hashable):
+class Guard(dd[T, list[CounterPredicate]], Hashable):
     """Guard"""
 
     def __init__(
@@ -177,7 +174,7 @@ class CounterOperationComponent(StrEnum):
         assert False, other
 
 
-class Action(Generic[T], defaultdict[T, CounterOperationComponent], Hashable):
+class Action(dd[T, CounterOperationComponent], Hashable):
     """Action"""
 
     def __init__(

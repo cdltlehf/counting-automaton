@@ -1,10 +1,17 @@
 """Linked List implementation in Python."""
 
-from typing import Generic, Iterable, Iterator, Optional, TypeVar
+import logging
+from typing import Any, Callable, Generic, Iterable, Iterator, Optional, Protocol, TypeVar
 
 from .node import Node
 
-T = TypeVar("T")
+
+class Comparable(Protocol):
+    def __lt__(self, other: Any) -> bool:
+        pass
+
+
+T = TypeVar("T", bound=Comparable)
 
 
 class LinkedList(Generic[T], Iterable[Node[T]]):
@@ -20,8 +27,10 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
             yield current
             current = current.next
 
-    def append(self, value: T) -> Node[T]:
-        node = Node(value)
+    def is_empty(self) -> bool:
+        return self.head is None
+
+    def append_node(self, node: Node[T]) -> Node[T]:
         if self.head is None:
             self.head = node
             self.tail = node
@@ -32,8 +41,11 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
             self.tail = node
         return node
 
-    def prepend(self, value: T) -> Node[T]:
+    def append(self, value: T) -> Node[T]:
         node = Node(value)
+        return self.append_node(node)
+
+    def prepend_node(self, node: Node[T]) -> Node[T]:
         if self.head is None:
             self.head = node
             self.tail = node
@@ -42,6 +54,10 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
             node.next = self.head
             self.head = node
         return node
+
+    def prepend(self, value: T) -> Node[T]:
+        node = Node(value)
+        return self.prepend_node(node)
 
     def remove(self, node: Node[T]) -> Node[T]:
         if node.prev is not None:
@@ -77,3 +93,48 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
             node.next.prev = new_node
         node.next = new_node
         return new_node
+
+    def merge(
+        self,
+        other: "LinkedList[T]",
+        key: Callable[[T, T], bool] = lambda a, b: a < b,
+    ) -> "LinkedList[T]":
+        if other.head is None:
+            return self
+        if self.head is None:
+            self.head = other.head
+            self.tail = other.tail
+            return self
+
+        assert self.tail is not None
+        assert other.tail is not None
+
+        self_node: Optional[Node[T]] = self.head
+        other_node: Optional[Node[T]] = other.head
+        while other_node is not None:
+            _other_node = other_node
+            other_node = other_node.next
+
+            while self_node is not None and key(
+                self_node.value, _other_node.value
+            ):
+                self_node = self_node.next
+
+            # self_node.prev.value < _other_node.value <= self_node.value
+
+            if self_node is None:
+                self.append_node(_other_node)
+                continue
+
+            if self_node.value == _other_node.value:
+                continue
+
+            assert key(_other_node.value, self_node.value)
+
+            if self_node.prev is None:
+                self.prepend_node(_other_node)
+                continue
+
+            assert key(self_node.prev.value, _other_node.value)
+            self.insert(self_node.prev, _other_node.value)
+        return self

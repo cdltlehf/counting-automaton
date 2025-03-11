@@ -8,7 +8,7 @@ from copy import copy
 from functools import reduce
 from json import dumps
 import logging
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, NewType, Optional
 
 from more_collections import OrderedSet
 from parser_tools import fold
@@ -23,15 +23,17 @@ from .counter_vector import Action
 from .counter_vector import CounterVector
 from .counter_vector import Guard
 
-State = int
-CounterVariable = int
+State = NewType("State", int)
+CounterVariable = NewType("CounterVariable", int)
 SymbolPredicate = Any
 Arc = tuple[Guard[CounterVariable], Action[CounterVariable], State]
-Follow = dd[State, OrderedSet[Arc]]
+Follow = dict[State, OrderedSet[Arc]]
 Config = tuple[State, CounterVector[CounterVariable]]
+Range = tuple[int, Optional[int]]
 
-INITIAL_STATE: State = 0
-FINAL_STATE: State = -1
+INITIAL_STATE = State(0)
+FINAL_STATE = State(-1)
+GLOBAL_COUNTER = CounterVariable(0)
 
 
 def arc_to_str(arc: Arc) -> str:
@@ -50,27 +52,32 @@ def config_to_json(config: Config) -> tuple[State, list[Optional[int]]]:
     return (state, counter_vector_to_json(counter_vector))
 
 
-# def super_config_to_json(
-#     super_config: SuperConfig,
-# ) -> dict[State, list[list[Optional[int]]]]:
-#     return {
-#         state: [counter_vector_to_json(config) for config in configs]
-#         for state, configs in super_config.items()
-#     }
-
-
 class PositionCountingAutomaton:
     """Position counter automaton."""
 
     def __init__(
         self,
         states: dict[State, SymbolPredicate],
-        counters: dict[int, int],
         follow: Follow,
+        counters: Optional[dict[CounterVariable, Range]] = None,
+        counter_scopes: Optional[dict[CounterVariable, set[State]]] = None,
     ) -> None:
         self.states = states
-        self.counters = counters
         self.follow = follow
+        self.counters = counters if counters is not None else {}
+        if counter_scopes is None:
+            counter_scopes = {}
+        self.counter_scopes = counter_scopes
+        self._state_scopes: Optional[dict[State, set[CounterVariable]]] = None
+
+    @property
+    def state_scopes(self) -> dict[State, set[CounterVariable]]:
+        if self._state_scopes is None:
+            self._state_scopes = {}
+            for counter, states in self.counter_scopes.items():
+                for state in states:
+                    self._state_scopes.setdefault(state, set()).add(counter)
+        return self._state_scopes
 
     @classmethod
     def create(cls, pattern: str) -> "PositionCountingAutomaton":
@@ -89,6 +96,11 @@ class PositionCountingAutomaton:
             return automaton
 
         return fold(callback, tree)
+
+    def is_flat(self) -> bool:
+        return all(
+            len(state_scope) <= 1 for state_scope in self.state_scopes.values()
+        )
 
     def eval_state(self, state: State, symbol: str) -> bool:
         assert len(symbol) == 1
@@ -120,10 +132,13 @@ class PositionCountingAutomaton:
         return False
 
     def get_next_configs(self, config: Config, symbol: str) -> list[Config]:
-        cur_state, counter_vector = config
+        current_state, counter_vector = config
         next_configs: list[Config] = []
 
-        for guard, action, adjacent_state in self.follow[cur_state]:
+        if current_state == FINAL_STATE:
+            return next_configs
+
+        for guard, action, adjacent_state in self.follow[current_state]:
             if not guard(counter_vector):
                 continue
 
@@ -139,9 +154,9 @@ class PositionCountingAutomaton:
         return next_configs
 
     def check_final(self, config: Config) -> bool:
-        cur_state, counter_vector = config
+        current_state, counter_vector = config
         logging.debug(dumps(config_to_json(config)))
-        for guard, _, adjacent_state in self.follow[cur_state]:
+        for guard, _, adjacent_state in self.follow[current_state]:
             if adjacent_state is not FINAL_STATE:
                 continue
             if guard(counter_vector):
@@ -150,7 +165,7 @@ class PositionCountingAutomaton:
 
     def get_initial_config(self) -> Config:
         initial_counter = CounterVector(self.counters.keys())
-        initial_config = (0, initial_counter)
+        initial_config = (INITIAL_STATE, initial_counter)
         return initial_config
 
     def backtrack(self, w: str, config: Config, index: int) -> bool:
@@ -194,18 +209,25 @@ class _PositionConstructionCallback:
         return (Guard(), Action(), state)
 
     def call_empty(self) -> PositionCountingAutomaton:
-        follow: Follow = dd(OrderedSet)
-        follow[INITIAL_STATE].append(self.create_simple_arc(FINAL_STATE))
-        return PositionCountingAutomaton({}, {}, follow)
+        follow: Follow = {}
+        follow.setdefault(INITIAL_STATE, OrderedSet()).append(
+            self.create_simple_arc(FINAL_STATE)
+        )
+        return PositionCountingAutomaton({}, follow)
 
     def call_predicate(self, x: tuple[str, Any]) -> PositionCountingAutomaton:
         _, operand = x
         self.state += 1
 
-        follow: Follow = dd(OrderedSet)
-        follow[INITIAL_STATE].append(self.create_simple_arc(self.state))
-        follow[self.state].append(self.create_simple_arc(FINAL_STATE))
-        return PositionCountingAutomaton({self.state: operand}, {}, follow)
+        follow: Follow = {}
+        follow.setdefault(
+            INITIAL_STATE,
+            OrderedSet([self.create_simple_arc(State(self.state))]),
+        )
+        follow.setdefault(
+            State(self.state), OrderedSet([self.create_simple_arc(FINAL_STATE)])
+        )
+        return PositionCountingAutomaton({State(self.state): operand}, follow)
 
     def call_at(self, x: tuple[str, Any]) -> PositionCountingAutomaton:
         raise NotImplementedError("Anchor is not supported")
@@ -235,6 +257,8 @@ class _PositionConstructionCallback:
         # NOTE: we can optimize this, but it is not necessary.
         y1.states.update(y2.states)
         y1.counters.update(y2.counters)
+        for counter, scope in y2.counter_scopes.items():
+            y1.counter_scopes.setdefault(counter, set()).update(scope)
         return y1
 
     def call_union(
@@ -250,6 +274,8 @@ class _PositionConstructionCallback:
         # NOTE: we can optimize this, but it is not necessary.
         y1.states.update(y2.states)
         y1.counters.update(y2.counters)
+        for counter, scope in y2.counter_scopes.items():
+            y1.counter_scopes.setdefault(counter, set()).update(scope)
         return y1
 
     def call_star(
@@ -298,6 +324,7 @@ class _PositionConstructionCallback:
 
         final_arcs = self.get_final_arcs(y.follow)
         initial_arcs = y.follow[INITIAL_STATE]
+        counter_variable = CounterVariable(self.counter)
 
         for last_state, final_arc in final_arcs:
             guard, action, _ = final_arc
@@ -319,7 +346,7 @@ class _PositionConstructionCallback:
                 #     repeat_guard += Guard.less_than(self.counter, upper_bound)
                 repeat_guard += initial_guard
 
-                repeat_action = action + Action.increase(self.counter)
+                repeat_action = action + Action.increase(counter_variable)
                 repeat_action += initial_action
                 repeat_arc = (repeat_guard, repeat_action, initial_state)
 
@@ -327,11 +354,15 @@ class _PositionConstructionCallback:
             y.follow[last_state].substitute(final_arc, repeat_arcs)
 
             # Final edge: last_state -> Final
-            final_guard = guard + Guard.not_less_than(self.counter, lower_bound)
+            final_guard = guard + Guard.not_less_than(
+                counter_variable, lower_bound
+            )
             if upper_bound is not None:
-                final_guard += Guard.not_greater_than(self.counter, upper_bound)
+                final_guard += Guard.not_greater_than(
+                    counter_variable, upper_bound
+                )
 
-            final_action = action + Action.inactivate(self.counter)
+            final_action = action + Action.inactivate(counter_variable)
             final_arc = (final_guard, final_action, FINAL_STATE)
             if lazy:
                 y.follow[last_state].prepend(final_arc)
@@ -344,7 +375,9 @@ class _PositionConstructionCallback:
             initial_guard, initial_action, first_state = initial_arc
 
             if first_state != FINAL_STATE:
-                initial_action = initial_action + Action.activate(self.counter)
+                initial_action = initial_action + Action.activate(
+                    counter_variable
+                )
             initial_arc = (Guard(), initial_action, first_state)
             new_initial_arcs.append(initial_arc)
 
@@ -357,11 +390,10 @@ class _PositionConstructionCallback:
             else:
                 y.follow[INITIAL_STATE].append(nullable_arc)
 
-        if upper_bound is None:
-            # Special
-            y.counters[self.counter] = lower_bound
-        else:
-            y.counters[self.counter] = upper_bound
+        y.counters[counter_variable] = (lower_bound, upper_bound)
+        y.counter_scopes.setdefault(counter_variable, set()).update(
+            y.states.keys()
+        )
         return y
 
     def __call__(
