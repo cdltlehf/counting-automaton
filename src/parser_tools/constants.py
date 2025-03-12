@@ -35,6 +35,7 @@ try:
     from re._constants import MIN_REPEAT
     from re._constants import NEGATE
     from re._constants import NOT_LITERAL
+    from re._constants import OPCODES
     from re._constants import POSSESSIVE_REPEAT
     from re._constants import RANGE
     from re._constants import SRE_FLAG_ASCII
@@ -82,6 +83,7 @@ except ImportError:
     from sre_constants import MIN_REPEAT
     from sre_constants import NEGATE
     from sre_constants import NOT_LITERAL
+    from sre_constants import OPCODES
     from sre_constants import RANGE
     from sre_constants import SRE_FLAG_ASCII
     from sre_constants import SRE_FLAG_DEBUG
@@ -94,8 +96,19 @@ except ImportError:
     from sre_constants import SUBPATTERN
     from sre_constants import SUCCESS
 
-    ATOMIC_GROUP = NamedIntConstant(0x0000, "ATOMIC_GROUP")
-    POSSESSIVE_REPEAT = NamedIntConstant(0x0000, "POSSESSIVE_REPEAT")
+    ATOMIC_GROUP = NamedIntConstant(len(OPCODES) + 2, "ATOMIC_GROUP")
+    POSSESSIVE_REPEAT = NamedIntConstant(len(OPCODES) + 3, "POSSESSIVE_REPEAT")
+
+MAX_QUESTION = NamedIntConstant(len(OPCODES) + 4, "MAX_QUESTION")
+MIN_QUESTION = NamedIntConstant(len(OPCODES) + 5, "MIN_QUESTION")
+MAX_STAR = NamedIntConstant(len(OPCODES) + 6, "MAX_STAR")
+MIN_STAR = NamedIntConstant(len(OPCODES) + 7, "MIN_STAR")
+MAX_PLUS = NamedIntConstant(len(OPCODES) + 8, "MAX_PLUS")
+MIN_PLUS = NamedIntConstant(len(OPCODES) + 9, "MIN_PLUS")
+
+POSSESSIVE_QUESTION = NamedIntConstant(len(OPCODES) + 10, "POSSESSIVE_QUESTION")
+POSSESSIVE_STAR = NamedIntConstant(len(OPCODES) + 11, "POSSESSIVE_STAR")
+POSSESSIVE_PLUS = NamedIntConstant(len(OPCODES) + 12, "POSSESSIVE_PLUS")
 
 __all__ = [
     "ANY",
@@ -144,5 +157,14 @@ __all__ = [
     "SRE_FLAG_VERBOSE",
     "SUBPATTERN",
     "SUCCESS",
+    "MAX_STAR",
+    "MIN_STAR",
+    "MAX_QUESTION",
+    "MIN_QUESTION",
+    "MAX_PLUS",
+    "MIN_PLUS",
+    "POSSESSIVE_STAR",
+    "POSSESSIVE_QUESTION",
+    "POSSESSIVE_PLUS",
     "error",
 ]

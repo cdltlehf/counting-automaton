@@ -716,14 +716,17 @@ def _parse(source, state, verbose, nested, first=False):
 
         elif this in REPEAT_CHARS:
             # repeat previous item
+            is_question = False
+            is_star = False
+            is_plus = False
+
             here = source.tell()
             if this == "?":
-                min, max = 0, 1
+                is_question = True
             elif this == "*":
-                min, max = 0, MAXREPEAT
-
+                is_star = True
             elif this == "+":
-                min, max = 1, MAXREPEAT
+                is_plus = True
             elif this == "{":
                 if source.next == "}":
                     subpatternappend((LITERAL, _ord(this)))
@@ -780,15 +783,37 @@ def _parse(source, state, verbose, nested, first=False):
                 group, add_flags, del_flags, p = item[0][1]
                 if group is None and not add_flags and not del_flags:
                     item = p
+
             if sourcematch("?"):
                 # Non-Greedy Match
-                subpattern[-1] = (MIN_REPEAT, (min, max, item))
+                if is_question:
+                    subpattern[-1] = (MIN_QUESTION, item)
+                elif is_star:
+                    subpattern[-1] = (MIN_STAR, item)
+                elif is_plus:
+                    subpattern[-1] = (MIN_PLUS, item)
+                else:
+                    subpattern[-1] = (MIN_REPEAT, (min, max, item))
             elif sourcematch("+"):
                 # Possessive Match (Always Greedy)
-                subpattern[-1] = (POSSESSIVE_REPEAT, (min, max, item))
+                if is_question:
+                    subpattern[-1] = (POSSESSIVE_QUESTION, item)
+                elif is_star:
+                    subpattern[-1] = (POSSESSIVE_STAR, item)
+                elif is_plus:
+                    subpattern[-1] = (POSSESSIVE_PLUS, item)
+                else:
+                    subpattern[-1] = (POSSESSIVE_REPEAT, (min, max, item))
             else:
                 # Greedy Match
-                subpattern[-1] = (MAX_REPEAT, (min, max, item))
+                if is_question:
+                    subpattern[-1] = (MAX_QUESTION, item)
+                elif is_star:
+                    subpattern[-1] = (MAX_STAR, item)
+                elif is_plus:
+                    subpattern[-1] = (MAX_PLUS, item)
+                else:
+                    subpattern[-1] = (MAX_REPEAT, (min, max, item))
 
         elif this == ".":
             subpatternappend((ANY, None))

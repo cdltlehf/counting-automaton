@@ -37,6 +37,18 @@ def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
         assert len(value) == 3, value
         m, n = value[0], value[1]
         return (m, n), [value[2]]
+    elif opcode in {
+        MAX_QUESTION,
+        MIN_QUESTION,
+        POSSESSIVE_QUESTION,
+        MAX_STAR,
+        MIN_STAR,
+        POSSESSIVE_STAR,
+        MAX_PLUS,
+        MIN_PLUS,
+        POSSESSIVE_PLUS,
+    }:
+        return None, [value]
     elif opcode is BRANCH:
         assert len(value) == 2, value
         assert value[0] is None, value
@@ -123,8 +135,8 @@ def repeat_to_string(
     ys: Iterable[str],
 ) -> str:
     repeat_ch = {
-        MIN_REPEAT: "?",
         MAX_REPEAT: "",
+        MIN_REPEAT: "?",
         POSSESSIVE_REPEAT: "+",
     }[opcode]
 
@@ -194,6 +206,36 @@ def to_string_f(
         return f"(?:{'|'.join(ys)})"
     elif opcode in {MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT}:
         return repeat_to_string(opcode, operand, ys)
+    elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
+        ys = list(ys)
+        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+        if opcode is MAX_QUESTION:
+            return f"{ys_str}?"
+        elif opcode is MIN_QUESTION:
+            return f"{ys_str}??"
+        elif opcode is POSSESSIVE_QUESTION:
+            return f"{ys_str}?+"
+        assert False
+    elif opcode in {MAX_STAR, MIN_STAR, POSSESSIVE_STAR}:
+        ys = list(ys)
+        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+        if opcode is MAX_STAR:
+            return f"{ys_str}*"
+        elif opcode is MIN_STAR:
+            return f"{ys_str}*?"
+        elif opcode is POSSESSIVE_STAR:
+            return f"{ys_str}*+"
+        assert False
+    elif opcode in {MAX_PLUS, MIN_PLUS, POSSESSIVE_PLUS}:
+        ys = list(ys)
+        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+        if opcode is MAX_PLUS:
+            return f"{ys_str}+"
+        elif opcode is MIN_PLUS:
+            return f"{ys_str}+?"
+        elif opcode is POSSESSIVE_PLUS:
+            return f"{ys_str}++"
+        assert False
     elif opcode is GROUPREF:
         [(_, ref)] = operand
         return f"\\{ref}(?:)"
@@ -246,8 +288,39 @@ def normalize(tree: SubPattern) -> SubPattern:
             return subpattern_to_string(opcode, operand, ys)
         elif opcode in {MIN_REPEAT, MAX_REPEAT}:
             return repeat_to_string(opcode, operand, ys)
+        elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
+            ys = list(ys)
+            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+            if opcode is MAX_QUESTION:
+                return f"{ys_str}?"
+            elif opcode is MIN_QUESTION:
+                return f"{ys_str}??"
+            elif opcode is POSSESSIVE_QUESTION:
+                return f"{ys_str}?+"
+            assert False
+        elif opcode in {MAX_STAR, MIN_STAR, POSSESSIVE_STAR}:
+            ys = list(ys)
+            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+            if opcode is MAX_STAR:
+                return f"{ys_str}*"
+            elif opcode is MIN_STAR:
+                return f"{ys_str}*?"
+            elif opcode is POSSESSIVE_STAR:
+                return f"{ys_str}*+"
+            assert False
+        elif opcode in {MAX_PLUS, MIN_PLUS, POSSESSIVE_PLUS}:
+            ys = list(ys)
+            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+            if opcode is MAX_PLUS:
+                return f"{ys_str}+"
+            elif opcode is MIN_PLUS:
+                return f"{ys_str}+?"
+            elif opcode is POSSESSIVE_PLUS:
+                return f"{ys_str}++"
+            assert False
         else:
             # 4., 5., 6., 7.
             raise NotImplementedError(f"Unknown opcode: {opcode}")
 
-    return parse(fold(f, tree))
+    pattern = fold(f, tree)
+    return parse(pattern)
