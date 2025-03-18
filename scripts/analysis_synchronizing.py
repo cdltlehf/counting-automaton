@@ -1,6 +1,6 @@
 """Check finitely synchronizing"""
 
-from collections import defaultdict as dd
+from collections import dd as dd
 from enum import Enum
 from itertools import tee
 from json import dumps

@@ -4,6 +4,17 @@ import json
 import os
 from typing import Iterable, Union
 
+import numpy as np
+import numpy.typing as npt
+
+
+def get_outlier_bounds(data: npt.NDArray[np.float32]) -> tuple[float, float]:
+    q1, q3 = np.percentile(data, [25, 75])
+    iqr = q3 - q1
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+    return lower_bound, upper_bound
+
 
 def escape(text: str) -> str:
     return json.dumps(text)

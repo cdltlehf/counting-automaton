@@ -10,9 +10,9 @@ from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
 
 from .constants import *
-from .parser import parse  # type: ignore
+from .parser import parse as parse  # type: ignore
 from .re import State
-from .re import SubPattern
+from .re import SubPattern as SubPattern
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -88,7 +88,7 @@ def fold(
     return f(None, _fold(tree))
 
 
-def dfs(tree: SubPattern) -> Iterable[tuple[str, Any]]:
+def dfs(tree: SubPattern) -> Iterable[tuple[NamedIntConstant, Any]]:
     return fold(
         lambda x, ys: chain([] if x is None else [x], chain.from_iterable(ys)),
         tree,

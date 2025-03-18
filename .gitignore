@@ -1,4 +1,8 @@
 __pycache__/
 .DS_Store
 .ropeproject/
-
+data/*
+!data/.gitkeep
+raw-data/*
+!raw-data/.gitkeep
+.venv

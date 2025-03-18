@@ -11,15 +11,12 @@ from src.utils import read_test_cases
 
 TargetJson = list[list[tuple[int, dict[int, int]]]]
 
+
 def analyze(
     automaton: PositionCounterAutomaton, text: str, second: int
 ) -> Optional[TargetJson]:
-
     @timeout_decorator.timeout(second)  # type: ignore
-    def _analyze(
-        automaton: PositionCounterAutomaton,
-        text: str
-    ) -> TargetJson:
+    def _analyze(automaton: PositionCounterAutomaton, text: str) -> TargetJson:
         return [
             [
                 (state, {k: v for k, v in counter_vector.items()})
@@ -29,7 +26,7 @@ def analyze(
         ]
 
     try:
-        return _analyze(automaton, text) # type: ignore
+        return _analyze(automaton, text)  # type: ignore
     except timeout_decorator.TimeoutError:
         return None
 
@@ -53,4 +50,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

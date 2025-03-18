@@ -41,5 +41,6 @@ def main() -> None:
         except Exception:  # pylint: disable=broad-except
             continue
 
+
 if __name__ == "__main__":
     main()

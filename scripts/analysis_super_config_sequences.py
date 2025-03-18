@@ -1,6 +1,6 @@
 """Analysis super config."""
 
-from collections import defaultdict
+from collections import dd
 from functools import reduce
 import json
 import operator
@@ -17,15 +17,15 @@ SuperConfig = list[tuple[State, CounterVector]]
 def to_state_to_counter_vector_set(
     super_config: SuperConfig,
 ) -> dict[State, set[CounterVector]]:
-    state_to_counter_vector_set: defaultdict[State, set[CounterVector]]
-    state_to_counter_vector_set = defaultdict(set)
+    state_to_counter_vector_set: dd[State, set[CounterVector]]
+    state_to_counter_vector_set = dd(set)
     for state, counter_vector in super_config:
         state_to_counter_vector_set[state].add(counter_vector)
     return dict(state_to_counter_vector_set)
 
 
 def to_cartesian_product(
-    counter_vector_set: set[CounterVector]
+    counter_vector_set: set[CounterVector],
 ) -> list[set[int]]:
     max_counter_variable = max(map(len, counter_vector_set))
     counter_to_value_set: list[set[int]] = [
@@ -39,7 +39,7 @@ def to_cartesian_product(
 
 
 def is_cartesian_counter_vector_set(
-    counter_vector_set: set[CounterVector]
+    counter_vector_set: set[CounterVector],
 ) -> bool:
     cartesian_product = to_cartesian_product(counter_vector_set)
     size = reduce(operator.mul, map(len, cartesian_product), 1)
@@ -130,14 +130,15 @@ def evaluate_sequence(
 ) -> bool:
     return all(map(callback, sequence))
 
+
 def evaluate_sequences(
     callback: Callable[[SuperConfig], bool],
     sequences: list[list[SuperConfig]],
 ) -> bool:
     return all(evaluate_sequence(callback, sequence) for sequence in sequences)
 
-def to_super_config(configs: Iterable[Any]) -> SuperConfig:
 
+def to_super_config(configs: Iterable[Any]) -> SuperConfig:
     def load_counter_vector(counter_vector_like: Any) -> CounterVector:
         if len(counter_vector_like) == 0:
             return ()
@@ -153,8 +154,10 @@ def to_super_config(configs: Iterable[Any]) -> SuperConfig:
     ]
     return super_config
 
+
 def read_sequence(sequence_like: list[Any]) -> list[SuperConfig]:
     return [to_super_config(super_config) for super_config in sequence_like]
+
 
 def read_sequences(sequences_like: list[list[Any]]) -> list[list[SuperConfig]]:
     return [read_sequence(sequence) for sequence in sequences_like]
@@ -184,6 +187,6 @@ def main() -> None:
     for key, count in counts.items():
         print(f"{key}: {count}")
 
+
 if __name__ == "__main__":
     main()
-

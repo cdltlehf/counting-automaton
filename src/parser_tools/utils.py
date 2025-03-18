@@ -85,3 +85,15 @@ def is_finite_pattern(tree: SubPattern) -> bool:
             if n is MAXREPEAT:
                 return False
     return True
+
+
+def counting_height(tree: SubPattern) -> int:
+    def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[int]) -> int:
+        if x is None:
+            return max(ys, default=0)
+        opcode, _ = x
+        if opcode in {MIN_REPEAT, MAX_REPEAT}:
+            return max(ys, default=0) + 1
+        return max(ys, default=0)
+
+    return fold(f, tree)
