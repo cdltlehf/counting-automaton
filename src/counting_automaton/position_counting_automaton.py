@@ -3,7 +3,6 @@
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
 
-from collections import defaultdict as dd
 from copy import copy
 from functools import reduce
 from json import dumps
@@ -12,9 +11,15 @@ from typing import Any, Iterable, NewType, Optional
 
 from more_collections import OrderedSet
 from parser_tools import fold
+from parser_tools import MAX_PLUS
+from parser_tools import MAX_QUESTION
 from parser_tools import MAX_REPEAT
+from parser_tools import MAX_STAR
+from parser_tools import MIN_PLUS
+from parser_tools import MIN_QUESTION
 from parser_tools import MIN_REPEAT
-from parser_tools import parse  # type: ignore
+from parser_tools import MIN_STAR
+from parser_tools import parse
 from parser_tools.constants import *
 from parser_tools.re import _compile
 from parser_tools.re import SubPattern
@@ -22,6 +27,8 @@ from parser_tools.re import SubPattern
 from .counter_vector import Action
 from .counter_vector import CounterVector
 from .counter_vector import Guard
+from .logging import MatchingInfo
+from .logging import VERBOSE
 
 State = NewType("State", int)
 CounterVariable = NewType("CounterVariable", int)
@@ -104,6 +111,7 @@ class PositionCountingAutomaton:
 
     def eval_state(self, state: State, symbol: str) -> bool:
         assert len(symbol) == 1
+        logging.log(VERBOSE, MatchingInfo.EVAL_SYMBOL.value)
         if isinstance(self.states[state], str):
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
@@ -417,17 +425,22 @@ class _PositionConstructionCallback:
             lazy = opcode == MIN_REPEAT
 
             m, n = operand
-            if m == 0 and n is MAXREPEAT:
-                return self.call_star(y, lazy)
-            if m == 1 and n is MAXREPEAT:
-                return self.call_plus(y, lazy)
-            if m == 0 and n == 1:
-                return self.call_question(y, lazy)
-
             if n is MAXREPEAT:
                 return self.call_repeat(y, m, None, lazy)
             else:
                 return self.call_repeat(y, m, n, lazy)
+        elif opcode is MAX_STAR:
+            return self.call_star(next(iter(ys)), False)
+        elif opcode is MIN_STAR:
+            return self.call_star(next(iter(ys)), True)
+        elif opcode is MAX_PLUS:
+            return self.call_plus(next(iter(ys)), False)
+        elif opcode is MIN_PLUS:
+            return self.call_plus(next(iter(ys)), True)
+        elif opcode is MAX_QUESTION:
+            return self.call_question(next(iter(ys)), False)
+        elif opcode is MIN_QUESTION:
+            return self.call_question(next(iter(ys)), True)
         elif opcode in {ATOMIC_GROUP, SUBPATTERN}:
             return next(iter(ys))
         else:

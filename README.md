@@ -28,3 +28,10 @@ $ make test-cases
 
 ./test-cases/*
 ```
+## Cost of Super Config Computation
+
+### Backtracking
+
+- Guard check
+- Action check
+- Symbol check

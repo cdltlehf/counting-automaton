@@ -210,6 +210,10 @@ class CounterConfig(
                     if not self.satisfies(current_state, guard):
                         continue
 
+                    if adjacent_state is not FINAL_STATE:
+                        if not self.automaton.eval_state(adjacent_state, symbol):
+                            continue
+
                     operation = action.get(
                         counter_variable, CounterOperationComponent.NO_OPERATION
                     )
