@@ -3,6 +3,7 @@ __pycache__/
 .ropeproject/
 data/*
 !data/.gitkeep
+!data/patterns/examples.txt
 raw-data/*
 !raw-data/.gitkeep
 .venv
