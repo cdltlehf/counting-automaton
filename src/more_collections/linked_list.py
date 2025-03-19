@@ -87,6 +87,10 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
 
     def insert(self, node: Node[T], value: T) -> Node[T]:
         new_node = Node(value)
+        self.insert_node(node, new_node)
+        return new_node
+
+    def insert_node(self, node: Node[T], new_node: Node[T]) -> Node[T]:
         new_node.prev = node
         new_node.next = node.next
         if node.next is not None:
@@ -112,29 +116,36 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
         self_node: Optional[Node[T]] = self.head
         other_node: Optional[Node[T]] = other.head
         while other_node is not None:
-            _other_node = other_node
+            current_other_node = other_node
             other_node = other_node.next
 
+            # Find the first self-node that is greater than or equal to the
+            # current other-node
             while self_node is not None and key(
-                self_node.value, _other_node.value
+                self_node.value, current_other_node.value
             ):
                 self_node = self_node.next
 
-            # self_node.prev.value < _other_node.value <= self_node.value
-
+            # If there is no such self-node, append the current other-node to
+            # the end of the list
             if self_node is None:
-                self.append_node(_other_node)
+                self.append_node(current_other_node)
                 continue
 
-            if self_node.value == _other_node.value:
+            # If the current other-node is equal to the current self-node, skip
+            if self_node.value == current_other_node.value:
                 continue
 
-            assert key(_other_node.value, self_node.value)
+            assert key(current_other_node.value, self_node.value)
 
             if self_node.prev is None:
-                self.prepend_node(_other_node)
+                self.prepend_node(current_other_node)
                 continue
 
-            assert key(self_node.prev.value, _other_node.value)
-            self.insert(self_node.prev, _other_node.value)
+            assert key(self_node.prev.value, current_other_node.value), (
+                self_node.prev.value,
+                current_other_node.value,
+            )
+            self.insert_node(self_node.prev, current_other_node)
+
         return self

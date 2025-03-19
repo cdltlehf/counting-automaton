@@ -27,7 +27,7 @@ from parser_tools.re import SubPattern
 from .counter_vector import Action
 from .counter_vector import CounterVector
 from .counter_vector import Guard
-from .logging import MatchingInfo
+from .logging import ComputationStep
 from .logging import VERBOSE
 
 State = NewType("State", int)
@@ -111,7 +111,7 @@ class PositionCountingAutomaton:
 
     def eval_state(self, state: State, symbol: str) -> bool:
         assert len(symbol) == 1
-        logging.log(VERBOSE, MatchingInfo.EVAL_SYMBOL.value)
+        logging.log(VERBOSE, ComputationStep.EVAL_SYMBOL.value)
         if isinstance(self.states[state], str):
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
@@ -150,12 +150,12 @@ class PositionCountingAutomaton:
             if not guard(counter_vector):
                 continue
 
-            if adjacent_state is not FINAL_STATE:
-                if not self.eval_state(adjacent_state, symbol):
-                    continue
+            if adjacent_state is FINAL_STATE:
+                continue
 
-            # TODO: Optimization. If there is only one possible action,
-            # we can avoid cloning the counter vector.
+            if not self.eval_state(adjacent_state, symbol):
+                continue
+
             next_counter_vector = copy(counter_vector)
             action.move_and_apply(next_counter_vector)
             next_configs.append((adjacent_state, next_counter_vector))
@@ -179,7 +179,8 @@ class PositionCountingAutomaton:
     def backtrack(self, w: str, config: Config, index: int) -> bool:
         logging.debug("%s", w)
         logging.debug("%s", " " * index + "^")
-        logging.debug("%d %s", index, str(config))
+        logging.debug("%d %s", index, config)
+
         if len(w) == index:
             return self.check_final(config)
 
