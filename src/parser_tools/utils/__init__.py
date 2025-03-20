@@ -1,11 +1,11 @@
 """Utility functions for working with regex patterns."""
 
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, TypedDict
 
-from . import dfs
-from . import fold
-from .constants import *  # pylint: disable=unused-wildcard-import, wildcard-import
-from .re import SubPattern
+from .. import dfs
+from .. import fold
+from ..constants import *  # pylint: disable=unused-wildcard-import, wildcard-import
+from ..re import SubPattern
 
 PREDICATE_OPCODES = frozenset({ANY, NOT_LITERAL, IN, LITERAL})
 SUBPATTERN_OPCODES = frozenset({ATOMIC_GROUP, SUBPATTERN})

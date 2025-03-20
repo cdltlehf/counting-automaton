@@ -2,8 +2,11 @@
 
 import logging
 from typing import Optional
+import warnings
 
 from .counting_set import CountingSet
+
+logger = logging.getLogger(__name__)
 
 
 class SparseCountingSet(CountingSet):
@@ -16,6 +19,8 @@ class SparseCountingSet(CountingSet):
             return self
         if self.offset - tail.value > self.high:
             self.list.remove(tail)
+        if __debug__:
+            SparseCountingSet.sanity_check(self)
         return self
 
     @property
@@ -36,10 +41,13 @@ class SparseCountingSet(CountingSet):
             return self
         if self.k is None or head3.value + self.k >= head.value:
             self.list.remove(head2)
+
+        if __debug__:
+            SparseCountingSet.sanity_check(self)
         return self
 
     def merge(self, other: "CountingSet") -> "CountingSet":
-        logging.debug("Merging %s with %s", self, other)
+        logger.debug("Merging %s with %s", self, other)
         node = other.list.tail
         super().merge(other)
 
@@ -55,4 +63,18 @@ class SparseCountingSet(CountingSet):
 
             if self.k is None or node3.value + self.k >= current_node.value:
                 self.list.remove(node2)
+
+        if __debug__:
+            self.sanity_check()
         return self
+
+    def sanity_check(self) -> None:
+        if not __debug__:
+            warnings.warn("Sanity checks are disabled", RuntimeWarning)
+            return
+        super().sanity_check()
+        assert self.max_node == self.list.tail
+        values = list(self)
+        for v1, v2 in zip(values, values[2:]):
+            assert self.k is not None, str(self)
+            assert v1 < v2 - self.k

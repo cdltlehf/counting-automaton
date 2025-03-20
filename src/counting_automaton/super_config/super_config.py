@@ -34,10 +34,7 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
                 yield (state, counter_vector)
 
     def to_json(self) -> list[tuple[int, list[Optional[int]]]]:
-        return [
-            (state, counter_vector.to_list())
-            for (state, counter_vector) in self
-        ]
+        return [(state, counter_vector.to_list()) for (state, counter_vector) in self]
 
     def __len__(self) -> int:
         return sum(map(len, self._configs.values()))

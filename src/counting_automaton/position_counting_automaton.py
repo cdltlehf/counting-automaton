@@ -30,6 +30,8 @@ from .counter_vector import Guard
 from .logging import ComputationStep
 from .logging import VERBOSE
 
+logger = logging.getLogger(__name__)
+
 State = NewType("State", int)
 CounterVariable = NewType("CounterVariable", int)
 SymbolPredicate = Any
@@ -89,7 +91,7 @@ class PositionCountingAutomaton:
     @classmethod
     def create(cls, pattern: str) -> "PositionCountingAutomaton":
         tree = parse(pattern)
-        logging.debug(tree)
+        logger.debug(tree)
         callback_object = _PositionConstructionCallback()
 
         def callback(
@@ -97,9 +99,9 @@ class PositionCountingAutomaton:
             ys: Iterable[PositionCountingAutomaton],
         ) -> PositionCountingAutomaton:
             automaton = callback_object(x, ys)
-            logging.debug(x)
-            logging.debug(automaton)
-            logging.debug("\n")
+            logger.debug(x)
+            logger.debug(automaton)
+            logger.debug("\n")
             return automaton
 
         return fold(callback, tree)
@@ -111,7 +113,7 @@ class PositionCountingAutomaton:
 
     def eval_state(self, state: State, symbol: str) -> bool:
         assert len(symbol) == 1
-        logging.log(VERBOSE, ComputationStep.EVAL_SYMBOL.value)
+        logger.log(VERBOSE, ComputationStep.EVAL_SYMBOL.value)
         if isinstance(self.states[state], str):
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
@@ -163,7 +165,7 @@ class PositionCountingAutomaton:
 
     def check_final(self, config: Config) -> bool:
         current_state, counter_vector = config
-        logging.debug(dumps(config_to_json(config)))
+        logger.debug(dumps(config_to_json(config)))
         for guard, _, adjacent_state in self.follow[current_state]:
             if adjacent_state is not FINAL_STATE:
                 continue
@@ -177,9 +179,9 @@ class PositionCountingAutomaton:
         return initial_config
 
     def backtrack(self, w: str, config: Config, index: int) -> bool:
-        logging.debug("%s", w)
-        logging.debug("%s", " " * index + "^")
-        logging.debug("%d %s", index, config)
+        logger.debug("%s", w)
+        logger.debug("%s", " " * index + "^")
+        logger.debug("%d %s", index, config)
 
         if len(w) == index:
             return self.check_final(config)
@@ -190,7 +192,7 @@ class PositionCountingAutomaton:
         )
 
     def __call__(self, w: str) -> bool:
-        logging.debug("Backtrack matching")
+        logger.debug("Backtrack matching")
         initial_config = self.get_initial_config()
         return self.backtrack(w, initial_config, 0)
 

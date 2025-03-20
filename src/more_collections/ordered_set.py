@@ -125,10 +125,7 @@ class OrderedSet(Generic[T]):
         if value not in self.node:
             raise KeyError(f"{value} not in set")
         node = self.node.pop(value)
-        if node.prev is not None:
-            node.prev.next = node.next
-        if node.next is not None:
-            node.next.prev = node.prev
+        self.list.remove(node)
 
     def __len__(self) -> int:
         """Time complexity: O(1)"""

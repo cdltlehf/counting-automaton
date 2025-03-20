@@ -1,44 +1,65 @@
 """Linked List implementation in Python."""
 
-import logging
-from typing import Any, Callable, Generic, Iterable, Iterator, Optional, Protocol, TypeVar
+from typing import Generic, Iterable, Iterator, Optional, TypeVar
+import warnings
 
 from .node import Node
 
-
-class Comparable(Protocol):
-    def __lt__(self, other: Any) -> bool:
-        pass
-
-
-T = TypeVar("T", bound=Comparable)
+T = TypeVar("T")
 
 
 class LinkedList(Generic[T], Iterable[Node[T]]):
     """Doubly linked list"""
 
     def __init__(self) -> None:
-        self.head: Optional[Node[T]] = None
-        self.tail: Optional[Node[T]] = None
+        self._head: Optional[Node[T]] = None
+        self._tail: Optional[Node[T]] = None
+
+    def sanity_check(self) -> None:
+        """Check if the linked list is sane"""
+        if not __debug__:
+            warnings.warn("Sanity checks are disabled", RuntimeWarning)
+            return
+        if self._head is None:
+            assert self._tail is None
+            return
+        assert self._tail is not None
+        assert self._head.prev is None
+        assert self._tail.next is None
+        current = self._head
+        while current.next is not None:
+            assert current.next.prev == current
+            current = current.next
+        assert current == self._tail
+
+    @property
+    def head(self) -> Optional[Node[T]]:
+        return self._head
+
+    @property
+    def tail(self) -> Optional[Node[T]]:
+        return self._tail
 
     def __iter__(self) -> Iterator[Node[T]]:
-        current = self.head
+        current = self._head
         while current is not None:
             yield current
             current = current.next
 
     def is_empty(self) -> bool:
-        return self.head is None
+        return self._head is None
 
     def append_node(self, node: Node[T]) -> Node[T]:
-        if self.head is None:
-            self.head = node
-            self.tail = node
+        if self._head is None:
+            self._head = node
+            self._tail = node
         else:
-            assert self.tail is not None
-            self.tail.next = node
-            node.prev = self.tail
-            self.tail = node
+            assert self._tail is not None, str(self)
+            self._tail.next = node
+            node.prev = self._tail
+            self._tail = node
+        if __debug__:
+            LinkedList.sanity_check(self)
         return node
 
     def append(self, value: T) -> Node[T]:
@@ -46,13 +67,15 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
         return self.append_node(node)
 
     def prepend_node(self, node: Node[T]) -> Node[T]:
-        if self.head is None:
-            self.head = node
-            self.tail = node
+        if self._head is None:
+            self._head = node
+            self._tail = node
         else:
-            self.head.prev = node
-            node.next = self.head
-            self.head = node
+            self._head.prev = node
+            node.next = self._head
+            self._head = node
+        if __debug__:
+            LinkedList.sanity_check(self)
         return node
 
     def prepend(self, value: T) -> Node[T]:
@@ -64,10 +87,12 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
             node.prev.next = node.next
         if node.next is not None:
             node.next.prev = node.prev
-        if node == self.head:
-            self.head = node.next
-        if node == self.tail:
-            self.tail = node.prev
+        if node == self._head:
+            self._head = node.next
+        if node == self._tail:
+            self._tail = node.prev
+        if __debug__:
+            LinkedList.sanity_check(self)
         return node
 
     def __str__(self) -> str:
@@ -80,7 +105,7 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
         return sum(1 for _ in self)
 
     def __copy__(self) -> "LinkedList[T]":
-        new: LinkedList[T] = LinkedList()
+        new: LinkedList[T] = self.__class__()
         for node in self:
             new.append(node.value)
         return new
@@ -96,56 +121,8 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
         if node.next is not None:
             node.next.prev = new_node
         node.next = new_node
+        if node == self._tail:
+            self._tail = new_node
+        if __debug__:
+            self.sanity_check()
         return new_node
-
-    def merge(
-        self,
-        other: "LinkedList[T]",
-        key: Callable[[T, T], bool] = lambda a, b: a < b,
-    ) -> "LinkedList[T]":
-        if other.head is None:
-            return self
-        if self.head is None:
-            self.head = other.head
-            self.tail = other.tail
-            return self
-
-        assert self.tail is not None
-        assert other.tail is not None
-
-        self_node: Optional[Node[T]] = self.head
-        other_node: Optional[Node[T]] = other.head
-        while other_node is not None:
-            current_other_node = other_node
-            other_node = other_node.next
-
-            # Find the first self-node that is greater than or equal to the
-            # current other-node
-            while self_node is not None and key(
-                self_node.value, current_other_node.value
-            ):
-                self_node = self_node.next
-
-            # If there is no such self-node, append the current other-node to
-            # the end of the list
-            if self_node is None:
-                self.append_node(current_other_node)
-                continue
-
-            # If the current other-node is equal to the current self-node, skip
-            if self_node.value == current_other_node.value:
-                continue
-
-            assert key(current_other_node.value, self_node.value)
-
-            if self_node.prev is None:
-                self.prepend_node(current_other_node)
-                continue
-
-            assert key(self_node.prev.value, current_other_node.value), (
-                self_node.prev.value,
-                current_other_node.value,
-            )
-            self.insert_node(self_node.prev, current_other_node)
-
-        return self

@@ -7,12 +7,8 @@ class SharedCounterSet:
     def __init__(self, colors: int) -> None:
         self.colors = colors
         self.offsets: dict[int, int] = {color: 0 for color in range(colors)}
-        self.heads: dict[int, Optional[Node]] = {
-            color: None for color in range(colors)
-        }
-        self.tails: dict[int, Optional[Node]] = {
-            color: None for color in range(colors)
-        }
+        self.heads: dict[int, Optional[Node]] = {color: None for color in range(colors)}
+        self.tails: dict[int, Optional[Node]] = {color: None for color in range(colors)}
 
     def add_one(self, color: int) -> None:
         if self.get_minimum(color) == 1:
@@ -61,9 +57,7 @@ class SharedCounterSet:
             node = node.nexts[color]
 
     def to_dict(self) -> dict[int, list[int]]:
-        return {
-            color: list(self.iterate(color)) for color in range(self.colors)
-        }
+        return {color: list(self.iterate(color)) for color in range(self.colors)}
 
     def print(self) -> None:
         for color in range(self.colors):

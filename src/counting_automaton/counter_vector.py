@@ -9,6 +9,8 @@ from typing import Any, Hashable, Iterable, Mapping, Optional, TypeVar
 from .logging import ComputationStep
 from .logging import VERBOSE
 
+logger = logging.getLogger(__name__)
+
 
 class StrEnum(str, Enum):
     pass
@@ -77,7 +79,7 @@ class CounterPredicate(Hashable):
         return hash((self.type, self.value))
 
     def __call__(self, counter_value: int) -> bool:
-        logging.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
+        logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
         if self.type is CounterPredicate.Type.NOT_LESS_THAN:
             return counter_value >= self.value
         elif self.type is CounterPredicate.Type.NOT_GREATER_THAN:
@@ -153,7 +155,7 @@ class CounterOperationComponent(StrEnum):
     INACTIVATE = " = None"
 
     def __call__(self, counter_value: Optional[int]) -> Optional[int]:
-        logging.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
+        logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
         if self is CounterOperationComponent.NO_OPERATION:
             return counter_value
         elif self is CounterOperationComponent.ACTIVATE_OR_RESET:

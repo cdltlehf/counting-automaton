@@ -5,6 +5,8 @@ from copy import copy
 import logging
 from typing import Callable, Iterator, Mapping, MutableMapping, Optional
 
+from more_collections import OrderedSet
+
 from ..counter_vector import CounterOperationComponent
 from ..counter_vector import Guard
 from ..counting_set import CountingSet
@@ -14,6 +16,8 @@ from ..position_counting_automaton import INITIAL_STATE
 from ..position_counting_automaton import PositionCountingAutomaton
 from ..position_counting_automaton import State
 from .super_config_base import SuperConfigBase
+
+logger = logging.getLogger(__name__)
 
 GLOBAL_COUNTER = CounterVariable(0)
 
@@ -32,12 +36,10 @@ class CounterConfig(
         super().__init__(automaton)
         self._constructor = constructor
 
-        self.states = {INITIAL_STATE} | set(automaton.states)
-        self.counter_scopes = {GLOBAL_COUNTER: self.states}
-        self.counter_scopes.update(automaton.counter_scopes)
+        self.states = OrderedSet({INITIAL_STATE})
+        self.counter_scopes = automaton.counter_scopes
         self.counters: dict[CounterVariable, tuple[int, Optional[int]]]
-        self.counters = {GLOBAL_COUNTER: (0, None)}
-        self.counters.update(automaton.counters)
+        self.counters = automaton.counters
 
         self._counter_to_state_to_counting_set: dict[
             CounterVariable, dict[State, CountingSet]
@@ -49,9 +51,6 @@ class CounterConfig(
             }
             for counter, (low, high) in self.counters.items()
         }
-        self._counter_to_state_to_counting_set[GLOBAL_COUNTER][
-            INITIAL_STATE
-        ].add_one()
 
     def __getitem__(self, counter: CounterVariable) -> dict[State, CountingSet]:
         return self._counter_to_state_to_counting_set[counter]
@@ -63,18 +62,17 @@ class CounterConfig(
         raise NotImplementedError()
 
     def to_json(self) -> dict[CounterVariable, dict[State, list[int]]]:
-        return {
+        jsonified = {
             counter: {
                 state: list(counting_set)
                 for state, counting_set in state_to_counting_set.items()
             }
             for counter, state_to_counting_set in self.items()
         }
+        jsonified[GLOBAL_COUNTER] = {state: [1] for state in self.states}
+        return jsonified
 
     def satisfies(self, state: State, guard: Guard[CounterVariable]) -> bool:
-        if self[GLOBAL_COUNTER][state].is_empty():
-            return False
-
         for counter_variable, predicates in guard.items():
             if state not in self[counter_variable]:
                 assert len(predicates) == 0
@@ -89,12 +87,13 @@ class CounterConfig(
 
     def update(self, symbol: str) -> "SuperConfigBase":
         assert len(symbol) == 1
-        logging.debug("Symbol: %s", symbol)
+        logger.debug("Symbol: %s", symbol)
 
         counter_variable_to_next_state_to_r_terms: dict[
             CounterVariable,
             dict[State, dd[State, set[CounterOperationComponent]]],
         ]
+        next_states: OrderedSet[State] = OrderedSet()
         counter_variable_to_next_state_to_r_terms = {
             counter: {state: dd(set) for state in counter_scope}
             for counter, counter_scope in self.counter_scopes.items()
@@ -123,11 +122,13 @@ class CounterConfig(
                     if not self.satisfies(current_state, guard):
                         continue
 
-                    if adjacent_state is not FINAL_STATE:
-                        if not self.automaton.eval_state(
-                            adjacent_state, symbol
-                        ):
-                            continue
+                    if adjacent_state is FINAL_STATE:
+                        continue
+
+                    if not self.automaton.eval_state(adjacent_state, symbol):
+                        continue
+
+                    next_states.append(adjacent_state)
 
                     operation = action.get(
                         counter_variable, CounterOperationComponent.NO_OPERATION
@@ -150,7 +151,7 @@ class CounterConfig(
                 counter_variable
             ]
             for next_state, r_terms in next_state_to_r_terms.items():
-                logging.debug(
+                logger.debug(
                     f"R-terms of next state {next_state}: {{%s}}",
                     ", ".join(
                         [
@@ -166,10 +167,10 @@ class CounterConfig(
                     ),
                 )
 
-        new_counter_config = self.__class__(self.automaton)
+        next_counter_config = self.__class__(self.automaton)
         for counter_variable in self:
             low, high = self.counters[counter_variable]
-            next_state_to_counting_set = new_counter_config[counter_variable]
+            next_state_to_counting_set = next_counter_config[counter_variable]
             next_state_to_r_terms = counter_variable_to_next_state_to_r_terms[
                 counter_variable
             ]
@@ -181,7 +182,7 @@ class CounterConfig(
             )
 
             for next_state in self.counter_scopes[counter_variable]:
-                logging.debug(
+                logger.debug(
                     "===Updating counter %d of next state %d===",
                     counter_variable,
                     next_state,
@@ -198,7 +199,7 @@ class CounterConfig(
                             == CounterOperationComponent.ACTIVATE_OR_RESET
                         ):
                             next_counting_set.add_one()
-                            logging.debug("Adding one")
+                            logger.debug("Adding one")
                             continue
 
                         current_counting_set = current_state_to_counting_set[
@@ -215,18 +216,18 @@ class CounterConfig(
                         if operation == CounterOperationComponent.INCREASE:
                             current_counting_set.increase()
 
-                        logging.debug("Merging %s", current_counting_set)
+                        logger.debug("Merging %s", current_counting_set)
                         next_counting_set += current_counting_set
 
                 next_state_to_counting_set[next_state] = next_counting_set
-                logging.debug(
+                logger.debug(
                     "===Result of counter %d of next state %d: %s===",
                     counter_variable,
                     next_state,
                     next_counting_set,
                 )
-
-        return new_counter_config
+        next_counter_config.states = next_states
+        return next_counter_config
 
     def is_final(self) -> bool:
         for current_state in self.states:
