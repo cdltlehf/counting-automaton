@@ -72,9 +72,7 @@ def normalize_super_config(super_config: SuperConfig) -> SuperConfig:
             if minimum_counter_value is None:
                 minimum_counter_value = counter_value
             else:
-                minimum_counter_value = min(
-                    minimum_counter_value, counter_value
-                )
+                minimum_counter_value = min(minimum_counter_value, counter_value)
 
     for state in super_config:
         if state == -1:
@@ -236,9 +234,7 @@ def main() -> None:
                     collect_deterministic_counter_configs
                 )(automaton, k)
                 subresult["pattern"] = subpattern_string
-                subresult["maximum_synchronizing_gap"] = (
-                    maximum_synchronizing_gap
-                )
+                subresult["maximum_synchronizing_gap"] = maximum_synchronizing_gap
                 subresult["number_of_super_configs"] = len(super_configs)
             except NestedRepeatsError as e:
                 result["error"] = (ErrorCode.NESTED_REPEATS.value, str(e))

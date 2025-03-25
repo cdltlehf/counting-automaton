@@ -28,9 +28,7 @@ def to_cartesian_product(
     counter_vector_set: set[CounterVector],
 ) -> list[set[int]]:
     max_counter_variable = max(map(len, counter_vector_set))
-    counter_to_value_set: list[set[int]] = [
-        set() for _ in range(max_counter_variable)
-    ]
+    counter_to_value_set: list[set[int]] = [set() for _ in range(max_counter_variable)]
     for counter_vector in counter_vector_set:
         for i, value in enumerate(counter_vector):
             if value != 0:
