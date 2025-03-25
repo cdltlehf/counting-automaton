@@ -83,9 +83,11 @@ class PositionCountingAutomaton:
     def state_scopes(self) -> dict[State, set[CounterVariable]]:
         if self._state_scopes is None:
             self._state_scopes = {}
+            for state in self.states:
+                self._state_scopes[state] = set()
             for counter, states in self.counter_scopes.items():
                 for state in states:
-                    self._state_scopes.setdefault(state, set()).add(counter)
+                    self._state_scopes[state].add(counter)
         return self._state_scopes
 
     @classmethod
@@ -149,10 +151,10 @@ class PositionCountingAutomaton:
             return next_configs
 
         for guard, action, adjacent_state in self.follow[current_state]:
-            if not guard(counter_vector):
+            if adjacent_state is FINAL_STATE:
                 continue
 
-            if adjacent_state is FINAL_STATE:
+            if not guard(counter_vector):
                 continue
 
             if not self.eval_state(adjacent_state, symbol):

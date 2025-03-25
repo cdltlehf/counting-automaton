@@ -79,7 +79,6 @@ class CounterPredicate(Hashable):
         return hash((self.type, self.value))
 
     def __call__(self, counter_value: int) -> bool:
-        logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
         if self.type is CounterPredicate.Type.NOT_LESS_THAN:
             return counter_value >= self.value
         elif self.type is CounterPredicate.Type.NOT_GREATER_THAN:
@@ -121,6 +120,7 @@ class Guard(dd[T, list[CounterPredicate]], Hashable):
 
     def __call__(self, counter_vector: CounterVector[T]) -> bool:
         for counter_variable, predicates in self.items():
+            logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
             for predicate in predicates:
                 if not predicate(counter_vector[counter_variable]):
                     return False

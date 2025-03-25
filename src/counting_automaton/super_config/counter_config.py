@@ -38,22 +38,27 @@ class CounterConfig(
 
         self.states = OrderedSet({INITIAL_STATE})
         self.counter_scopes = automaton.counter_scopes
+        self.state_scopes = automaton.state_scopes
         self.counters: dict[CounterVariable, tuple[int, Optional[int]]]
         self.counters = automaton.counters
 
         self._counter_to_state_to_counting_set: dict[
-            CounterVariable, dict[State, CountingSet]
-        ]
-        self._counter_to_state_to_counting_set = {
-            counter: {
-                state: self._constructor(low, high)
-                for state in self.counter_scopes[counter]
-            }
-            for counter, (low, high) in self.counters.items()
-        }
+            CounterVariable, dd[State, CountingSet]
+        ] = {}
+        # self._counter_to_state_to_counting_set = dd(
+        #     lambda counter: dd(
+        #         lambda state: self._constructor(*self.counters[counter])
+        #     )
+        # )
 
     def __getitem__(self, counter: CounterVariable) -> dict[State, CountingSet]:
-        return self._counter_to_state_to_counting_set[counter]
+        low, high = self.counters[counter]
+        state_to_counting_set = (
+            self._counter_to_state_to_counting_set.setdefault(
+                counter, dd(lambda: self._constructor(low, high))
+            )
+        )
+        return state_to_counting_set
 
     def __iter__(self) -> Iterator[CounterVariable]:
         return iter(self._counter_to_state_to_counting_set)
@@ -75,12 +80,13 @@ class CounterConfig(
     def satisfies(self, state: State, guard: Guard[CounterVariable]) -> bool:
         for counter_variable, predicates in guard.items():
             if state not in self[counter_variable]:
-                assert len(predicates) == 0
                 continue
+
+            if len(predicates) == 0:
+                continue
+
             counting_set = self[counter_variable][state]
-            if counting_set.is_empty():
-                return False
-            if len(predicates) == 0 or counting_set.check():
+            if counting_set.check():
                 continue
             return False
         return True
@@ -93,49 +99,47 @@ class CounterConfig(
             CounterVariable,
             dict[State, dd[State, set[CounterOperationComponent]]],
         ]
-        next_states: OrderedSet[State] = OrderedSet()
         counter_variable_to_next_state_to_r_terms = {
             counter: {state: dd(set) for state in counter_scope}
             for counter, counter_scope in self.counter_scopes.items()
         }
-        counter_variable_to_current_state_to_reference_count: dict[
+        counter_variable_to_current_state_to_reference_count: dd[
             CounterVariable, dd[State, int]
         ]
-        counter_variable_to_current_state_to_reference_count = {
-            counter: dd(int) for counter in self
-        }
+        counter_variable_to_current_state_to_reference_count = dd(
+            lambda: dd(int)
+        )
 
-        def compute_r_terms(counter_variable: CounterVariable) -> None:
-            counter_scope = self.counter_scopes[counter_variable]
-            next_state_to_r_terms = counter_variable_to_next_state_to_r_terms[
-                counter_variable
-            ]
-            current_state_to_reference_count = (
-                counter_variable_to_current_state_to_reference_count[
-                    counter_variable
-                ]
-            )
+        next_counter_config = self.__class__(self.automaton)
+        next_counter_config.states.remove(INITIAL_STATE)
 
-            for current_state in self.states:
-                arcs = self.automaton.follow[current_state]
-                for guard, action, adjacent_state in arcs:
-                    if not self.satisfies(current_state, guard):
-                        continue
+        for current_state in self.states:
+            arcs = self.automaton.follow[current_state]
+            for guard, action, adjacent_state in arcs:
+                if adjacent_state is FINAL_STATE:
+                    continue
 
-                    if adjacent_state is FINAL_STATE:
-                        continue
+                if not self.satisfies(current_state, guard):
+                    continue
 
-                    if not self.automaton.eval_state(adjacent_state, symbol):
-                        continue
+                if not self.automaton.eval_state(adjacent_state, symbol):
+                    continue
 
-                    next_states.append(adjacent_state)
+                next_counter_config.states.append(adjacent_state)
+
+                for counter_variable in self.state_scopes[adjacent_state]:
+                    r_terms = counter_variable_to_next_state_to_r_terms[
+                        counter_variable
+                    ][adjacent_state]
+                    current_state_to_reference_count = (
+                        counter_variable_to_current_state_to_reference_count[
+                            counter_variable
+                        ]
+                    )
 
                     operation = action.get(
                         counter_variable, CounterOperationComponent.NO_OPERATION
                     )
-                    if adjacent_state not in counter_scope:
-                        continue
-                    r_terms = next_state_to_r_terms[adjacent_state]
                     r_terms[current_state].add(operation)
                     if operation in {
                         CounterOperationComponent.INCREASE,
@@ -143,10 +147,7 @@ class CounterConfig(
                     }:
                         current_state_to_reference_count[current_state] += 1
 
-        for counter_variable in self:
-            compute_r_terms(counter_variable)
-
-        for counter_variable in self:
+        for counter_variable in self.counter_scopes:
             next_state_to_r_terms = counter_variable_to_next_state_to_r_terms[
                 counter_variable
             ]
@@ -167,27 +168,29 @@ class CounterConfig(
                     ),
                 )
 
-        next_counter_config = self.__class__(self.automaton)
-        for counter_variable in self:
-            low, high = self.counters[counter_variable]
-            next_state_to_counting_set = next_counter_config[counter_variable]
-            next_state_to_r_terms = counter_variable_to_next_state_to_r_terms[
-                counter_variable
-            ]
-            current_state_to_counting_set = self[counter_variable]
-            current_state_to_reference_count = (
-                counter_variable_to_current_state_to_reference_count[
+        states_with_empty_counting_set = set()
+        for next_state in next_counter_config.states:
+            for counter_variable in next_counter_config.state_scopes[
+                next_state
+            ]:
+                next_state_to_counting_set = next_counter_config[
                     counter_variable
                 ]
-            )
+                next_state_to_r_terms = (
+                    counter_variable_to_next_state_to_r_terms[counter_variable]
+                )
+                current_state_to_counting_set = self[counter_variable]
+                current_state_to_reference_count = (
+                    counter_variable_to_current_state_to_reference_count[
+                        counter_variable
+                    ]
+                )
 
-            for next_state in self.counter_scopes[counter_variable]:
                 logger.debug(
                     "===Updating counter %d of next state %d===",
                     counter_variable,
                     next_state,
                 )
-                next_counting_set = self._constructor(low, high)
                 r_terms = next_state_to_r_terms[next_state]
 
                 for current_state, operations in r_terms.items():
@@ -198,8 +201,9 @@ class CounterConfig(
                             operation
                             == CounterOperationComponent.ACTIVATE_OR_RESET
                         ):
-                            next_counting_set.add_one()
-                            logger.debug("Adding one")
+                            if self.counters[counter_variable][1] == 0:
+                                continue
+                            next_state_to_counting_set[next_state].add_one()
                             continue
 
                         current_counting_set = current_state_to_counting_set[
@@ -208,6 +212,7 @@ class CounterConfig(
 
                         if current_state_to_reference_count[current_state] > 1:
                             current_counting_set = copy(current_counting_set)
+
                         current_state_to_reference_count[current_state] -= 1
                         assert (
                             current_state_to_reference_count[current_state] >= 0
@@ -216,17 +221,32 @@ class CounterConfig(
                         if operation == CounterOperationComponent.INCREASE:
                             current_counting_set.increase()
 
-                        logger.debug("Merging %s", current_counting_set)
-                        next_counting_set += current_counting_set
+                        if current_counting_set.is_empty():
+                            continue
 
-                next_state_to_counting_set[next_state] = next_counting_set
-                logger.debug(
-                    "===Result of counter %d of next state %d: %s===",
-                    counter_variable,
-                    next_state,
-                    next_counting_set,
-                )
-        next_counter_config.states = next_states
+                        logger.debug("Merging %s", current_counting_set)
+                        if next_state not in next_state_to_counting_set:
+                            next_state_to_counting_set[next_state] = (
+                                current_counting_set
+                            )
+                        else:
+                            next_state_to_counting_set[
+                                next_state
+                            ] += current_counting_set
+
+                if next_state not in next_state_to_counting_set:
+                    states_with_empty_counting_set.add(next_state)
+                    continue
+
+                if next_state in next_state_to_counting_set:
+                    logger.debug(
+                        "===Result of counter %d of next state %d: %s===",
+                        counter_variable,
+                        next_state,
+                        next_state_to_counting_set[next_state],
+                    )
+        for next_state in states_with_empty_counting_set:
+            next_counter_config.states.remove(next_state)
         return next_counter_config
 
     def is_final(self) -> bool:

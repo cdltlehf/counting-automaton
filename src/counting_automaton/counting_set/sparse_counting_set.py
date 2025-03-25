@@ -4,24 +4,14 @@ import logging
 from typing import Optional
 import warnings
 
+from .bounded_counting_set import BoundedCountingSet
 from .counting_set import CountingSet
 
 logger = logging.getLogger(__name__)
 
 
-class SparseCountingSet(CountingSet):
+class SparseCountingSet(BoundedCountingSet):
     """Sparse counting set"""
-
-    def increase(self) -> "SparseCountingSet":
-        tail = self.list.tail
-        super().increase()
-        if tail is None or self.high is None:
-            return self
-        if self.offset - tail.value > self.high:
-            self.list.remove(tail)
-        if __debug__:
-            SparseCountingSet.sanity_check(self)
-        return self
 
     @property
     def k(self) -> Optional[int]:
@@ -32,6 +22,8 @@ class SparseCountingSet(CountingSet):
     def add_one(self) -> "SparseCountingSet":
         super().add_one()
         head = self.list.head
+        if head is None:
+            return self
         assert head is not None
         head2 = head.next
         if head2 is None:
@@ -46,8 +38,9 @@ class SparseCountingSet(CountingSet):
             SparseCountingSet.sanity_check(self)
         return self
 
-    def merge(self, other: "CountingSet") -> "CountingSet":
-        logger.debug("Merging %s with %s", self, other)
+    def merge(self, other: "CountingSet") -> "SparseCountingSet":
+        if not isinstance(other, BoundedCountingSet):
+            raise TypeError("Can only merge with another sparse counting set")
         node = other.list.tail
         super().merge(other)
 
@@ -73,7 +66,6 @@ class SparseCountingSet(CountingSet):
             warnings.warn("Sanity checks are disabled", RuntimeWarning)
             return
         super().sanity_check()
-        assert self.max_node == self.list.tail
         values = list(self)
         for v1, v2 in zip(values, values[2:]):
             assert self.k is not None, str(self)

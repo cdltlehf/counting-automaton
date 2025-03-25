@@ -18,7 +18,7 @@ class TestCaseResult(TypedDict):
 
 class TestCaseDict(TypedDict):
     text: str
-    method_to_result: dict[str, Optional[TestCaseResult]]
+    result: Optional[TestCaseResult]
 
 
 class OutputDict(TypedDict):

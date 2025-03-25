@@ -36,7 +36,7 @@ class CountingSet(Iterable[int]):
             if self.high is not None and value > self.high:
                 break
             max_value = value
-        assert max_value == self.max_value
+        assert max_value == self.max_value, f"{max_value} != {self.max_value}"
 
     def mark_dirty(self) -> None:
         self._dirty = True
@@ -109,7 +109,7 @@ class CountingSet(Iterable[int]):
         max_value = self.max_value
         if max_value is None:
             return False
-        return self.high is None or max_value >= self.low
+        return max_value >= self.low
 
     def add_one(self) -> "CountingSet":
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
@@ -117,7 +117,7 @@ class CountingSet(Iterable[int]):
             if self.offset - self.list.head.value == 1:
                 return self
         self.list.prepend(self.offset - 1)
-        if self.max_node is None:
+        if self.max_node is None and self.high != 0:
             self.max_node = self.list.head
         if __debug__:
             CountingSet.sanity_check(self)
