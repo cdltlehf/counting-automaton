@@ -4,6 +4,7 @@ __pycache__/
 data/*
 !data/.gitkeep
 !data/patterns/examples.txt
+!data/figures
 raw-data/*
 !raw-data/.gitkeep
 .venv
