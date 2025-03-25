@@ -45,19 +45,6 @@ $(eval $(foreach name,$(PATTERN_BASENAMES:.txt=),\
 	)\
 ))
 
-# $(COUNTER_RANGE_DIR)/%.pdf: $(FILTERED_PATTERNS_DIR)/%.txt FORCE
-# 	@mkdir -p $(dir $@)
-# 	$(PYTHON) scripts/figures/plot_counter_range.py $< $@ || rm $@ 2> /dev/null
-
-# $(COMPUTATION_COMPARISON_DIR)/%-$(METHOD_X)-$(METHOD_Y).pdf: $(COMPUTATION_INFO_DIR)/%.jsonl FORCE
-# 	@mkdir -p $(dir $@)
-# 	$(PYTHON) scripts/figures/plot_computation_comparison.py \
-# 		--x-label $(METHOD_X) \
-# 		--y-label $(METHOD_Y) \
-# 		$< \
-# 		$@ \
-# 		|| rm $@ 2> /dev/null
-
 .PHONY: counter-range
 counter-range: $(COUNTER_RANGE)
 

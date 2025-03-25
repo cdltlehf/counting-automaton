@@ -7,13 +7,13 @@ from pathlib import Path
 source_dir = Path("./raw-data/polyglot")
 source_paths = [
     source_dir / "all_regexes.jsonl",
-    source_dir / "sl_regexes.jsonl",
+    # source_dir / "sl_regexes.jsonl",
 ]
 
 target_dir = Path("./data/patterns")
 target_paths = [
     target_dir / "all_regexes.txt",
-    target_dir / "sl_regexes.txt",
+    # target_dir / "sl_regexes.txt",
 ]
 
 for source_path, target_path in zip(source_paths, target_paths):

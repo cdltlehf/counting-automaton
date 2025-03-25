@@ -1,10 +1,16 @@
 # Counting Automaton
 
-## Test
+## Preprocessing
+
+When `raw-data/polyglot/all_regexes.jsonl` exists:
 
 ```bash
 $ source ./env
-$ python3 test.py
+$ python3 -m venv .venv
+$ source .venv/bin/activate
+$ pip install -r requirements.txt
+$ python scripts/preprocessing/preprocess_polyglot.py
+$ make computation-comparison
 ```
 
 ## Dataset
