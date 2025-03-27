@@ -36,4 +36,4 @@ class BoundedCountingSet(CountingSet):
             warnings.warn("Sanity checks are disabled", RuntimeWarning)
             return
         super().sanity_check()
-        assert self.max_node == self.list.tail
+        assert self.head == self.list.tail

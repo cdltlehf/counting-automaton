@@ -22,8 +22,9 @@ class CountingSet(Iterable[int]):
         self.high = high
         self.offset = 1
         self.list: SortedLinkedList[int] = SortedLinkedList(lambda x, y: y < x)
-        self.max_node: Optional[Node[int]] = None
+        self.head: Optional[Node[int]] = None
         self._dirty = False
+        self.add_one()
 
     def sanity_check(self) -> None:
         if not __debug__:
@@ -36,7 +37,7 @@ class CountingSet(Iterable[int]):
             if self.high is not None and value > self.high:
                 break
             max_value = value
-        assert max_value == self.max_value, f"{max_value} != {self.max_value}"
+        assert max_value == self.head_value, f"{max_value} != {self.head_value}"
 
     def mark_dirty(self) -> None:
         self._dirty = True
@@ -49,12 +50,12 @@ class CountingSet(Iterable[int]):
             yield self.offset - node.value
 
     def increase(self) -> "CountingSet":
+        logger.debug("Increasing counting-set %s", self)
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
         self.offset += 1
-        if self.max_node is not None and self.high is not None:
-            assert self.max_value is not None
-            if self.max_value > self.high:
-                self.max_node = self.max_node.prev
+        if self.head is not None and self.high is not None:
+            if self.head_value > self.high:
+                self.head = self.head.prev
         if __debug__:
             CountingSet.sanity_check(self)
         return self
@@ -66,10 +67,10 @@ class CountingSet(Iterable[int]):
             raise ValueError("Cannot merge with a set that has a higher offset")
 
         max_node: Optional[Node[int]]
-        if self.max_value < other.max_value:
-            max_node = other.max_node
+        if self.head_value < other.head_value:
+            max_node = other.head
         else:
-            max_node = self.max_node
+            max_node = self.head
 
         if other.list.tail is not None:
             for _ in other:
@@ -85,7 +86,7 @@ class CountingSet(Iterable[int]):
 
         self.list.merge(other.list)
         other.mark_dirty()
-        self.max_node = max_node
+        self.head = max_node
         if __debug__:
             CountingSet.sanity_check(self)
         return self
@@ -99,17 +100,14 @@ class CountingSet(Iterable[int]):
             return self.merge(other)
 
     @property
-    def max_value(self) -> int:
-        if self.max_node is None:
+    def head_value(self) -> int:
+        if self.head is None:
             return -1
-        return self.offset - self.max_node.value
+        return self.offset - self.head.value
 
     def check(self) -> bool:
         logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
-        max_value = self.max_value
-        if max_value is None:
-            return False
-        return max_value >= self.low
+        return self.head_value >= self.low
 
     def add_one(self) -> "CountingSet":
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
@@ -117,8 +115,8 @@ class CountingSet(Iterable[int]):
             if self.offset - self.list.head.value == 1:
                 return self
         self.list.prepend(self.offset - 1)
-        if self.max_node is None and self.high != 0:
-            self.max_node = self.list.head
+        if self.head is None and self.high != 0:
+            self.head = self.list.head
         if __debug__:
             CountingSet.sanity_check(self)
         return self
@@ -129,11 +127,11 @@ class CountingSet(Iterable[int]):
         new = self.__class__(self.low, self.high)
         new.offset = self.offset
         new.list = copy(self.list)
-        new.max_node = None
-        if self.max_node is not None:
+        new.head = None
+        if self.head is not None:
             for node in new.list:
-                if node.value == self.max_node.value:
-                    new.max_node = node
+                if node.value == self.head.value:
+                    new.head = node
                     break
         return new
 

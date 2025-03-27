@@ -37,11 +37,18 @@ class SuperConfigBase(abc.ABC):
     def get_computation(
         cls, automaton: PositionCountingAutomaton, w: str
     ) -> Iterator["SuperConfigBase"]:
-        super_config = cls(automaton)
+        super_config = cls.get_initial(automaton)
         yield super_config
         for symbol in w:
             super_config = super_config.update(symbol)
             yield super_config
+
+    @classmethod
+    @abc.abstractmethod
+    def get_initial(
+        cls, automaton: PositionCountingAutomaton
+    ) -> "SuperConfigBase":
+        pass
 
     def match(self, w: str) -> bool:
         if len(w) == 0:

@@ -26,6 +26,10 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
         initial_state, initial_counter_vector = initial_config
         self._configs[initial_state].append(initial_counter_vector)
 
+    @classmethod
+    def get_initial(cls, automaton: PositionCountingAutomaton) -> "SuperConfig":
+        return cls(automaton)
+
     def __iter__(self) -> Iterator[Config]:
         for state, counter_vectors in self._configs.items():
             if state == FINAL_STATE:
