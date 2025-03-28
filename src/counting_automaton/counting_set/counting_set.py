@@ -2,7 +2,7 @@
 
 from copy import copy
 import logging
-from typing import Iterable, Iterator, Optional
+from typing import Iterable, Iterator, Optional, TypeVar
 import warnings
 
 from more_collections import Node
@@ -12,6 +12,8 @@ from ..logging import ComputationStep
 from ..logging import VERBOSE
 
 logger = logging.getLogger(__name__)
+
+Self = TypeVar("Self", bound="CountingSet")
 
 
 class CountingSet(Iterable[int]):
@@ -49,7 +51,7 @@ class CountingSet(Iterable[int]):
         for node in self.list:
             yield self.offset - node.value
 
-    def increase(self) -> "CountingSet":
+    def increase(self: Self) -> Self:
         logger.debug("Increasing counting-set %s", self)
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
         self.offset += 1
@@ -60,7 +62,7 @@ class CountingSet(Iterable[int]):
             CountingSet.sanity_check(self)
         return self
 
-    def merge(self, other: "CountingSet") -> "CountingSet":
+    def ordered_merge(self: Self, other: Self) -> Self:
         logger.debug("Merging counter-set %s with %s", self, other)
         assert (self.low, self.high) == (other.low, other.high)
         if self.offset < other.offset:
@@ -91,13 +93,13 @@ class CountingSet(Iterable[int]):
             CountingSet.sanity_check(self)
         return self
 
-    def __iadd__(self, other: "CountingSet") -> "CountingSet":
+    def __ior__(self: Self, other: Self) -> Self:
         if (self.low, self.high) != (other.low, other.high):
             raise ValueError("Cannot union counting-sets with different bounds")
         if self.offset < other.offset:
-            return other.merge(self)
+            return other.ordered_merge(self)
         else:
-            return self.merge(other)
+            return self.ordered_merge(other)
 
     @property
     def head_value(self) -> int:
@@ -109,7 +111,7 @@ class CountingSet(Iterable[int]):
         logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
         return self.head_value >= self.low
 
-    def add_one(self) -> "CountingSet":
+    def add_one(self: Self) -> Self:
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
         if self.list.head is not None:
             if self.offset - self.list.head.value == 1:
@@ -121,7 +123,7 @@ class CountingSet(Iterable[int]):
             CountingSet.sanity_check(self)
         return self
 
-    def __copy__(self) -> "CountingSet":
+    def __copy__(self: Self) -> Self:
         for _ in self:
             logger.log(VERBOSE, ComputationStep.ACCESS_NODE_CLONE.value)
         new = self.__class__(self.low, self.high)
