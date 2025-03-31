@@ -3,16 +3,8 @@
 from typing import Optional, TypedDict
 
 
-class ComputationInfo(TypedDict):
-    EVAL_SYMBOL: int
-    EVAL_PREDICATE: int
-    APPLY_OPERATION: int
-    ACCESS_NODE_MERGE: int
-    ACCESS_NODE_CLONE: int
-
-
 class TestCaseResult(TypedDict):
-    computation_info: ComputationInfo
+    computation_info: dict[str, int]
     is_final: bool
 
 

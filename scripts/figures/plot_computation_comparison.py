@@ -4,15 +4,17 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import Any, TextIO, Union
+from typing import Any, Iterable, TextIO, Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 
+from counting_automaton.logging import ComputationStep
 from parser_tools.constants import MAXREPEAT
 from utils import escape
-from utils import get_outlier_bounds
+from utils import get_outlier_bounds  # pylint: disable=unused-import
 from utils.analysis import OutputDict
 
 Range = tuple[int, Union[int, float]]
@@ -23,6 +25,83 @@ def operand_to_range(operand: Any) -> Range:
     return low, (high if high is not MAXREPEAT else float("inf"))
 
 
+def results_to_arrays(
+    filtered_results: list[OutputDict],
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.bool], npt.NDArray[np.bool]]:
+    xs: list[float] = []
+    copied_list: list[bool] = []
+    merged_list: list[bool] = []
+    for output_dict in filtered_results:
+        results = output_dict["results"]
+        if results is None:
+            continue
+
+        for test_case_result in results:
+            x = float("inf")
+            merged = False
+            copied = False
+            result = test_case_result["result"]
+            if result is not None:
+                computation_info = result["computation_info"]
+                x = sum(
+                    value
+                    for key, value in computation_info.items()
+                    if key in ComputationStep.__members__
+                )
+                copied = computation_info.get("ACCESS_NODE_CLONE", 0) > 0
+                merged = computation_info.get("ACCESS_NODE_MERGE", 0) > 0
+
+            copied_list.append(copied)
+            merged_list.append(merged)
+            xs.append(x)
+
+    return np.array(xs), np.array(copied_list), np.array(merged_list)
+
+
+def filter_analysis(
+    x_objects: Iterable[object], y_objects: Iterable[object]
+) -> tuple[list[OutputDict], list[OutputDict]]:
+    x_filtered_results: list[OutputDict] = []
+    y_filtered_results: list[OutputDict] = []
+    for x_json_object, y_json_object in zip(x_objects, y_objects):
+        x_output_dict = OutputDict(**x_json_object)  # type: ignore
+        y_output_dict = OutputDict(**y_json_object)  # type: ignore
+        pattern = x_output_dict["pattern"]
+        if pattern != y_output_dict["pattern"]:
+            raise ValueError("Patterns do not match")
+        x_results = x_output_dict["results"]
+        y_results = y_output_dict["results"]
+
+        assert (x_results is None) == (y_results is None)
+        if x_results is None or y_results is None:
+            continue
+
+        # Assertion or debugging
+        for x_test_case_result, y_test_case_result in zip(x_results, y_results):
+            text = x_test_case_result["text"]
+            if text != y_test_case_result["text"]:
+                raise ValueError("Texts do not match")
+            x_result = x_test_case_result["result"]
+            y_result = y_test_case_result["result"]
+
+            if x_result is not None and y_result is not None:
+                x_is_final = x_result["is_final"]
+                y_is_final = y_result["is_final"]
+
+                # x_computation_info = x_result["computation_info"]
+                # y_computation_info = y_result["computation_info"]
+                # x_merged = x_computation_info.get("ACCESS_NODE_MERGE", 0) > 0
+                # y_merged = y_computation_info.get("ACCESS_NODE_MERGE", 0) > 0
+
+                if x_is_final != y_is_final:
+                    print(f"{escape(pattern)}\t{escape(text)}")
+                    raise ValueError("Final does not match")
+
+        x_filtered_results.append(x_output_dict)
+        y_filtered_results.append(y_output_dict)
+    return x_filtered_results, y_filtered_results
+
+
 def main(
     input_file_x: TextIO,
     input_file_y: TextIO,
@@ -31,96 +110,22 @@ def main(
     y_label: str,
 ) -> None:
 
-    xs_list: list[float] = []
-    ys_list: list[float] = []
-    copied_list = []
-    merged_list = []
-    for json_object_x, json_object_y in zip(
-        map(json.loads, input_file_x), map(json.loads, input_file_y)
-    ):
-        output_dict_x = OutputDict(**json_object_x)  # type: ignore
-        output_dict_y = OutputDict(**json_object_y)  # type: ignore
-        pattern = output_dict_x["pattern"]
-        if pattern != output_dict_y["pattern"]:
-            raise ValueError("Patterns do not match")
-        results_x = output_dict_x["results"]
-        results_y = output_dict_y["results"]
-        if results_x is None or results_y is None:
-            continue
-
-        for test_case_result_x, test_case_result_y in zip(results_x, results_y):
-            x = float("inf")
-            x_merged = False
-            x_copied = False
-
-            y = float("inf")
-            y_merged = False
-            y_copied = False
-
-            text = test_case_result_x["text"]
-            if text != test_case_result_y["text"]:
-                raise ValueError("Texts do not match")
-            result_x = test_case_result_x["result"]
-            result_y = test_case_result_y["result"]
-
-            x_eval_symbol = None
-            x_eval_predicate = None
-            x_is_final = None
-
-            y_eval_symbol = None
-            y_eval_predicate = None
-            y_is_final = None
-
-            if result_x is not None:
-                x_computation_info = result_x["computation_info"]
-                x_eval_symbol = x_computation_info["EVAL_SYMBOL"]
-                x_eval_predicate = x_computation_info["EVAL_PREDICATE"]
-                x = sum(x_computation_info.values())
-                x_copied = x_computation_info["ACCESS_NODE_CLONE"] > 0
-                x_merged = x_computation_info["ACCESS_NODE_MERGE"] > 0
-                x_is_final = result_x["is_final"]
-            if result_y is not None:
-                y_computation_info = result_y["computation_info"]
-                y_eval_symbol = y_computation_info["EVAL_SYMBOL"]
-                y_eval_predicate = y_computation_info["EVAL_PREDICATE"]
-                y = sum(y_computation_info.values())
-                y_copied = y_computation_info["ACCESS_NODE_CLONE"] > 0
-                y_merged = y_computation_info["ACCESS_NODE_MERGE"] > 0
-                y_is_final = result_y["is_final"]
-
-            if result_x is not None and result_y is not None:
-                assert x_eval_symbol is not None
-                assert y_eval_symbol is not None
-                assert x_eval_predicate is not None
-                assert y_eval_predicate is not None
-                assert x_is_final is not None
-                assert y_is_final is not None
-
-                if x_is_final != y_is_final:
-                    # print(f"{escape(pattern)}\t{escape(text)}")
-                    raise ValueError(
-                        "is_final does not match. "
-                        + f"{x_label}: {x_is_final}, {y_label}: {y_is_final}"
-                    )
-
-                if not (y_copied or y_merged or x_copied or x_merged):
-                    if y_eval_symbol > x_eval_symbol:
-                        # print(f"{escape(pattern)}\t{escape(text)}")
-                        pass
-
-            copied_list.append(x_copied or y_copied)
-            merged_list.append(x_merged or y_merged)
-            xs_list.append(x)
-            ys_list.append(y)
     x_label = x_label.replace("_", " ")
     y_label = y_label.replace("_", " ")
     x_label = x_label[0].upper() + x_label[1:]
     y_label = y_label[0].upper() + y_label[1:]
 
-    xs_total = np.array(xs_list)
-    ys_total = np.array(ys_list)
-    copied = np.array(copied_list)
-    merged = np.array(merged_list)
+    filtered_results_x, filtered_results_y = filter_analysis(
+        map(json.loads, input_file_x),
+        map(json.loads, input_file_y),
+    )
+
+    xs_total, x_copied, x_merged = results_to_arrays(filtered_results_x)
+    ys_total, y_copied, y_merged = results_to_arrays(filtered_results_y)
+
+    copied = x_copied | y_copied
+    merged = x_merged | y_merged
+    copied_or_merged = copied | merged
 
     # scatter_lower_bound = np.percentile(np.concat([xs_total, ys_total]), 99)
     scatter_lower_bound = 500
@@ -141,12 +146,10 @@ def main(
         (ys_total < lower_bound) | (ys_total >= upper_bound)
     ) & ~ys_timeout
 
-    ax = plt.gca()
-
     xs_inlier = ~xs_outlier & ~xs_timeout
     ys_inlier = ~ys_outlier & ~ys_timeout
     assert len(xs_total) == len(ys_total)
-    cnt = 0
+
     logging.info("total: %d", len(xs_total))
     logging.info(f"{x_label} Inlier: %d", sum(xs_inlier))
     logging.info(f"{x_label} Outlier: %d", sum(xs_outlier))
@@ -158,6 +161,7 @@ def main(
     logging.info(f"{y_label} Timeout: %d", sum(ys_timeout))
     assert len(ys_total) == sum(ys_inlier) + sum(ys_outlier) + sum(ys_timeout)
 
+    cnt = 0
     for x_type, x_indices in {
         f"{x_label} Inlier": xs_inlier,
         f"{x_label} Outlier": xs_outlier,
@@ -170,7 +174,64 @@ def main(
         }.items():
             logging.info(f"{x_type}, {y_type}: %d", sum(x_indices & y_indices))
             cnt += sum(x_indices & y_indices)
+
+            inlier = xs_inlier & ys_inlier
+            if x_type == f"{x_label} Inlier" and y_type == f"{y_label} Inlier":
+                logging.info(
+                    "Inlier (xs > ys): %d",
+                    sum(xs_total[inlier] > ys_total[inlier]),
+                )
+
     assert cnt == len(xs_total)
+
+    logging.info("Non-copying: %d", sum(~copied_or_merged))
+    logging.info(
+        f"{x_label} Inlier, Non-copying: %d", sum(xs_inlier & ~copied_or_merged)
+    )
+    logging.info(
+        f"{x_label} Outlier, Non-copying: %d",
+        sum(xs_outlier & ~copied_or_merged),
+    )
+    logging.info(
+        f"{x_label} Timeout, Non-copying: %d",
+        sum(xs_timeout & ~copied_or_merged),
+    )
+
+    logging.info(
+        f"{y_label} Inlier, Non-copying: %d", sum(ys_inlier & ~copied_or_merged)
+    )
+    logging.info(
+        f"{y_label} Outlier, Non-copying: %d",
+        sum(ys_outlier & ~copied_or_merged),
+    )
+    logging.info(
+        f"{y_label} Timeout, Non-copying: %d",
+        sum(ys_timeout & ~copied_or_merged),
+    )
+    for x_type, x_indices in {
+        f"{x_label} Inlier": xs_inlier,
+        f"{x_label} Outlier": xs_outlier,
+        f"{x_label} Timeout": xs_timeout,
+    }.items():
+        for y_type, y_indices in {
+            f"{y_label} Inlier": ys_inlier,
+            f"{y_label} Outlier": ys_outlier,
+            f"{y_label} Timeout": ys_timeout,
+        }.items():
+            logging.info(
+                f"{x_type}, {y_type}, Non-copying: %d",
+                sum(x_indices & y_indices & ~copied_or_merged),
+            )
+            if x_type == f"{x_label} Inlier" and y_type == f"{y_label} Inlier":
+                inlier = x_indices & y_indices & ~copied_or_merged
+                logging.info(
+                    "Inlier (xs > ys): %d",
+                    sum(xs_total[inlier] > ys_total[inlier]),
+                )
+
+    # plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(4, 8 / 3))
+    ax = plt.gca()
 
     # Main plot
     norm = mpl.colors.LogNorm()
@@ -187,20 +248,8 @@ def main(
     ys[ys_outlier] = ybins[-3]
     xs[xs_timeout] = xbins[-2]
     ys[ys_timeout] = ybins[-2]
+
     _, _, _, image = ax.hist2d(xs, ys, cmap="Blues", norm=norm, bins=bins)
-
-    copied_or_merged = copied | merged
-    over_scatter_lower_bound = (
-        xs_over_scatter_lower_bound | ys_over_scatter_lower_bound
-    )
-    # The sparse counter config shows more dots than the bounded counter config
-    # due to the timeouted results
-    xs = xs_total[~copied_or_merged & over_scatter_lower_bound]
-    ys = ys_total[~copied_or_merged & over_scatter_lower_bound]
-    xs[xs > upper_bound] = upper_bound
-    ys[ys > upper_bound] = upper_bound
-    ax.scatter(xs, ys, color="red", marker=".", s=10, linewidth=1.0)
-
     ax.set_aspect("equal")
     plt.colorbar(image, ax=ax)
 
@@ -218,6 +267,40 @@ def main(
             y, ymin, ymax, color="black", linestyles="--", linewidth=linewidth
         )
 
+    ax.hlines(
+        scatter_lower_bound,
+        0,
+        scatter_lower_bound,
+        color="black",
+        linestyles="--",
+        linewidth=linewidth,
+    )
+    ax.vlines(
+        scatter_lower_bound,
+        0,
+        scatter_lower_bound,
+        color="black",
+        linestyles="--",
+        linewidth=linewidth,
+    )
+
+    over_scatter_lower_bound = (
+        xs_over_scatter_lower_bound | ys_over_scatter_lower_bound
+    )
+    # The sparse counter config shows more dots than the bounded counter config
+    # due to the timeouted results
+    scatter_xs = xs[~copied_or_merged & over_scatter_lower_bound]
+    scatter_ys = ys[~copied_or_merged & over_scatter_lower_bound]
+    ax.scatter(
+        scatter_xs,
+        scatter_ys,
+        color="red",
+        marker="o",
+        s=5,
+        linewidth=1.0,
+        alpha=0.5,
+    )
+
     tickstep = 4
     ax.set_xticks([e for e in xbins[:-3:tickstep]] + list(xbins[-3:-1]))
     ax.set_xticks(xbins[:-3], minor=True)
@@ -226,15 +309,15 @@ def main(
     xticklabels = [str(e) for e in xbins[:-3:tickstep]]
     xticklabels += [str(upper_bound), ""]
     yticklabels = [str(e) for e in ybins[:-3:tickstep]]
-    yticklabels += [str(upper_bound), "Timeout"]
-    ax.set_xticklabels(xticklabels)
+    yticklabels += ["", "Timeout"]
+    ax.set_xticklabels(xticklabels, rotation=30, ha="right")
     ax.set_yticklabels(yticklabels)
 
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-    ax.set_title("Number of operations during computation")
-
-    plt.savefig(output)
+    # ax.set_xlabel(x_label)
+    # ax.set_ylabel(y_label)
+    # ax.set_title("Number of operations")
+    # plt.tight_layout()
+    plt.savefig(output, bbox_inches="tight")
     plt.clf()
 
 

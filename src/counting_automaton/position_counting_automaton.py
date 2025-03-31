@@ -350,8 +350,9 @@ class _PositionConstructionCallback:
             repeat_arcs: list[Arc] = []
             for initial_arc in initial_arcs:
                 initial_guard, initial_action, initial_state = initial_arc
-                if initial_state == FINAL_STATE:
-                    continue
+
+                # if initial_state == FINAL_STATE:
+                #     continue
 
                 repeat_guard = copy(guard)
                 # NOTE: We can choose to add this guard or not.

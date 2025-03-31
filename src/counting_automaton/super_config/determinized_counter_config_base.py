@@ -11,7 +11,6 @@ from more_collections import OrderedSet
 from ..counter_vector import CounterOperationComponent
 from ..counter_vector import Guard
 from ..counting_set import CountingSet
-from ..logging import ComputationStep
 from ..logging import ComputationStepMark
 from ..logging import VERBOSE
 from ..position_counting_automaton import CounterVariable
@@ -101,6 +100,7 @@ class KeyToCountingSet(
                     not in operations
                 ), "ACTIVATE_OR_RESET not removed"
 
+        logger.debug("Start key computation")
         logger.log(
             VERBOSE,
             ComputationStepMark.START_DETERMINIZED_KEY_COMPUTATION.value,
@@ -109,17 +109,20 @@ class KeyToCountingSet(
         for state in new_states:
             removed_next_states.remove(state)
             new_key[state].add_zero()
+        logger.debug("End key computation")
         logger.log(
             VERBOSE, ComputationStepMark.END_DETERMINIZED_KEY_COMPUTATION.value
         )
+        logger.debug("New key: %s", new_key)
 
         if len(new_key) > 0:
             next_key_to_counting_set[new_key].add_one()
 
         for key, value in self.items():
-            logger.debug("Key: %s", key)
+            logger.debug("Current Key: %s", key)
             logger.debug("Value: %s", value.counting_set)
 
+            logger.debug("Start key computation")
             logger.log(
                 VERBOSE,
                 ComputationStepMark.START_DETERMINIZED_KEY_COMPUTATION.value,
@@ -131,6 +134,7 @@ class KeyToCountingSet(
                     copy(current_state_to_reference_count),
                 )
             )
+            logger.debug("End key computation")
             logger.log(
                 VERBOSE,
                 ComputationStepMark.END_DETERMINIZED_KEY_COMPUTATION.value,
@@ -138,7 +142,7 @@ class KeyToCountingSet(
             if len(next_key) == 0:
                 continue
 
-            logger.debug("Key after applying operations: %s", key)
+            logger.debug("Temporal next key: %s", next_key)
             minimum_delta = min(
                 next(iter(deltas)) for deltas in next_key.values()
             )
@@ -154,6 +158,8 @@ class KeyToCountingSet(
             new_deltas: list[int] = []
             for deltas in next_key.values():
                 new_deltas.extend(deltas)
+
+            logger.debug("Temporal next key: %s", next_key)
 
             next_value = next_value.update_deltas(new_deltas)
             if next_key not in next_key_to_counting_set:
@@ -270,11 +276,11 @@ class DeterminizedCounterConfigBase(
                 if state not in state_to_counting_set:
                     continue
 
-                delayed_increments = state_to_counting_set[state]
+                key_deltas = state_to_counting_set[state]
 
                 if all(
-                    not multi_head_counting_set.check(increment)
-                    for increment in delayed_increments
+                    not multi_head_counting_set.check(delta)
+                    for delta in key_deltas
                 ):
                     return False
         return True

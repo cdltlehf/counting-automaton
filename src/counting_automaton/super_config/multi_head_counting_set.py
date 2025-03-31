@@ -58,6 +58,7 @@ class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
             return head
 
     def add_one(self: _Self) -> _Self:
+        logger.debug("Adding one to multi-head counting set")
         if tuple(self.heads.keys()) != (0,):
             raise ValueError(
                 "Cannot add one to multi-head counting set with non-zero deltas"
@@ -70,6 +71,7 @@ class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
         return self
 
     def increase(self: _Self) -> _Self:
+        logger.debug("Increasing multi-head counting set")
         new_heads = {
             delta: self.get_head_after_increase(delta) for delta in self.heads
         }
@@ -86,7 +88,7 @@ class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
         return delta + self.counting_set.offset - head.value
 
     def check(self, delta: int) -> bool:
-        return self.head_value(delta) is not None
+        return self.head_value(delta) >= self.counting_set.low
 
     def values(self, delta: int) -> Iterable[int]:
         for value in self.counting_set:

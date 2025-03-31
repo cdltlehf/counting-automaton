@@ -6,7 +6,7 @@ import io
 import json
 import logging
 import sys
-from typing import Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 import timeout_decorator  # type: ignore
 
@@ -16,9 +16,6 @@ from counting_automaton.logging import VERBOSE
 import counting_automaton.position_counting_automaton as pca
 import counting_automaton.super_config as sc
 from utils import read_test_cases
-from utils.analysis import OutputDict
-from utils.analysis import TestCaseDict
-from utils.analysis import TestCaseResult
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +31,7 @@ def collect_computation_info(
     get_computation: Callable[
         [pca.PositionCountingAutomaton, str], Iterable[sc.SuperConfigBase]
     ],
-) -> tuple[dd[str, int], bool]:
+) -> tuple[dict[str, int], bool]:
     logger_dict = logging.Logger.manager.loggerDict
     counting_automaton_loggers = {
         name: counting_automaton_logger
@@ -97,7 +94,7 @@ def collect_computation_info(
             stream.seek(0)
             stream.truncate(pos)
             last_super_config = super_config
-            logger.debug("Computation info %d: %s", i, computation_info)
+            logger.debug("Computation info %d: %s", i, dict(computation_info))
         assert last_super_config is not None
     finally:
         handler.close()
@@ -109,7 +106,7 @@ def collect_computation_info(
             counting_automaton_logger.handlers.clear()
             for handler in handlers:
                 counting_automaton_logger.addHandler(handler)
-    return computation_info, last_super_config.is_final()
+    return dict(computation_info), last_super_config.is_final()
 
 
 def collect_optional_computation_info(
@@ -119,14 +116,12 @@ def collect_optional_computation_info(
         [pca.PositionCountingAutomaton, str], Iterable[sc.SuperConfigBase]
     ],
     timeout: int,
-) -> Optional[TestCaseResult]:
+) -> Optional[dict[str, Any]]:
     try:
         computation_info, is_final = timeout_decorator.timeout(timeout)(
             collect_computation_info
         )(automaton, w, get_computation)
-        return TestCaseResult(
-            computation_info=computation_info, is_final=is_final
-        )
+        return {"computation_info": computation_info, "is_final": is_final}
     except timeout_decorator.TimeoutError:
         logger.warning("Computation timeout when processing text %s", w)
         return None
@@ -166,20 +161,20 @@ def main(method: str) -> None:
     for pattern, texts in read_test_cases(sys.stdin):
         logger.info("Pattern: %s", pattern)
         try:
-            results: Optional[list[TestCaseDict]] = None
+            results: Optional[list[dict[str, int]]] = None
             automaton = create_position_automaton_with_timeout(pattern)
             results = []
             for text in texts:
                 result = collect_optional_computation_info(
                     automaton, text, get_computation, timeout
                 )
-                results.append(TestCaseDict(text=text, result=result))
+                results.append({"text": text, "result": result})
         except timeout_decorator.TimeoutError:
             logger.warning("Construction timeout in pattern %s", pattern)
             pass
 
         finally:
-            output_dict = OutputDict(pattern=pattern, results=results)
+            output_dict = {"pattern": pattern, "results": results}
             print(json.dumps(output_dict))
 
 

@@ -2,6 +2,7 @@
 
 import abc
 from collections import defaultdict as dd
+from json import dumps
 from typing import Any, Iterator
 
 from more_collections import OrderedSet
@@ -60,13 +61,4 @@ class SuperConfigBase(abc.ABC):
         return last_super_config.is_final()
 
     def __str__(self) -> str:
-        return (
-            "{\n"
-            + ",\n".join(
-                [
-                    f"  {counter}: {state_to_counting_set}"
-                    for counter, state_to_counting_set in self.to_json().items()
-                ]
-            )
-            + "}"
-        )
+        return dumps(self.to_json())

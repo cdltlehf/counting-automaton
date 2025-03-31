@@ -100,8 +100,29 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
         self.low = low
         self.high = high
 
+        self._hash: Optional[int] = None
+        self._dirty = False
+
+    def to_list(self) -> list[tuple[int, int]]:
+        listed = []
+        for state, counting_set in self.items():
+            for value in counting_set:
+                listed.append((state, value))
+        return sorted(listed)
+
     def __hash__(self) -> int:  # type: ignore
-        return hash(tuple(sorted(self.items())))
+        if self._dirty:
+            raise ValueError("Cannot hash a dirty object")
+
+        if self._hash is None:
+            self._hash = hash(tuple(self.to_list()))
+
+        return self._hash
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, StateToCountingSet):
+            raise ValueError(f"Cannot compare {self} with {other}")
+        return hash(self) == hash(other)
 
     def __str__(self) -> str:
         return str(self.to_json())
@@ -119,6 +140,9 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
         ],
         current_state_to_reference_count: dd[State, int],
     ) -> tuple["StateToCountingSet[_T]", set[State]]:
+
+        if self._hash is not None:
+            self._dirty = True
 
         next_state_to_counting_set = StateToCountingSet(
             self._constructor, self.low, self.high

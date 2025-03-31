@@ -5,11 +5,12 @@ COMPUTATION_COMPARISON_DIR := $(FIGURES_DIR)/computations-comparison
 
 COMPUTATION_COMPARISON := \
 $(foreach pattern_basename,$(PATTERN_BASENAMES:.txt=),\
-	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-super_config-bounded_super_config.pdf \
-	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-counter_config-bounded_counter_config.pdf \
 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_super_config-bounded_counter_config.pdf \
 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_super_config-sparse_counter_config.pdf \
 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_counter_config-sparse_counter_config.pdf \
+	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_counter_config-determinized_bounded_counter_config.pdf \
+	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_counter_config-determinized_sparse_counter_config.pdf \
+	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-determinized_bounded_counter_config-determinized_sparse_counter_config.pdf \
 )
 
 FORCE:
@@ -24,7 +25,7 @@ endef
 
 define COMPUTATION_COMPARISON_RULE
 $(foreach ext,pdf png pgf,\
-$(COMPUTATION_COMPARISON_DIR)/$1-$2-$3.$(ext)): $(COMPUTATION_INFO_DIR)/$1-$2.jsonl $(COMPUTATION_INFO_DIR)/$1-$3.jsonl FORCE
+$(COMPUTATION_COMPARISON_DIR)/$1-$2-$3.$(ext)): FORCE
 	@mkdir -p $$(dir $$@)
 	$(PYTHON) scripts/figures/plot_computation_comparison.py \
 		--x-label $2 \
