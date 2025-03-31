@@ -16,7 +16,10 @@ METHODS := \
 	   bounded_super_config \
 	   counter_config \
 	   bounded_counter_config \
-	   sparse_counter_config
+	   sparse_counter_config \
+	   determinized_counter_config \
+	   determinized_bounded_counter_config \
+	   determinized_sparse_counter_config
 
 include makefiles/data.mk
 include makefiles/analysis.mk

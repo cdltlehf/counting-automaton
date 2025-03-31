@@ -1,6 +1,7 @@
 """Analyze the computation steps of the position counter automaton."""
 
 import argparse
+from collections import defaultdict as dd
 import io
 import json
 import logging
@@ -9,11 +10,12 @@ from typing import Callable, Iterable, Optional
 
 import timeout_decorator  # type: ignore
 
+from counting_automaton.logging import ComputationStep
+from counting_automaton.logging import ComputationStepMark
 from counting_automaton.logging import VERBOSE
 import counting_automaton.position_counting_automaton as pca
 import counting_automaton.super_config as sc
 from utils import read_test_cases
-from utils.analysis import ComputationInfo
 from utils.analysis import OutputDict
 from utils.analysis import TestCaseDict
 from utils.analysis import TestCaseResult
@@ -32,7 +34,7 @@ def collect_computation_info(
     get_computation: Callable[
         [pca.PositionCountingAutomaton, str], Iterable[sc.SuperConfigBase]
     ],
-) -> tuple[ComputationInfo, bool]:
+) -> tuple[dd[str, int], bool]:
     logger_dict = logging.Logger.manager.loggerDict
     counting_automaton_loggers = {
         name: counting_automaton_logger
@@ -48,28 +50,47 @@ def collect_computation_info(
     handler: logging.Handler = logging.StreamHandler(stream)
     logger_filter = VerboseFilter()
     handler.addFilter(logger_filter)
+
     for counting_automaton_logger in counting_automaton_loggers.values():
         counting_automaton_logger.setLevel(VERBOSE)
         counting_automaton_logger.handlers.clear()
         counting_automaton_logger.addHandler(handler)
 
-    computation_info = ComputationInfo(
-        EVAL_SYMBOL=0,
-        EVAL_PREDICATE=0,
-        APPLY_OPERATION=0,
-        ACCESS_NODE_MERGE=0,
-        ACCESS_NODE_CLONE=0,
-    )
+    computation_info: dd[str, int] = dd(int)
     last_super_config: Optional[sc.SuperConfigBase] = None
     try:
+        mark_flags: dd[str, bool] = dd(bool)
         for i, super_config in enumerate(get_computation(automaton, w)):
             logger.debug("Super config %d: %s", i, super_config)
             pos = stream.tell()
             value = stream.getvalue()[:pos]
             for computation_step in value.splitlines():
-                if computation_step in computation_info:
-                    computation_info[computation_step] += 1  # type: ignore
+                if computation_step in ComputationStep.__members__:
+                    computation_info[computation_step] += 1
+
+                    for mark, flag in mark_flags.items():
+                        if not flag:
+                            continue
+                        marked_computation_step = f"{mark}_{computation_step}"
+                        computation_info[marked_computation_step] += 1
+
+                elif computation_step in ComputationStepMark.__members__:
+                    if computation_step.startswith("START_"):
+                        computation_step = computation_step[6:]
+                        if mark_flags[computation_step]:
+                            raise ValueError(
+                                f"Duplicate start mark: {computation_step}"
+                            )
+                        mark_flags[computation_step] = True
+                    elif computation_step.startswith("END_"):
+                        computation_step = computation_step[4:]
+                        if not mark_flags[computation_step]:
+                            raise ValueError(
+                                f"Duplicate end mark: {computation_step}"
+                            )
+                        mark_flags[computation_step] = False
                 else:
+                    print(list(ComputationStepMark.__members__))
                     raise ValueError(
                         f"Unknown computation step: {computation_step}"
                     )
@@ -118,6 +139,15 @@ def main(method: str) -> None:
         "counter_config": sc.CounterConfig.get_computation,
         "bounded_counter_config": sc.BoundedCounterConfig.get_computation,
         "sparse_counter_config": sc.SparseCounterConfig.get_computation,
+        "determinized_counter_config": (
+            sc.DeterminizedCounterConfig.get_computation
+        ),
+        "determinized_bounded_counter_config": (
+            sc.DeterminizedBoundedCounterConfig.get_computation
+        ),
+        "determinized_sparse_counter_config": (
+            sc.DeterminizedSparseCounterConfig.get_computation
+        ),
     }[method]
     handler = logging.StreamHandler()
     formatter = logging.Formatter(

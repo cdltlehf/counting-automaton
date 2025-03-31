@@ -2,7 +2,7 @@
 
 import abc
 import logging
-from typing import Callable, Iterable, Optional
+from typing import Callable, Generic, Iterable, Optional, TypeVar
 import warnings
 
 from more_collections import Node
@@ -14,50 +14,70 @@ from ..counting_set import SparseCountingSet
 logger = logging.getLogger(__name__)
 
 
-class MultiHeadCountingSetBase(abc.ABC):
+_T_co = TypeVar("_T_co", bound=CountingSet, covariant=True)
+_Self = TypeVar("_Self", bound="MultiHeadCountingSetBase[CountingSet]")
+
+
+class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
     """Multi-head counting set"""
+
+    _constructor: Callable[[int, Optional[int]], CountingSet]
 
     def __init__(
         self,
-        deltas: Iterable[int],
-        constructor: Callable[[int, Optional[int]], CountingSet] = CountingSet,
         low: int,
         high: Optional[int],
     ) -> None:
-        self.counting_set = constructor(low, high)
-        self.heads = {delta: self.counting_set.head for delta in deltas}
+        self.counting_set = self._constructor(low, high)
+        self.heads = {0: self.counting_set.head}
 
-    def update_deltas(self, deltas: set[int]) -> "MultiHeadCountingSetBase":
+    def update_deltas(self: _Self, deltas: list[int]) -> _Self:
+        new_heads = {}
         for delta in deltas:
             if delta not in self.heads:
-                if delta - 1 not in self.heads:
-                    raise ValueError(
-                        f"Cannot update delta {delta} without delta {delta - 1}"
-                    )
-                self.heads[delta] = self.get_head_after_increase(delta - 1)
-
-        for delta in self.heads:
-            if delta not in deltas:
-                self.heads.pop(delta)
+                assert delta - 1 in self.heads
+                new_heads[delta] = self.get_head_after_increase(delta - 1)
+            else:
+                new_heads[delta] = self.heads[delta]
+        self.heads = new_heads
         return self
 
     def get_head_after_increase(self, delta: int) -> Optional[Node[int]]:
         """Return the head for the given delta as if the set was increased"""
         head = self.heads[delta]
-        if head is not None and self.counting_set.high is not None:
-            if self.head_value(delta) + 1 > self.counting_set.high:
-                return head.prev
-        return None
 
-    def increase(self) -> "MultiHeadCountingSetBase":
-        self.counting_set.increase()
-        return self
-
-    def update_delta(self, delta: int) -> Optional[Node[int]]:
-        head = self.heads[delta]
         if head is None:
             return None
-        return head.prev
+
+        if self.counting_set.high is None:
+            return head
+
+        if self.head_value(delta) + 1 > self.counting_set.high:
+            return head.prev
+        else:
+            return head
+
+    def add_one(self: _Self) -> _Self:
+        if tuple(self.heads.keys()) != (0,):
+            raise ValueError(
+                "Cannot add one to multi-head counting set with non-zero deltas"
+            )
+
+        self.counting_set.add_one()
+        self.heads[0] = self.counting_set.head
+        if __debug__:
+            self.sanity_check()
+        return self
+
+    def increase(self: _Self) -> _Self:
+        new_heads = {
+            delta: self.get_head_after_increase(delta) for delta in self.heads
+        }
+        self.heads = new_heads
+        self.counting_set.increase()
+        if __debug__:
+            self.sanity_check()
+        return self
 
     def head_value(self, delta: int) -> int:
         head = self.heads[delta]
@@ -82,28 +102,74 @@ class MultiHeadCountingSetBase(abc.ABC):
         for delta in self.heads:
             max_value = -1
             for value in self.values(delta):
-                if self.high is not None and value > self.high:
+                if (
+                    self.counting_set.high is not None
+                    and value > self.counting_set.high
+                ):
                     break
                 max_value = value
-            assert max_value == self.head_value(delta)
+            assert max_value == self.head_value(delta), (
+                max_value,
+                delta,
+                self.head_value(delta),
+            )
+
+    def merge(self: _Self, other: _Self) -> _Self:
+        if list(self.heads.keys()) != list(other.heads.keys()):
+            raise ValueError("Cannot merge sets with different deltas")
+        new_heads = {}
+        for delta, self_head, other_head in zip(
+            self.heads.keys(), self.heads.values(), other.heads.values()
+        ):
+            self_value = (
+                self.counting_set.offset - self_head.value if self_head else -1
+            )
+            other_value = (
+                other.counting_set.offset - other_head.value
+                if other_head
+                else -1
+            )
+            if self_value < other_value:
+                new_heads[delta] = other_head
+            else:
+                new_heads[delta] = self_head
+        for delta in other.heads:
+            self.heads[delta] = other.heads[delta]
+
+        self.counting_set.merge(other.counting_set)
+        self.heads = new_heads
+        if __debug__:
+            self.sanity_check()
+        return self
+
+    def __ior__(self: _Self, other: _Self) -> _Self:
+        if self.counting_set.offset < other.counting_set.offset:
+            return other.merge(self)
+        else:
+            return self.merge(other)
+
+    def __str__(self) -> str:
+        return "\n".join(
+            [
+                f"counter-values ({self.counting_set.low}, {self.counting_set.high}): {self.counting_set}",
+                f"heads: {[(delta, self.head_value(delta)) for delta in self.heads]}",
+            ]
+        )
 
 
-class MultiHeadCountingSet(MultiHeadCountingSetBase):
-    def __init__(
-        self, low: int, high: Optional[int], deltas: Iterable[int]
-    ) -> None:
-        super().__init__(low, high, deltas, CountingSet)
+class MultiHeadCountingSet(MultiHeadCountingSetBase[CountingSet]):
+    """Multi-head counting set"""
+
+    _constructor = CountingSet
 
 
-class MultiHeadBoundedCountingSet(MultiHeadCountingSetBase):
-    def __init__(
-        self, low: int, high: Optional[int], deltas: Iterable[int]
-    ) -> None:
-        super().__init__(low, high, deltas, BoundedCountingSet)
+class MultiHeadBoundedCountingSet(MultiHeadCountingSetBase[BoundedCountingSet]):
+    """Multi-head bounded counting set"""
+
+    _constructor = BoundedCountingSet
 
 
-class MultiHeadSparseCountingSet(MultiHeadCountingSetBase):
-    def __init__(
-        self, low: int, high: Optional[int], deltas: Iterable[int]
-    ) -> None:
-        super().__init__(low, high, deltas, SparseCountingSet)
+class MultiHeadSparseCountingSet(MultiHeadCountingSetBase[SparseCountingSet]):
+    """Multi-head sparse counting set"""
+
+    _constructor = SparseCountingSet

@@ -26,7 +26,6 @@ class CountingSet(Iterable[int]):
         self.list: SortedLinkedList[int] = SortedLinkedList(lambda x, y: y < x)
         self.head: Optional[Node[int]] = None
         self._dirty = False
-        self.add_one()
 
     def sanity_check(self) -> None:
         if not __debug__:
@@ -62,7 +61,7 @@ class CountingSet(Iterable[int]):
             CountingSet.sanity_check(self)
         return self
 
-    def ordered_merge(self: Self, other: Self) -> Self:
+    def merge(self: Self, other: Self) -> Self:
         logger.debug("Merging counter-set %s with %s", self, other)
         assert (self.low, self.high) == (other.low, other.high)
         if self.offset < other.offset:
@@ -94,12 +93,10 @@ class CountingSet(Iterable[int]):
         return self
 
     def __ior__(self: Self, other: Self) -> Self:
-        if (self.low, self.high) != (other.low, other.high):
-            raise ValueError("Cannot union counting-sets with different bounds")
         if self.offset < other.offset:
-            return other.ordered_merge(self)
+            return other.merge(self)
         else:
-            return self.ordered_merge(other)
+            return self.merge(other)
 
     @property
     def head_value(self) -> int:
@@ -114,10 +111,22 @@ class CountingSet(Iterable[int]):
     def add_one(self: Self) -> Self:
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
         if self.list.head is not None:
-            if self.offset - self.list.head.value == 1:
+            if next(iter(self)) == 1:
                 return self
         self.list.prepend(self.offset - 1)
         if self.head is None and self.high != 0:
+            self.head = self.list.head
+        if __debug__:
+            CountingSet.sanity_check(self)
+        return self
+
+    def add_zero(self: Self) -> Self:
+        logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
+        if self.list.head is not None:
+            if next(iter(self)) == 0:
+                return self
+        self.list.prepend(self.offset)
+        if self.head is None:
             self.head = self.list.head
         if __debug__:
             CountingSet.sanity_check(self)

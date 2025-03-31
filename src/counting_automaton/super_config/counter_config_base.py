@@ -23,6 +23,67 @@ logger = logging.getLogger(__name__)
 GLOBAL_COUNTER = CounterVariable(0)
 
 _T = TypeVar("_T", bound=CountingSet)
+_Self = TypeVar("_Self", bound="StateToCountingSet[CountingSet]")
+
+
+def follow_to_r_terms(
+    symbol: str,
+    current_states: OrderedSet[State],
+    automaton: PositionCountingAutomaton,
+    satisfies: Callable[[State, Guard[CounterVariable]], bool],
+    state_scopes: Mapping[State, set[CounterVariable]],
+) -> tuple[
+    OrderedSet[State],
+    dd[CounterVariable, dd[State, dd[State, set[CounterOperationComponent]]]],
+    dd[CounterVariable, dd[State, int]],
+]:
+    next_states: OrderedSet[State] = OrderedSet()
+    counter_variable_to_next_state_to_r_terms: dd[
+        CounterVariable, dd[State, dd[State, set[CounterOperationComponent]]]
+    ]
+    counter_variable_to_next_state_to_r_terms = dd(lambda: dd(lambda: dd(set)))
+    counter_variable_to_current_state_to_reference_count: dd[
+        CounterVariable, dd[State, int]
+    ]
+    counter_variable_to_current_state_to_reference_count = dd(lambda: dd(int))
+
+    for current_state in current_states:
+        arcs = automaton.follow[current_state]
+        for guard, action, adjacent_state in arcs:
+            if adjacent_state is FINAL_STATE:
+                continue
+
+            if not satisfies(current_state, guard):
+                continue
+
+            if not automaton.eval_state(adjacent_state, symbol):
+                continue
+
+            next_states.append(adjacent_state)
+            for counter_variable in state_scopes[adjacent_state]:
+                r_terms = counter_variable_to_next_state_to_r_terms[
+                    counter_variable
+                ][adjacent_state]
+                current_state_to_reference_count = (
+                    counter_variable_to_current_state_to_reference_count[
+                        counter_variable
+                    ]
+                )
+
+                operation = action.get(
+                    counter_variable, CounterOperationComponent.NO_OPERATION
+                )
+                r_terms[current_state].add(operation)
+                if operation in {
+                    CounterOperationComponent.INCREASE,
+                    CounterOperationComponent.NO_OPERATION,
+                }:
+                    current_state_to_reference_count[current_state] += 1
+    return (
+        next_states,
+        counter_variable_to_next_state_to_r_terms,
+        counter_variable_to_current_state_to_reference_count,
+    )
 
 
 class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
@@ -42,12 +103,21 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
     def __hash__(self) -> int:  # type: ignore
         return hash(tuple(sorted(self.items())))
 
+    def __str__(self) -> str:
+        return str(self.to_json())
+
+    def to_json(self) -> dict[str, list[int]]:
+        return {
+            str(state): list(counting_set)
+            for state, counting_set in self.items()
+        }
+
     def apply_next_state_to_r_terms(
         self,
-        next_state_to_r_terms: dict[
+        next_state_to_r_terms: dd[
             State, dd[State, set[CounterOperationComponent]]
         ],
-        current_state_to_reference_count: Optional[dd[State, int]] = None,
+        current_state_to_reference_count: dd[State, int],
     ) -> tuple["StateToCountingSet[_T]", set[State]]:
 
         next_state_to_counting_set = StateToCountingSet(
@@ -69,13 +139,10 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
                         continue
 
                     current_counting_set = self[current_state]
-                    if current_state_to_reference_count is not None:
-                        if current_state_to_reference_count[current_state] > 1:
-                            current_counting_set = copy(current_counting_set)
-                        current_state_to_reference_count[current_state] -= 1
-                        assert (
-                            current_state_to_reference_count[current_state] >= 0
-                        )
+                    if current_state_to_reference_count[current_state] > 1:
+                        current_counting_set = copy(current_counting_set)
+                    current_state_to_reference_count[current_state] -= 1
+                    assert current_state_to_reference_count[current_state] >= 0
 
                     if operation == CounterOperationComponent.INCREASE:
                         logger.debug("Increasing")
@@ -93,14 +160,11 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
                         ] |= current_counting_set  # type: ignore
 
                 if is_one_added:
-                    if next_state in next_state_to_counting_set:
-                        next_state_to_counting_set[next_state].add_one()
-                    else:
-                        _ = next_state_to_counting_set[next_state]
+                    next_state_to_counting_set[next_state].add_one()
 
                 if next_state in next_state_to_counting_set:
                     logger.debug(
-                        "Result of next state %d: %s",
+                        "Result counting_set of next state %d: %s",
                         next_state,
                         next_state_to_counting_set[next_state],
                     )
@@ -110,6 +174,9 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
                 or next_state_to_counting_set[next_state].is_empty()
             ):
                 removed_next_states.add(next_state)
+
+        for next_state in removed_next_states:
+            next_state_to_counting_set.pop(next_state)
 
         return next_state_to_counting_set, removed_next_states
 
@@ -148,7 +215,7 @@ class CounterConfigBase(
     def get_initial(
         cls, automaton: PositionCountingAutomaton
     ) -> "CounterConfigBase[_T]":
-        return cls(automaton, OrderedSet({INITIAL_STATE}), {})
+        return cls(automaton, OrderedSet([INITIAL_STATE]), {})
 
     def __getitem__(self, counter: CounterVariable) -> StateToCountingSet[_T]:
         low, high = self.counters[counter]
@@ -162,23 +229,21 @@ class CounterConfigBase(
     def __len__(self) -> int:
         raise NotImplementedError()
 
-    def to_json(self) -> dict[CounterVariable, dict[str, list[int]]]:
-        jsonified = {
-            counter: {
-                str(state): list(counting_set)
-                for state, counting_set in state_to_counting_set.items()
-            }
-            for counter, state_to_counting_set in self.items()
+    def to_json(self) -> dict[str, dict[str, list[int]]]:
+        jsonified: dict[str, dict[str, list[int]]] = {}
+        jsonified[str(GLOBAL_COUNTER)] = {
+            str(state): [1] for state in self.states
         }
-        jsonified[GLOBAL_COUNTER] = {str(state): [1] for state in self.states}
+        for counter, state_to_counting_set in self.items():
+            jsonified[str(counter)] = state_to_counting_set.to_json()
         return jsonified
 
     def satisfies(self, state: State, guard: Guard[CounterVariable]) -> bool:
         for counter_variable, predicates in guard.items():
-            if state not in self[counter_variable]:
+            if len(predicates) == 0:
                 continue
 
-            if len(predicates) == 0:
+            if state not in self[counter_variable]:
                 continue
 
             counting_set = self[counter_variable][state]
@@ -190,54 +255,17 @@ class CounterConfigBase(
     def update(self, symbol: str) -> "SuperConfigBase":
         assert len(symbol) == 1
         logger.debug("Symbol: %s", symbol)
-
-        # Compute next_states, r-terms and reference count
-        next_states: OrderedSet[State] = OrderedSet()
-        counter_variable_to_next_state_to_r_terms: dd[
-            CounterVariable,
-            dd[State, dd[State, set[CounterOperationComponent]]],
-        ]
-        counter_variable_to_next_state_to_r_terms = dd(
-            lambda: dd(lambda: dd(set))
+        (
+            next_states,
+            counter_variable_to_next_state_to_r_terms,
+            counter_variable_to_current_state_to_reference_count,
+        ) = follow_to_r_terms(
+            symbol,
+            self.states,
+            self.automaton,
+            self.satisfies,
+            self.state_scopes,
         )
-        counter_variable_to_current_state_to_reference_count: dd[
-            CounterVariable, dd[State, int]
-        ]
-        counter_variable_to_current_state_to_reference_count = dd(
-            lambda: dd(int)
-        )
-        for current_state in self.states:
-            arcs = self.automaton.follow[current_state]
-            for guard, action, adjacent_state in arcs:
-                if adjacent_state is FINAL_STATE:
-                    continue
-
-                if not self.satisfies(current_state, guard):
-                    continue
-
-                if not self.automaton.eval_state(adjacent_state, symbol):
-                    continue
-
-                next_states.append(adjacent_state)
-                for counter_variable in self.state_scopes[adjacent_state]:
-                    r_terms = counter_variable_to_next_state_to_r_terms[
-                        counter_variable
-                    ][adjacent_state]
-                    current_state_to_reference_count = (
-                        counter_variable_to_current_state_to_reference_count[
-                            counter_variable
-                        ]
-                    )
-
-                    operation = action.get(
-                        counter_variable, CounterOperationComponent.NO_OPERATION
-                    )
-                    r_terms[current_state].add(operation)
-                    if operation in {
-                        CounterOperationComponent.INCREASE,
-                        CounterOperationComponent.NO_OPERATION,
-                    }:
-                        current_state_to_reference_count[current_state] += 1
 
         logger.debug("Next states: %s", list(next_states))
 
@@ -295,6 +323,7 @@ class CounterConfigBase(
                     counter_variable
                 ]
             )
+            next_state_to_counting_set: StateToCountingSet[_T]
             next_state_to_counting_set, some_removed_next_states = (
                 current_state_to_counting_set.apply_next_state_to_r_terms(
                     next_state_to_r_terms, current_state_to_reference_count
@@ -326,4 +355,5 @@ class CounterConfigBase(
 
                 if adjacent_state == FINAL_STATE:
                     return True
+        return False
         return False
