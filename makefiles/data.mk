@@ -13,6 +13,8 @@ $(FILTERED_PATTERNS_DIR)/%.txt: $(PATTERNS_DIR)/%.txt
 .PHONY: filter
 filter: $(FILTERED_PATTERNS)
 
+.SECONDARY: $(FILTERED_PATTERNS)
+
 $(TEST_CASES_DIR)/%.txt: $(FILTERED_PATTERNS_DIR)/%.txt
 	@mkdir -p $(dir $@)
 	$(PYTHON) scripts/data/append_test_cases.py < $< > $@ || rm $@

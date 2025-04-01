@@ -5,12 +5,12 @@
 When `raw-data/polyglot/all_regexes.jsonl` exists:
 
 ```bash
-$ source ./env
-$ python3 -m venv .venv
-$ source .venv/bin/activate
-$ pip install -r requirements.txt
-$ python scripts/preprocessing/preprocess_polyglot.py
-$ make computation-comparison
+source ./env
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/preprocessing/preprocess_polyglot.py
+make computation-comparison
 ```
 
 ## Dataset
@@ -34,10 +34,54 @@ $ make test-cases
 
 ./test-cases/*
 ```
-## Cost of Super Config Computation
 
-### Backtracking
+## Case-study for example test cases
 
-- Guard check
-- Action check
-- Symbol check
+You can find example test cases in `./data/test-cases/example.txt`.
+
+You can get the analysis results and plots for the example test cases by
+running the following command.
+
+```bash
+source ./env
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+make computation-comparison PATTERN_BASENAMES
+```
+
+It runs the following commands.
+
+### Computation info
+
+```bash
+python scripts/figures/computation_info.py \
+    --method {super_config,bounded_super_config,...} \
+    < ./data/test-cases/example.txt
+    > ./data/analysis/dynamic/computation_info/example-{method}.jsonl
+    2> dev/null
+```
+
+You can find the results in
+`./data/analysis/dynamic/computation_info/example-{method}.jsonl`.
+
+You can run the following to print the results into `stdout` and logs into
+`stderr`.
+
+```bash
+python scripts/figures/computation_info.py --method super_config
+```
+
+### Draw plots
+
+```bash
+python scripts/figures/plot_computation_comparison.py \
+    --x-label <method-1> \
+    --y-label <method-2> \
+    data/analysis/dynamic/computation-info/example-<method-1>.jsonl \
+    data/analysis/dynamic/computation-info/example-<method-2>jsonl \
+    data/figures/computations-comparison/example-<method-1>-<method-2>.pdf
+```
+
+You can find the plots in
+`data/figures/computations-comparison/example-<method-1>-<method-2>.pdf`.
