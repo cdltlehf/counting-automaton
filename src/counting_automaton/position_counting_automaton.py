@@ -338,6 +338,8 @@ class _PositionConstructionCallback:
         final_arcs = self.get_final_arcs(y.follow)
         initial_arcs = y.follow[INITIAL_STATE]
         counter_variable = CounterVariable(self.counter)
+        if y.is_nullable():
+            lower_bound = 0
 
         for last_state, final_arc in final_arcs:
             guard, action, _ = final_arc
@@ -351,8 +353,8 @@ class _PositionConstructionCallback:
             for initial_arc in initial_arcs:
                 initial_guard, initial_action, initial_state = initial_arc
 
-                # if initial_state == FINAL_STATE:
-                #     continue
+                if initial_state == FINAL_STATE:
+                    continue
 
                 repeat_guard = copy(guard)
                 # NOTE: We can choose to add this guard or not.
@@ -368,9 +370,12 @@ class _PositionConstructionCallback:
             y.follow[last_state].substitute(final_arc, repeat_arcs)
 
             # Final edge: last_state -> Final
-            final_guard = guard + Guard.not_less_than(
-                counter_variable, lower_bound
-            )
+            final_guard = guard
+
+            if lower_bound != 0:
+                final_guard += Guard.not_less_than(
+                    counter_variable, lower_bound
+                )
             if upper_bound is not None:
                 final_guard += Guard.not_greater_than(
                     counter_variable, upper_bound

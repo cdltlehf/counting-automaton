@@ -183,7 +183,9 @@ def at_to_string(at: NamedIntConstant) -> str:
         raise NotImplementedError(f"Unknown at: {at}") from e
 
 
-def to_string_f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
+def to_string_f(
+    x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]
+) -> str:
     if x is None:
         return "".join(ys)
     opcode, operand = x
@@ -257,6 +259,8 @@ def normalize(tree: SubPattern) -> SubPattern:
     5. Raise error if the pattern has look-around assertions.
     6. Raise error if the pattern has back-references.
     7. Raise error if the pattern has other features that are not supported.
+    8. Let upper-bound of repeat quantifiers be 65,535 (2^16 - 1). Note that
+       the maximum bound of re2 is 1,000.
     """
 
     def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
@@ -285,7 +289,11 @@ def normalize(tree: SubPattern) -> SubPattern:
             operand = (0, 0, 0)
             return subpattern_to_string(opcode, operand, ys)
         elif opcode in {MIN_REPEAT, MAX_REPEAT}:
-            return repeat_to_string(opcode, operand, ys)
+            m, n = operand
+            if n is not MAXREPEAT:
+                n = min(n, 65535)
+            m = min(m, 65535)
+            return repeat_to_string(opcode, (m, n), ys)
         elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
             ys = list(ys)
             ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"

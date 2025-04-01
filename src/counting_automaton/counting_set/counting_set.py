@@ -106,6 +106,12 @@ class CountingSet(Iterable[int]):
 
     def check(self) -> bool:
         logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
+        logger.debug(
+            "Checking counting-set %s, head: %s, low: %s",
+            self,
+            self.head_value,
+            self.low,
+        )
         return self.head_value >= self.low
 
     def add_one(self: Self) -> Self:

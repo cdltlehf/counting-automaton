@@ -123,7 +123,7 @@ def collect_optional_computation_info(
         )(automaton, w, get_computation)
         return {"computation_info": computation_info, "is_final": is_final}
     except timeout_decorator.TimeoutError:
-        logger.warning("Computation timeout when processing text %s", w)
+        logger.warning("Computation timeout when processing text %s", w[:100])
         return None
 
 
@@ -153,15 +153,17 @@ def main(method: str) -> None:
     if __debug__:
         timeout = 0
     else:
-        timeout = 60
+        timeout = 10
 
     create_position_automaton_with_timeout = timeout_decorator.timeout(timeout)(
         pca.PositionCountingAutomaton.create
     )
-    for pattern, texts in read_test_cases(sys.stdin):
+    for pattern, texts in read_test_cases(
+        line for line in sys.stdin if line[0] != "#"
+    ):
         logger.info("Pattern: %s", pattern)
         try:
-            results: Optional[list[dict[str, int]]] = None
+            results: Optional[list[dict[str, Any]]] = None
             automaton = create_position_automaton_with_timeout(pattern)
             results = []
             for text in texts:
@@ -171,8 +173,8 @@ def main(method: str) -> None:
                 results.append({"text": text, "result": result})
         except timeout_decorator.TimeoutError:
             logger.warning("Construction timeout in pattern %s", pattern)
-            pass
-
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Error in pattern %s: %s", pattern, e)
         finally:
             output_dict = {"pattern": pattern, "results": results}
             print(json.dumps(output_dict))

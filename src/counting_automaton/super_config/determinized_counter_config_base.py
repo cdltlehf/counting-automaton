@@ -268,6 +268,7 @@ class DeterminizedCounterConfigBase(
                 continue
 
             key_to_counting_set = self[counter_variable]
+            flag = False
             for (
                 state_to_counting_set,
                 multi_head_counting_set,
@@ -278,11 +279,14 @@ class DeterminizedCounterConfigBase(
 
                 key_deltas = state_to_counting_set[state]
 
-                if all(
-                    not multi_head_counting_set.check(delta)
-                    for delta in key_deltas
+                if any(
+                    multi_head_counting_set.check(delta) for delta in key_deltas
                 ):
-                    return False
+                    flag = True
+                    break
+            if flag:
+                continue
+            return False
         return True
 
     def update(self, symbol: str) -> "DeterminizedCounterConfigBase[_T]":

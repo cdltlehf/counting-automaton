@@ -24,7 +24,7 @@ $(COMPUTATION_INFO_DIR)/$1-$2.jsonl: $(TEST_CASES_DIR)/$1.txt
 	$(PYTHON) scripts/analysis/computation_info.py \
 		--method $2 \
 		< $$< \
-		> $$@ \
+		> $$@ 2> $$@.log \
 		|| rm $$@
 
 endef

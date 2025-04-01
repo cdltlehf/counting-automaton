@@ -72,9 +72,30 @@ def filter_analysis(
         x_results = x_output_dict["results"]
         y_results = y_output_dict["results"]
 
+        # If one of the results is None, the other should be None as well
+        # if x_results is None or y_results is None:
+        #     x_output_dict["results"] = None
+        #     y_output_dict["results"] = None
+
         assert (x_results is None) == (y_results is None)
+
         if x_results is None or y_results is None:
             continue
+
+        x_len = len(x_results)
+        y_len = len(y_results)
+
+        if x_len < y_len:
+            x_results = x_results + [
+                {"text": e["text"], "result": None} for e in y_results[x_len:]
+            ]
+        elif x_len > y_len:
+            y_results = y_results + [
+                {"text": e["text"], "result": None} for e in x_results[y_len:]
+            ]
+
+        x_output_dict["results"] = x_results
+        y_output_dict["results"] = y_results
 
         # Assertion or debugging
         for x_test_case_result, y_test_case_result in zip(x_results, y_results):
@@ -88,17 +109,13 @@ def filter_analysis(
                 x_is_final = x_result["is_final"]
                 y_is_final = y_result["is_final"]
 
-                # x_computation_info = x_result["computation_info"]
-                # y_computation_info = y_result["computation_info"]
-                # x_merged = x_computation_info.get("ACCESS_NODE_MERGE", 0) > 0
-                # y_merged = y_computation_info.get("ACCESS_NODE_MERGE", 0) > 0
-
                 if x_is_final != y_is_final:
                     print(f"{escape(pattern)}\t{escape(text)}")
                     raise ValueError("Final does not match")
 
         x_filtered_results.append(x_output_dict)
         y_filtered_results.append(y_output_dict)
+
     return x_filtered_results, y_filtered_results
 
 
@@ -313,8 +330,8 @@ def main(
     ax.set_xticklabels(xticklabels, rotation=30, ha="right")
     ax.set_yticklabels(yticklabels)
 
-    # ax.set_xlabel(x_label)
-    # ax.set_ylabel(y_label)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
     # ax.set_title("Number of operations")
     # plt.tight_layout()
     plt.savefig(output, bbox_inches="tight")
