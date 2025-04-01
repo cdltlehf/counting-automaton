@@ -4,7 +4,15 @@ __pycache__/
 data/*
 !data/.gitkeep
 !data/figures
-!data/*/example.*
+
+!data/test-cases
+data/test-cases/*
+!data/test-cases/example.txt
+
+!data/filtered
+data/filtered/*
+!data/filtered/all_regexes.txt
+
 raw-data/*
 !raw-data/.gitkeep
 .venv

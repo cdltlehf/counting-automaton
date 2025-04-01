@@ -1,0 +1,2 @@
+"a*(a|aa){0,100}"	"a"	"aa"	"aaa"	"aaaa"	"aaaaa"	"aaaaaa"	"aaaaaaa"	"aaaaaaaa"	"aaaaaaaaa"	"aaaaaaaaaa"	"aaaaaaaaaaa"
+"a*(a|aaa){100}"	"a"	"aa"	"aaa"	"aaaa"	"aaaaa"	"aaaaaa"	"aaaaaaa"	"aaaaaaaa"	"aaaaaaaaa"	"aaaaaaaaaa"	"aaaaaaaaaa"
