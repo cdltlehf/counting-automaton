@@ -15,5 +15,5 @@ data/filtered/*
 
 raw-data/*
 !raw-data/.gitkeep
-.ca-venv/
+.*venv/
 data/figures/*/example*.pdf
