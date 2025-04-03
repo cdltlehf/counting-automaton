@@ -85,6 +85,8 @@ class CounterPredicate(Hashable):
             return counter_value <= self.value
         elif self.type is CounterPredicate.Type.LESS_THAN:
             return counter_value < self.value
+        else:
+            raise ValueError(f"Unhandled predicate type: {self.type}")
 
     def __str__(self) -> str:
         return f"{self.type}{self.value}"
