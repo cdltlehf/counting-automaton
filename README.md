@@ -3,8 +3,8 @@
 ## Set up
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .ca-venv
+source .ca-venv/bin/activate
 pip install --editable . # install all packages in `src/` in editable mode (no need to reinstall after making changes)
 ```
 
@@ -13,8 +13,8 @@ pip install --editable . # install all packages in `src/` in editable mode (no n
 When `raw-data/polyglot/all_regexes.jsonl` exists:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .ca-venv
+source .ca-venv/bin/activate
 pip install -r requirements.txt
 python scripts/preprocessing/preprocess_polyglot.py
 make computation-comparison
@@ -50,8 +50,8 @@ You can get the analysis results and plots for the example test cases by
 running the following command.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .ca-venv
+source .ca-venv/bin/activate
 pip install -r requirements.txt
 make computation-comparison PATTERN_BASENAMES
 ```

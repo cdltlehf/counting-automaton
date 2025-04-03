@@ -1,4 +1,4 @@
-VENV := .venv
+VENV := .ca-venv
 ifdef RELEASE
 PYTHON := $(VENV)/bin/python3 -O
 else
