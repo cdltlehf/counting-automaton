@@ -15,4 +15,4 @@ data/filtered/*
 
 raw-data/*
 !raw-data/.gitkeep
-.venv
+.*venv/
