@@ -23,24 +23,19 @@ METHODS := \
 all: computation-comparison
 
 clean-data: # Remove all generated
-	rm -r $(DATA_DIR)/figures/ $(DATA_DIR)/analysis/
+	- rm -rf $(DATA_DIR)/figures/ $(DATA_DIR)/analysis/
 
 clean-caches: # Remove all __pycache__ directories
-	find . -name "__pycache__" -type d -exec rm -r {} +
+	- find . -name "__pycache__" -type d -exec rm -r {} +
 
 clean-eggs: # Remove all .egg-info directories
-	find . -name "*.egg-info" -type d -exec rm -r {} +
+	- find . -name "*.egg-info" -type d -exec rm -r {} +
 
 clean-venv: # Remove the virtual environment
 	rm -rf $(VENV)
 
-clean-all:
-	clean-data
-	clean-caches
-	clean-eggs
-	clean-venv
+clean-all: clean-data clean-caches clean-eggs clean-venv
 
-.PHONY: all clean-data clean-caches clean-eggs clean-venv clean-all
 
 include makefiles/data.mk
 include makefiles/analysis.mk
@@ -49,3 +44,5 @@ include makefiles/figures.mk
 file-server:
 	curl -s https://ifconfig.me
 	$(PYTHON) -m http.server 50000
+
+.PHONY: all clean-data clean-caches clean-eggs clean-venv clean-all
