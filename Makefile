@@ -27,5 +27,5 @@ include makefiles/analysis.mk
 include makefiles/figures.mk
 
 file-server:
-	@echo $$(curl -s ifconfig.me)
+	curl -s https://ifconfig.me
 	$(PYTHON) -m http.server 50000
