@@ -2,7 +2,11 @@
 
 ## Set up
 
+Create a virtual environment and install the packages in `src/` using the commands in the code block below.
+After the `pip install`, you should be able to import `cai4py` from Python scripts in arbitrary locations.
+
 ```bash
+# Create a virtual environment
 python3 -m venv .ca-venv
 source .ca-venv/bin/activate
 pip install --editable . # install all packages in `src/` in editable mode (no need to reinstall after making changes)
@@ -61,7 +65,7 @@ It runs the following commands.
 ### Computation info
 
 ```bash
-python scripts/figures/computation_info.py \
+python scripts/analysis/computation_info.py \
     --method {super_config,bounded_super_config,...} \
     < ./data/test-cases/example.txt
     > ./data/analysis/dynamic/computation_info/example-{method}.jsonl

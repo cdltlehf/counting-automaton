@@ -7,7 +7,7 @@ endif
 
 DATA_DIR := data
 PATTERNS_DIR := $(DATA_DIR)/patterns
-PATTERN_BASENAMES := all_regexes.txt
+PATTERN_BASENAMES := example.txt # TODO: get value from commandline argument
 # PATTERNS := $(wildcard $(PATTERNS_DIR)/*.txt)
 PATTERNS := $(addprefix $(PATTERNS_DIR)/, $(PATTERN_BASENAMES))
 METHODS := \
