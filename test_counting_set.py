@@ -1,7 +1,7 @@
 import math
 
-from counting_automaton.counting_set import CountingSet
-from counting_automaton.counting_set import SparseCountingSet
+from cai4py.counting_automaton.counting_set import CountingSet
+from cai4py.counting_automaton.counting_set import SparseCountingSet
 
 if __name__ == "__main__":
     l = [3, 5, 6, 10, 13]

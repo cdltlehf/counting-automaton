@@ -4,10 +4,10 @@
 
 import logging
 
-import counting_automaton.position_counting_automaton as pca
-import counting_automaton.super_config as sc
-import parser_tools as pt
-import utils as ut
+import cai4py.counting_automaton.position_counting_automaton as pca
+import cai4py.counting_automaton.super_config as sc
+import cai4py.parser_tools as pt
+import cai4py.utils as ut
 
 
 def main() -> None:

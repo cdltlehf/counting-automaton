@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
-from counting_automaton.logging import ComputationStep
-from parser_tools.constants import MAXREPEAT
-from utils import escape
-from utils import get_outlier_bounds  # pylint: disable=unused-import
-from utils.analysis import OutputDict
+from cai4py.counting_automaton.logging import ComputationStep
+from cai4py.parser_tools.constants import MAXREPEAT
+from cai4py.utils import escape
+from cai4py.utils import get_outlier_bounds  # pylint: disable=unused-import
+from cai4py.utils.analysis import OutputDict
 
 Range = tuple[int, Union[int, float]]
 
