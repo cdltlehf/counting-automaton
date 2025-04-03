@@ -12,14 +12,13 @@ source .ca-venv/bin/activate
 pip install --editable . # install all packages in `src/` in editable mode (no need to reinstall after making changes)
 ```
 
+The following sections assume that the virtual environment `.ca-venv` is active.
+
 ## Preprocessing
 
 When `raw-data/polyglot/all_regexes.jsonl` exists:
 
 ```bash
-python3 -m venv .ca-venv
-source .ca-venv/bin/activate
-pip install -r requirements.txt
 python scripts/preprocessing/preprocess_polyglot.py
 make computation-comparison
 ```
@@ -54,9 +53,6 @@ You can get the analysis results and plots for the example test cases by
 running the following command.
 
 ```bash
-python3 -m venv .ca-venv
-source .ca-venv/bin/activate
-pip install -r requirements.txt
 make PATTERN_BASENAMES=example.txt computation-comparison
 ```
 
