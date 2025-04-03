@@ -1,9 +1,8 @@
 VENV := .venv
-PYTHONPATH := ${PYTHONPATH}:$(PWD)/src
 ifdef RELEASE
-PYTHON := PYTHONPATH=$(PYTHONPATH) $(VENV)/bin/python3 -O
+PYTHON := $(VENV)/bin/python3 -O
 else
-PYTHON := PYTHONPATH=$(PYTHONPATH) $(VENV)/bin/python3
+PYTHON := $(VENV)/bin/python3
 endif
 
 DATA_DIR := data
