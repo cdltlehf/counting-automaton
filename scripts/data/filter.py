@@ -3,10 +3,10 @@
 import re
 import sys
 
-import parser_tools as pt
-import parser_tools.utils
-from utils import escape
-from utils import unescape
+import cai4py.parser_tools as pt
+import cai4py.parser_tools.utils as pt_utils
+from cai4py.utils import escape
+from cai4py.utils import unescape
 
 
 def main() -> None:
@@ -14,7 +14,7 @@ def main() -> None:
         try:
             parsed = pt.parse(unescape(line))
             normalized = pt.normalize(parsed)
-            if parser_tools.utils.counting_height(normalized) != 1:
+            if pt_utils.counting_height(normalized) != 1:
                 continue
             print(escape(pt.to_string(normalized)))
         except NotImplementedError as e:

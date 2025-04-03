@@ -7,8 +7,8 @@ import warnings
 from timeout_decorator import timeout  # type: ignore
 import xeger  # type: ignore
 
-from src.utils import escape
-from src.utils import unescape
+from cai4py.utils import escape
+from cai4py.utils import unescape
 
 
 def safe_xeger(x: xeger.Xeger, pattern: str) -> Optional[str]:

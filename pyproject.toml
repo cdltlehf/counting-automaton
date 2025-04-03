@@ -3,7 +3,7 @@ requires = ['setuptools']
 build-backend = 'setuptools.build_meta'
 
 [project]
-name = 'counting_automaton'
+name = 'cai4py' # short for "counting automaton implementation for python"
 version = '0.0.0'
 dependencies = [
   "contourpy==1.3.0",
