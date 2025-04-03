@@ -57,7 +57,7 @@ running the following command.
 python3 -m venv .ca-venv
 source .ca-venv/bin/activate
 pip install -r requirements.txt
-make computation-comparison PATTERN_BASENAMES
+make PATTERN_BASENAMES=example.txt computation-comparison
 ```
 
 It runs the following commands.
