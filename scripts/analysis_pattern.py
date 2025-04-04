@@ -10,6 +10,10 @@ from typing import Any, TypedDict, Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.text as mpl_text
+import matplotlib.axes as mpl_axes
+import matplotlib.patches as mpl_patches
+import matplotlib.colors as mpl_colors
 import numpy as np
 
 import cai4py.parser_tools as pt
@@ -52,7 +56,7 @@ def get_sparse_set_size(counting_range: Range) -> float:
     return math.ceil(high / (k + 1)) * 2
 
 
-def hist_with_inf(ax: mpl.axes.Axes, data_like: list[float]) -> None:
+def hist_with_inf(ax: mpl_axes.Axes, data_like: list[float]) -> None:
     data = np.array(data_like, dtype=float)
     lower_bound, upper_bound = get_outlier_bounds(data)
 
@@ -95,7 +99,7 @@ def hist_with_inf(ax: mpl.axes.Axes, data_like: list[float]) -> None:
 
     xlim_left, xlim_right = ax.get_xlim()
     if len(lower_outliers) > 0:
-        box = mpl.patches.Rectangle(
+        box = mpl_patches.Rectangle(
             (lower_x - bin_width, 0),
             bin_width,
             len(lower_outliers),
@@ -111,7 +115,7 @@ def hist_with_inf(ax: mpl.axes.Axes, data_like: list[float]) -> None:
             min(upper_outliers),
             max(upper_outliers),
         )
-        box = mpl.patches.Rectangle(
+        box = mpl_patches.Rectangle(
             (upper_x, 0),
             bin_width,
             len(upper_outliers),
@@ -123,7 +127,7 @@ def hist_with_inf(ax: mpl.axes.Axes, data_like: list[float]) -> None:
         xlim_right = upper_x + bin_width
 
     if len(infinite_outliers) > 0:
-        box = mpl.patches.Rectangle(
+        box = mpl_patches.Rectangle(
             (infinite_x, 0),
             bin_width,
             len(infinite_outliers),
@@ -229,7 +233,7 @@ def main(output_dir: Path) -> None:
         y_upper_line + e * binstep for e in [0, 2, 3]
     ]
     # Main plot
-    norm = mpl.colors.LogNorm()
+    norm = mpl_colors.LogNorm()
     bins = (xbins, ybins)
     _, _, _, image = ax.hist2d(xs, ys, bins=bins, cmap="Blues", norm=norm)
     logging.info("low_inlier, high_inlier: %d", len(xs))
@@ -295,7 +299,7 @@ def main(output_dir: Path) -> None:
     ax.set_yticks([e for e in ybins[:-3] if e % tickstep == 0] + ybins[-3:-1])
     ax.set_yticks(ybins[:-3], minor=True)
     yticklabels = ax.get_yticklabels()
-    yticklabels[-1] = mpl.text.Text(text=r"$\infty$")
+    yticklabels[-1] = mpl_text.Text(text=r"$\infty$")
     ax.set_yticklabels(yticklabels)
 
     ax.set_xlabel("Low values")
