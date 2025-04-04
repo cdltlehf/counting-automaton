@@ -1,14 +1,24 @@
 # Counting Automaton
 
+## Set up
+
+Create a virtual environment and install the packages in `src/` using the commands in the code block below.
+After the `pip install`, you should be able to import `cai4py` from Python scripts in arbitrary locations.
+
+```bash
+# Create a virtual environment
+python3 -m venv .ca-venv
+source .ca-venv/bin/activate
+pip install --editable . # install all packages in `src/` in editable mode (no need to reinstall after making changes)
+```
+
+The following sections assume that the virtual environment `.ca-venv` is active.
+
 ## Preprocessing
 
 When `raw-data/polyglot/all_regexes.jsonl` exists:
 
 ```bash
-source ./env
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 python scripts/preprocessing/preprocess_polyglot.py
 make computation-comparison
 ```
@@ -43,11 +53,7 @@ You can get the analysis results and plots for the example test cases by
 running the following command.
 
 ```bash
-source ./env
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-make computation-comparison PATTERN_BASENAMES
+make PATTERN_BASENAMES=example.txt computation-comparison
 ```
 
 It runs the following commands.
@@ -55,7 +61,7 @@ It runs the following commands.
 ### Computation info
 
 ```bash
-python scripts/figures/computation_info.py \
+python scripts/analysis/computation_info.py \
     --method {super_config,bounded_super_config,...} \
     < ./data/test-cases/example.txt
     > ./data/analysis/dynamic/computation_info/example-{method}.jsonl

@@ -12,12 +12,12 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-import parser_tools as pt
-from parser_tools.constants import MAX_REPEAT
-from parser_tools.constants import MAXREPEAT
-from parser_tools.constants import MIN_REPEAT
-from utils import get_outlier_bounds
-from utils import unescape
+import cai4py.parser_tools as pt
+from cai4py.parser_tools.constants import MAX_REPEAT
+from cai4py.parser_tools.constants import MAXREPEAT
+from cai4py.parser_tools.constants import MIN_REPEAT
+from cai4py.utils import get_outlier_bounds
+from cai4py.utils import unescape
 
 
 class AnalysisResults(TypedDict):

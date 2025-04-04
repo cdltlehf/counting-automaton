@@ -10,12 +10,14 @@ from typing import Any, Callable, Iterable, Optional
 
 import timeout_decorator  # type: ignore
 
-from counting_automaton.logging import ComputationStep
-from counting_automaton.logging import ComputationStepMark
-from counting_automaton.logging import VERBOSE
-import counting_automaton.position_counting_automaton as pca
-import counting_automaton.super_config as sc
-from utils import read_test_cases
+from cai4py.counting_automaton.logging import (
+    ComputationStep,
+    ComputationStepMark,
+    VERBOSE,
+)
+import cai4py.counting_automaton.position_counting_automaton as pca
+import cai4py.counting_automaton.super_config as sc
+from cai4py.utils import read_test_cases
 
 logger = logging.getLogger(__name__)
 
@@ -82,15 +84,11 @@ def collect_computation_info(
                     elif computation_step.startswith("END_"):
                         computation_step = computation_step[4:]
                         if not mark_flags[computation_step]:
-                            raise ValueError(
-                                f"Duplicate end mark: {computation_step}"
-                            )
+                            raise ValueError(f"Duplicate end mark: {computation_step}")
                         mark_flags[computation_step] = False
                 else:
                     print(list(ComputationStepMark.__members__))
-                    raise ValueError(
-                        f"Unknown computation step: {computation_step}"
-                    )
+                    raise ValueError(f"Unknown computation step: {computation_step}")
             stream.seek(0)
             stream.truncate(pos)
             last_super_config = super_config
@@ -134,9 +132,7 @@ def main(method: str) -> None:
         "counter_config": sc.CounterConfig.get_computation,
         "bounded_counter_config": sc.BoundedCounterConfig.get_computation,
         "sparse_counter_config": sc.SparseCounterConfig.get_computation,
-        "determinized_counter_config": (
-            sc.DeterminizedCounterConfig.get_computation
-        ),
+        "determinized_counter_config": (sc.DeterminizedCounterConfig.get_computation),
         "determinized_bounded_counter_config": (
             sc.DeterminizedBoundedCounterConfig.get_computation
         ),
@@ -145,9 +141,7 @@ def main(method: str) -> None:
         ),
     }[method]
     handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s:%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     if __debug__:
@@ -158,9 +152,7 @@ def main(method: str) -> None:
     create_position_automaton_with_timeout = timeout_decorator.timeout(timeout)(
         pca.PositionCountingAutomaton.create
     )
-    for pattern, texts in read_test_cases(
-        line for line in sys.stdin if line[0] != "#"
-    ):
+    for pattern, texts in read_test_cases(line for line in sys.stdin if line[0] != "#"):
         logger.info("Pattern: %s", pattern)
         try:
             results: Optional[list[dict[str, Any]]] = None
