@@ -26,7 +26,7 @@ define COUNTER_RANGE_RULE
 $(foreach ext,pdf png pgf,\
 $(COUNTER_RANGE_DIR)/$1.$(ext)): $(FILTERED_PATTERNS_DIR)/$1.txt FORCE
 	@mkdir -p $$(dir $$@)
-	$(PYTHON) scripts/figures/plot_counter_range.py $$< $$@ || rm -rf $$@
+	- $(PYTHON) $(PYFLAGS) scripts/figures/plot_counter_range.py $$< $$@
 
 endef
 
@@ -37,13 +37,12 @@ $(COMPUTATION_COMPARISON_DIR)/$1-$2-$3.$(ext)): \
 		$(COMPUTATION_INFO_DIR)/$1-$3.jsonl \
 		FORCE
 	@mkdir -p $$(dir $$@)
-	$(PYTHON) scripts/figures/plot_computation_comparison.py \
+	- $(PYTHON) $(PYFLAGS) scripts/figures/plot_computation_comparison.py \
 		--x-label $2 \
 		--y-label $3 \
 		$(COMPUTATION_INFO_DIR)/$1-$2.jsonl \
 		$(COMPUTATION_INFO_DIR)/$1-$3.jsonl \
-		$$@ \
-		|| rm -rf $$@
+		$$@
 
 endef
 

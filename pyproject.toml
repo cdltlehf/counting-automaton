@@ -24,7 +24,7 @@ dependencies = [
   "xeger==0.4.0",
   "zipp==3.21.0",
 ]
-requires-python = '>=3.12'
+requires-python = '>=3.9'
 
 [tool.setuptools.packages.find]
 where = ["src"] # The location of the package(s) to install

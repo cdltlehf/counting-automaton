@@ -8,7 +8,7 @@ TEST_CASES := $(addprefix $(TEST_CASES_DIR)/,$(PATTERN_BASENAMES))
 
 $(FILTERED_PATTERNS_DIR)/%.txt: $(PATTERNS_DIR)/%.txt
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/data/filter.py < $< > $@ || rm $@
+	- $(PYTHON) $(PYFLAGS) scripts/data/filter.py < $< > $@
 
 .PHONY: filter
 filter: $(FILTERED_PATTERNS)
@@ -17,7 +17,7 @@ filter: $(FILTERED_PATTERNS)
 
 $(TEST_CASES_DIR)/%.txt: $(FILTERED_PATTERNS_DIR)/%.txt
 	@mkdir -p $(dir $@)
-	$(PYTHON) scripts/data/append_test_cases.py < $< > $@ || rm $@
+	- $(PYTHON) $(PYFLAGS) scripts/data/append_test_cases.py < $< > $@
 
 .PHONY: test-cases
 test-cases: $(TEST_CASES)
