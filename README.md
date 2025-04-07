@@ -7,8 +7,8 @@ After the `pip install`, you should be able to import `cai4py` from Python scrip
 
 ```bash
 # Create a virtual environment
-python3 -m venv .ca-venv
-source .ca-venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install --editable . # install all packages in `src/` in editable mode (no need to reinstall after making changes)
 ```
 
