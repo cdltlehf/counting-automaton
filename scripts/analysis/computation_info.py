@@ -152,7 +152,7 @@ def main(method: str) -> None:
     create_position_automaton_with_timeout = timeout_decorator.timeout(timeout)(
         pca.PositionCountingAutomaton.create
     )
-    for pattern, texts in read_test_cases(line for line in sys.stdin if line[0] != "#"):
+    for pattern, texts in read_test_cases(line for line in sys.stdin if line[0] != "#" and line != "\n"):
         logger.info("Pattern: %s", pattern)
         try:
             results: Optional[list[dict[str, Any]]] = None
