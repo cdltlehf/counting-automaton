@@ -1,5 +1,5 @@
-PYTHON := $(shell which python3) # Get the path to the Python interpreter dynamically
-VENV := $(shell dirname $(shell dirname ${PYTHON})) # Get the path to the virtual environment dynamically
+VENV := .venv
+PYTHON := $(VENV)/bin/python3
 PYFLAGS := -O
 
 DATA_DIR := data
