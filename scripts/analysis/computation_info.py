@@ -184,6 +184,20 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--method", type=str, required=True)
+    parser.add_argument(
+        "--method",
+        type=str,
+        required=True,
+        choices=[
+            "super_config",
+            "bounded_super_config",
+            "counter_config",
+            "bounded_counter_config",
+            "sparse_counter_config",
+            "determinized_counter_config",
+            "determinized_bounded_counter_config",
+            "determinized_sparse_counter_config",
+        ],
+    )
     args = parser.parse_args()
     main(args.method)
