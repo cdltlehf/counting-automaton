@@ -10,11 +10,9 @@ from typing import Any, Callable, Iterable, Optional
 
 import timeout_decorator  # type: ignore
 
-from cai4py.counting_automaton.logging import (
-    ComputationStep,
-    ComputationStepMark,
-    VERBOSE,
-)
+from cai4py.counting_automaton.logging import ComputationStep
+from cai4py.counting_automaton.logging import ComputationStepMark
+from cai4py.counting_automaton.logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
 from cai4py.utils import read_test_cases
@@ -38,7 +36,7 @@ def collect_computation_info(
     counting_automaton_loggers = {
         name: counting_automaton_logger
         for name, counting_automaton_logger in logger_dict.items()
-        if name.startswith("counting_automaton")
+        if name.startswith("cai4py")
         and isinstance(counting_automaton_logger, logging.Logger)
     }
     counting_automaton_logger_configs = {
@@ -60,7 +58,7 @@ def collect_computation_info(
     try:
         mark_flags: dd[str, bool] = dd(bool)
         for i, super_config in enumerate(get_computation(automaton, w)):
-            logger.debug("Super config %d: %s", i, super_config)
+            logger.info("Super config %d: %s", i, super_config)
             pos = stream.tell()
             value = stream.getvalue()[:pos]
             for computation_step in value.splitlines():
@@ -84,11 +82,15 @@ def collect_computation_info(
                     elif computation_step.startswith("END_"):
                         computation_step = computation_step[4:]
                         if not mark_flags[computation_step]:
-                            raise ValueError(f"Duplicate end mark: {computation_step}")
+                            raise ValueError(
+                                f"Duplicate end mark: {computation_step}"
+                            )
                         mark_flags[computation_step] = False
                 else:
                     print(list(ComputationStepMark.__members__))
-                    raise ValueError(f"Unknown computation step: {computation_step}")
+                    raise ValueError(
+                        f"Unknown computation step: {computation_step}"
+                    )
             stream.seek(0)
             stream.truncate(pos)
             last_super_config = super_config
@@ -132,7 +134,9 @@ def main(method: str) -> None:
         "counter_config": sc.CounterConfig.get_computation,
         "bounded_counter_config": sc.BoundedCounterConfig.get_computation,
         "sparse_counter_config": sc.SparseCounterConfig.get_computation,
-        "determinized_counter_config": (sc.DeterminizedCounterConfig.get_computation),
+        "determinized_counter_config": (
+            sc.DeterminizedCounterConfig.get_computation
+        ),
         "determinized_bounded_counter_config": (
             sc.DeterminizedBoundedCounterConfig.get_computation
         ),
@@ -141,13 +145,15 @@ def main(method: str) -> None:
         ),
     }[method]
     handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s:%(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
+    )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     if __debug__:
         timeout = 0
     else:
-        timeout = 10
+        timeout = 60
 
     create_position_automaton_with_timeout = timeout_decorator.timeout(timeout)(
         pca.PositionCountingAutomaton.create
