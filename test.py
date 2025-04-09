@@ -1,7 +1,5 @@
 """Test"""
 
-# import logging
-
 import logging
 
 import cai4py.counting_automaton.position_counting_automaton as pca
@@ -14,11 +12,7 @@ def main() -> None:
     logging.basicConfig(level=logging.ERROR)
     # logging.basicConfig(level=logging.WARNING)
     # logging.basicConfig(level=logging.DEBUG)
-    patterns = map(
-        ut.unescape,
-        open("./data/patterns/examples.txt", "r", encoding="utf-8").readlines(),
-    )
-    for pattern in patterns:
+    for pattern, texts in ut.load_test_cases("./data/patterns/example.tsv"):
         print(f"Pattern: {pattern}")
         parsed = pt.parse(pattern)  # type: ignore
         normalized = pt.normalize(parsed)
@@ -26,8 +20,7 @@ def main() -> None:
         print(f"Normalized: {pattern}")
         automaton = pca.PositionCountingAutomaton.create(pattern)
 
-        for n in range(1, 10):
-            w = "a" * n
+        for w in texts:
             print(f"String: {w}")
 
             super_config_computations = {
@@ -48,6 +41,7 @@ def main() -> None:
                 print(f"Super-config: {super_config}")
                 print(f"Counter-config: {counter_config}")
                 print(f"Sparse-Counter-config: {sparse_counter_config}")
+                print(super_config.is_final())
 
             # for (
             #     config_type,

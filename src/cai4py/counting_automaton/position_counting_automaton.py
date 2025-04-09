@@ -116,7 +116,7 @@ class PositionCountingAutomaton:
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
             compiled = _compile(self.states[state])
-            return compiled.fullmatch(symbol) is not None
+            return compiled.fullmatch(symbol) is not None # NOTE: this is only used to check for character class matches.
         assert False, type(self.states[state])
 
     def __str__(self) -> str:
