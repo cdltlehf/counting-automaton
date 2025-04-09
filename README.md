@@ -91,3 +91,10 @@ python scripts/figures/plot_computation_comparison.py \
 
 You can find the plots in
 `data/figures/computations-comparison/example-<method-1>-<method-2>.pdf`.
+
+## Code style
+
+```bash
+pip install black
+python -m black .
+```
