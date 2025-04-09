@@ -3,8 +3,8 @@ import re
 import unittest
 import warnings
 
-import src.parser_tools as pt
-from src.utils import unescape
+import cai4py.parser_tools as pt
+from cai4py.utils import unescape
 
 
 class TestParserTools(unittest.TestCase):

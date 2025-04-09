@@ -1,7 +1,7 @@
 """Unit tests for more_collections.py"""
 import unittest
 
-from src.more_collections import OrderedSet
+from cai4py.more_collections import OrderedSet
 
 
 class TestOrderedSet(unittest.TestCase):

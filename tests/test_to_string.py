@@ -3,7 +3,7 @@ import re
 import unittest
 import warnings
 
-import src.parser_tools as pt
+import cai4py.parser_tools as pt
 
 
 class TestParserTools(unittest.TestCase):

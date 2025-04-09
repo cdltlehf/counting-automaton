@@ -9,8 +9,8 @@ import warnings
 from timeout_decorator import timeout  # type: ignore
 from timeout_decorator.timeout_decorator import TimeoutError  # type: ignore
 
-import src.position_counter_automaton as pca
-from src.utils import load_test_cases
+import cai4py.counting_automaton.position_counting_automaton as pca
+from cai4py.utils import load_test_cases
 
 
 class TestPositionCounterAutomaton(unittest.TestCase):
