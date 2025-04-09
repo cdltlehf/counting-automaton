@@ -11,7 +11,7 @@ class TestParserTools(unittest.TestCase):
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None
         self.dataset = open(
-            "raw-data/polyglot.txt",
+            "data/patterns/all_regexes.txt",
             "r",
             encoding="unicode_escape"
         )
