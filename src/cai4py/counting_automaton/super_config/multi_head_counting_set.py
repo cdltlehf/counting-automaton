@@ -72,9 +72,7 @@ class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
 
     def increase(self: _Self) -> _Self:
         logger.debug("Increasing multi-head counting set")
-        new_heads = {
-            delta: self.get_head_after_increase(delta) for delta in self.heads
-        }
+        new_heads = {delta: self.get_head_after_increase(delta) for delta in self.heads}
         self.heads = new_heads
         self.counting_set.increase()
         if __debug__:
@@ -123,13 +121,9 @@ class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
         for delta, self_head, other_head in zip(
             self.heads.keys(), self.heads.values(), other.heads.values()
         ):
-            self_value = (
-                self.counting_set.offset - self_head.value if self_head else -1
-            )
+            self_value = self.counting_set.offset - self_head.value if self_head else -1
             other_value = (
-                other.counting_set.offset - other_head.value
-                if other_head
-                else -1
+                other.counting_set.offset - other_head.value if other_head else -1
             )
             if self_value < other_value:
                 new_heads[delta] = other_head

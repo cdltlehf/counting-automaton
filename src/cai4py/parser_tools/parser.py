@@ -601,8 +601,8 @@ def _parse(source, state, verbose, nested, first=False):
             # character set
             set = []
             setappend = set.append
-            ##          if sourcematch(":"):
-            ##              pass # handle character classes
+            # if sourcematch(":"):
+            # pass # handle character classes
             if source.next == "[":
                 import warnings
 

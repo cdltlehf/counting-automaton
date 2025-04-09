@@ -17,9 +17,7 @@ def is_nullable(tree: SubPattern) -> bool:
     if has_extended_features(tree):
         raise ValueError("Pattern has extended features")
 
-    def f(
-        x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[bool]
-    ) -> bool:
+    def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[bool]) -> bool:
         if x is None:
             return all(ys)
 
@@ -41,9 +39,7 @@ def is_nullable(tree: SubPattern) -> bool:
 
 
 def is_problematic(tree: SubPattern) -> bool:
-    def f(
-        x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[bool]
-    ) -> bool:
+    def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[bool]) -> bool:
         if x is None:
             return any(ys)
         opcode, operand = x
@@ -65,15 +61,12 @@ def is_literal_sequence(tree: SubPattern) -> bool:
 
 
 def is_anchored_literal_sequence(tree: SubPattern) -> bool:
-    return all(
-        opcode in {LITERAL, AT} | SUBPATTERN_OPCODES for opcode, _ in dfs(tree)
-    )
+    return all(opcode in {LITERAL, AT} | SUBPATTERN_OPCODES for opcode, _ in dfs(tree))
 
 
 def is_anchored_predicate_sequence(tree: SubPattern) -> bool:
     return all(
-        opcode
-        in {LITERAL, ANY, NOT_LITERAL, IN, AT} | {SUBPATTERN, ATOMIC_GROUP}
+        opcode in {LITERAL, ANY, NOT_LITERAL, IN, AT} | {SUBPATTERN, ATOMIC_GROUP}
         for opcode, _ in dfs(tree)
     )
 

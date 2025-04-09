@@ -156,12 +156,8 @@ def main(
 
     xs_timeout = np.isinf(xs_total)
     ys_timeout = np.isinf(ys_total)
-    xs_outlier = (
-        (xs_total < lower_bound) | (xs_total >= upper_bound)
-    ) & ~xs_timeout
-    ys_outlier = (
-        (ys_total < lower_bound) | (ys_total >= upper_bound)
-    ) & ~ys_timeout
+    xs_outlier = ((xs_total < lower_bound) | (xs_total >= upper_bound)) & ~xs_timeout
+    ys_outlier = ((ys_total < lower_bound) | (ys_total >= upper_bound)) & ~ys_timeout
 
     xs_inlier = ~xs_outlier & ~xs_timeout
     ys_inlier = ~ys_outlier & ~ys_timeout
@@ -274,15 +270,11 @@ def main(
     xmin = xbins[0]
     xmax = xbins[-1]
     for x in xbins[-3:-1]:
-        ax.hlines(
-            x, xmin, xmax, color="black", linestyles="--", linewidth=linewidth
-        )
+        ax.hlines(x, xmin, xmax, color="black", linestyles="--", linewidth=linewidth)
     ymin = ybins[0]
     ymax = ybins[-1]
     for y in ybins[-3:-1]:
-        ax.vlines(
-            y, ymin, ymax, color="black", linestyles="--", linewidth=linewidth
-        )
+        ax.vlines(y, ymin, ymax, color="black", linestyles="--", linewidth=linewidth)
 
     ax.hlines(
         scatter_lower_bound,
@@ -301,9 +293,7 @@ def main(
         linewidth=linewidth,
     )
 
-    over_scatter_lower_bound = (
-        xs_over_scatter_lower_bound | ys_over_scatter_lower_bound
-    )
+    over_scatter_lower_bound = xs_over_scatter_lower_bound | ys_over_scatter_lower_bound
     # The sparse counter config shows more dots than the bounded counter config
     # due to the timeouted results
     scatter_xs = xs[~copied_or_merged & over_scatter_lower_bound]

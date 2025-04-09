@@ -1,4 +1,5 @@
 """Unit tests for position_counter_automaton.py"""
+
 import logging
 import random
 import re
@@ -15,6 +16,7 @@ from cai4py.utils import load_test_cases
 
 class TestPositionCountingAutomaton(unittest.TestCase):
     """Unit tests for position_counter_automaton.py"""
+
     def setUp(self) -> None:
         logging.basicConfig(level=logging.DEBUG)
         warnings.simplefilter(action="ignore", category=FutureWarning)

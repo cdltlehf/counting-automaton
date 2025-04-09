@@ -1,4 +1,5 @@
 """Unit tests for parser_tools.py"""
+
 import re
 import unittest
 import warnings
@@ -11,9 +12,7 @@ class TestParserTools(unittest.TestCase):
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None
         self.dataset = open(
-            "data/patterns/all_regexes.txt",
-            "r",
-            encoding="unicode_escape"
+            "data/patterns/all_regexes.txt", "r", encoding="unicode_escape"
         )
 
     def test_to_string(self) -> None:
