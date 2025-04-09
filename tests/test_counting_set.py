@@ -1,7 +1,5 @@
 import math
 import unittest
-
-
 from cai4py.counting_automaton.counting_set import CountingSet
 from cai4py.counting_automaton.counting_set import SparseCountingSet
 
