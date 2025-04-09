@@ -23,6 +23,8 @@ dependencies = [
   "webcolors==24.11.1",
   "xeger==0.4.0",
   "zipp==3.21.0",
+  "pylint",
+  "black",
 ]
 requires-python = '>=3.9'
 
@@ -30,4 +32,3 @@ requires-python = '>=3.9'
 where = ["src"] # The location of the package(s) to install
 
 [tool.black]
-

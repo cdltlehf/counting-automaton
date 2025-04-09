@@ -14,6 +14,19 @@ pip install --editable . # install all packages in `src/` in editable mode (no n
 
 The following sections assume that the virtual environment `.ca-venv` is active.
 
+
+## Code style
+
+```bash
+python -m black .
+```
+
+## Linting
+
+```bash
+python -m pylint src tests
+```
+
 ## Preprocessing
 
 When `raw-data/polyglot/all_regexes.jsonl` exists:
@@ -91,10 +104,3 @@ python scripts/figures/plot_computation_comparison.py \
 
 You can find the plots in
 `data/figures/computations-comparison/example-<method-1>-<method-2>.pdf`.
-
-## Code style
-
-```bash
-pip install black
-python -m black .
-```
