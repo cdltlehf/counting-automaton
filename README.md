@@ -14,7 +14,6 @@ pip install --editable . # install all packages in `src/` in editable mode (no n
 
 The following sections assume that the virtual environment `.ca-venv` is active.
 
-
 ## Code style
 
 ```bash
