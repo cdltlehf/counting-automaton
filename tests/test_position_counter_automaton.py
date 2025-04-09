@@ -13,14 +13,13 @@ import cai4py.counting_automaton.position_counting_automaton as pca
 from cai4py.utils import load_test_cases
 
 
-class TestPositionCounterAutomaton(unittest.TestCase):
+class TestPositionCountingAutomaton(unittest.TestCase):
     """Unit tests for position_counter_automaton.py"""
     def setUp(self) -> None:
         logging.basicConfig(level=logging.DEBUG)
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None  # pylint: disable=invalid-name
-        # dataset_path = "data/test_cases/polyglot.txt"
-        dataset_path = "data/test_cases/regexlib_crawled.txt"
+        dataset_path = "data/patterns/all_regexes.txt"
         self.test_cases = load_test_cases(dataset_path)
         self.timeout = 1
 
@@ -33,8 +32,11 @@ class TestPositionCounterAutomaton(unittest.TestCase):
 
         for pattern, texts in self.test_cases:
             modified_texts = [modify_text(text) for text in texts]
-            automaton = pca.PositionCounterAutomaton.create(pattern)
-            compiled = re.compile(pattern)
+            try:
+                compiled = re.compile(pattern)
+            except re.error:
+                continue
+            automaton = pca.PositionCountingAutomaton.create(pattern)
             for text in texts + modified_texts:
                 logging.debug(pattern)
                 logging.debug(text)

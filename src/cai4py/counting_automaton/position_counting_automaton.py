@@ -116,7 +116,9 @@ class PositionCountingAutomaton:
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
             compiled = _compile(self.states[state])
-            return compiled.fullmatch(symbol) is not None # NOTE: this is only used to check for character class matches.
+            return (
+                compiled.fullmatch(symbol) is not None
+            )  # NOTE: this is only used to check for character class matches.
         assert False, type(self.states[state])
 
     def __str__(self) -> str:
@@ -441,4 +443,4 @@ class _PositionConstructionCallback:
         elif opcode in {ATOMIC_GROUP, SUBPATTERN}:
             return next(iter(ys))
         else:
-            assert False, f"Unknown opcode: {opcode}"
+            raise ValueError(f"Unknown opcode: {opcode}")
