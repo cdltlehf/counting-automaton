@@ -363,4 +363,3 @@ class CounterConfigBase(
                 if adjacent_state == FINAL_STATE:
                     return True
         return False
-        return False
