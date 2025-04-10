@@ -36,7 +36,17 @@ class TestPositionCountingAutomaton(unittest.TestCase):
             modified_texts = [modify_text(text) for text in texts]
             try:
                 compiled = re.compile(pattern)
-            except re.error:
+            except re.error as re_error:
+                logging.warning(
+                    # print the error message,
+                    # then print the pattern (with the location of the error coloured red)
+                    "%s\n%s\033[91m%s\033[0m%s\nSkipping test case due to error above...",
+                    re_error,
+                    pattern[: re_error.pos],
+                    pattern[re_error.pos],
+                    pattern[re_error.pos + 1 :],
+                )
+                # Nothing more we can test if we can't compile the pattern
                 continue
             automaton = pca.PositionCountingAutomaton.create(pattern)
             for text in texts + modified_texts:
