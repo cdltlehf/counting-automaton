@@ -1,7 +1,6 @@
 """Parser tools for regular expressions."""
 
 # mypy: disable-error-code=import-untyped
-# pylint: disable=useless-import-alias
 
 from itertools import chain
 from re import escape
@@ -10,9 +9,9 @@ from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
 
 from .constants import *
-from .parser import parse as parse  # type: ignore
+from .parser import parse # type: ignore
 from .re import State
-from .re import SubPattern as SubPattern
+from .re import SubPattern
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
