@@ -1,8 +1,5 @@
 """Position counting automaton."""
 
-# pylint: disable=unused-wildcard-import
-# pylint: disable=wildcard-import
-
 from copy import copy
 from functools import reduce
 from json import dumps
@@ -22,7 +19,7 @@ from cai4py.parser_tools import (
     MIN_STAR,
     parse,
 )
-from cai4py.parser_tools.constants import *
+from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from cai4py.parser_tools.re import _compile, SubPattern
 
 from .counter_vector import Action, CounterVector, Guard
