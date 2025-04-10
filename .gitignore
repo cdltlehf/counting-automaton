@@ -18,3 +18,5 @@ raw-data/*
 !raw-data/.gitkeep
 .*venv/
 data/figures/*/example*.pdf
+htmlcov
+.coverage

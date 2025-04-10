@@ -14,16 +14,33 @@ pip install --editable . # install all packages in `src/` in editable mode (no n
 
 The following sections assume that the virtual environment `.ca-venv` is active.
 
-## Code style
+## Development
+
+If `black`, `pylint`, or `coverage` are not installed in your virtual environment, re-run `pip install -e .`.
+
+### Code style
+
+Format all Python files using `black`.
 
 ```bash
 python -m black .
 ```
 
-## Linting
+### Linting
+
+Lint all Python files in `src/` and `tests/`
 
 ```bash
 python -m pylint src tests
+```
+
+### Unit test code coverage
+
+Run the unit tests and generate a coverage report
+
+```bash
+python -m coverage run -m unittest discover tests
+python -m coverage html
 ```
 
 ## Preprocessing

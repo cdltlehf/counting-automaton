@@ -25,6 +25,7 @@ dependencies = [
   "zipp==3.21.0",
   "pylint",
   "black",
+  "coverage"
 ]
 requires-python = '>=3.9'
 
