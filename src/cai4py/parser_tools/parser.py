@@ -1,11 +1,9 @@
 # type: ignore
-# pylint: disable=unused-wildcard-import
-# pylint: disable=wildcard-import
 # pylint: disable=W,C,R
 
 """Modified version of the sre_parse module from the Python standard library."""
 
-from .constants import *
+from .constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
 SPECIAL_CHARS = ".\\[{()*+?^$|"
 REPEAT_CHARS = "*+?{"
