@@ -23,6 +23,6 @@ for source_path, target_path in zip(source_paths, target_paths):
             try:
                 obj = json.loads(line)
                 pattern = obj["pattern"]
-                f.write(json.dumps(pattern) + "\n")
+                f.write(json.dumps(pattern, indent=2) + "\n")
             except UnicodeEncodeError:
                 pass

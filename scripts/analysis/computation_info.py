@@ -177,7 +177,7 @@ def main(method: str) -> None:
             logger.error("Error in pattern %s: %s", pattern, e)
         finally:
             output_dict = {"pattern": pattern, "results": results}
-            print(json.dumps(output_dict))
+            print(json.dumps(output_dict, indent=2))
 
 
 if __name__ == "__main__":
