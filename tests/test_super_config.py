@@ -9,7 +9,7 @@ from cai4py.scripts.analysis.computation_info import run_and_log_trace
 import cai4py.counting_automaton.super_config as sc
 
 
-class TestPositionCountingAutomaton(unittest.TestCase):
+class TestSuperConfig(unittest.TestCase):
     """Unit tests for position_counter_automaton.py"""
 
     def setUp(self):
