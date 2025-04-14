@@ -57,6 +57,7 @@ def collect_computation_info(
     last_super_config: Optional[sc.SuperConfigBase] = None
     try:
         mark_flags: dd[str, bool] = dd(bool)
+        logger.info("Collecting computation info from execution with '%s'.", w)
         for i, super_config in enumerate(get_computation(automaton, w)):
             logger.info("Super config %d: %s", i, super_config)
             pos = stream.tell()
@@ -95,6 +96,7 @@ def collect_computation_info(
             stream.truncate(pos)
             last_super_config = super_config
             logger.debug("Computation info %d: %s", i, dict(computation_info))
+
         assert last_super_config is not None
     finally:
         handler.close()
