@@ -1,13 +1,9 @@
 """Unit tests that run examples (to get coverage reports for each method)"""
 
 import logging
-import random
-import re
-import string
 import unittest
 import warnings
 
-import cai4py.counting_automaton.position_counting_automaton as pca
 from cai4py.utils import load_test_cases
 from cai4py.scripts.analysis.computation_info import run_and_log_trace
 import cai4py.counting_automaton.super_config as sc
@@ -25,6 +21,4 @@ class TestPositionCountingAutomaton(unittest.TestCase):
         self.timeout = 1
 
     def test_super_config(self) -> None:
-        run_and_log_trace(
-            sc.SuperConfig, self.test_cases
-        )
+        run_and_log_trace(sc.SuperConfig, self.test_cases)
