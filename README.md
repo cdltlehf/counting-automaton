@@ -7,12 +7,41 @@ After the `pip install`, you should be able to import `cai4py` from Python scrip
 
 ```bash
 # Create a virtual environment
-python3 -m venv .ca-venv
-source .ca-venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install --editable . # install all packages in `src/` in editable mode (no need to reinstall after making changes)
 ```
 
 The following sections assume that the virtual environment `.ca-venv` is active.
+
+## Development
+
+If `black`, `pylint`, or `coverage` are not installed in your virtual environment, re-run `pip install -e .`.
+
+### Code style
+
+Format all Python files using `black`.
+
+```bash
+python -m black .
+```
+
+### Linting
+
+Lint all Python files in `src/` and `tests/`
+
+```bash
+python -m pylint src tests
+```
+
+### Unit test code coverage
+
+Run the unit tests and generate a coverage report
+
+```bash
+python -m coverage run -m unittest discover tests
+python -m coverage html
+```
 
 ## Preprocessing
 

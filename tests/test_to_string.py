@@ -1,9 +1,10 @@
 """Unit tests for parser_tools.py"""
+
 import re
 import unittest
 import warnings
 
-import src.parser_tools as pt
+import cai4py.parser_tools as pt
 
 
 class TestParserTools(unittest.TestCase):
@@ -11,9 +12,7 @@ class TestParserTools(unittest.TestCase):
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None
         self.dataset = open(
-            "raw-data/polyglot.txt",
-            "r",
-            encoding="unicode_escape"
+            "data/patterns/all_regexes.txt", "r", encoding="unicode_escape"
         )
 
     def test_to_string(self) -> None:

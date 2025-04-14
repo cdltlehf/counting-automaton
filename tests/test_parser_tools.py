@@ -1,17 +1,18 @@
 """Unit tests for parser_tools.py"""
+
 import re
 import unittest
 import warnings
 
-import src.parser_tools as pt
-from src.utils import unescape
+import cai4py.parser_tools as pt
+from cai4py.utils import unescape
 
 
 class TestParserTools(unittest.TestCase):
     def setUp(self) -> None:
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None  # pylint: disable=invalid-name
-        self.dataset = open("raw-data/polyglot.txt", "r", encoding="utf-8")
+        self.dataset = open("data/filtered/all_regexes.txt", "r", encoding="utf-8")
         self.patterns = (unescape(line) for line in self.dataset.readlines())
 
     def test_to_string(self) -> None:

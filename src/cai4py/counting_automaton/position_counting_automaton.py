@@ -1,8 +1,5 @@
 """Position counting automaton."""
 
-# pylint: disable=unused-wildcard-import
-# pylint: disable=wildcard-import
-
 from copy import copy
 from functools import reduce
 from json import dumps
@@ -22,7 +19,7 @@ from cai4py.parser_tools import (
     MIN_STAR,
     parse,
 )
-from cai4py.parser_tools.constants import *
+from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from cai4py.parser_tools.re import _compile, SubPattern
 
 from .counter_vector import Action, CounterVector, Guard
@@ -116,7 +113,9 @@ class PositionCountingAutomaton:
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
             compiled = _compile(self.states[state])
-            return compiled.fullmatch(symbol) is not None
+            return (
+                compiled.fullmatch(symbol) is not None
+            )  # NOTE: this is only used to check for character class matches.
         assert False, type(self.states[state])
 
     def __str__(self) -> str:
@@ -441,4 +440,4 @@ class _PositionConstructionCallback:
         elif opcode in {ATOMIC_GROUP, SUBPATTERN}:
             return next(iter(ys))
         else:
-            assert False, f"Unknown opcode: {opcode}"
+            raise ValueError(f"Unknown opcode: {opcode}")

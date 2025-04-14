@@ -45,9 +45,7 @@ class SuperConfigBase(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def get_initial(
-        cls, automaton: PositionCountingAutomaton
-    ) -> "SuperConfigBase":
+    def get_initial(cls, automaton: PositionCountingAutomaton) -> "SuperConfigBase":
         pass
 
     def match(self, w: str) -> bool:

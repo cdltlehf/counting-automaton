@@ -1,7 +1,6 @@
 """Parser tools for regular expressions."""
 
 # mypy: disable-error-code=import-untyped
-# pylint: disable=useless-import-alias
 
 from itertools import chain
 from re import escape
@@ -10,9 +9,9 @@ from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
 
 from .constants import *
-from .parser import parse as parse  # type: ignore
+from .parser import parse # type: ignore
 from .re import State
-from .re import SubPattern as SubPattern
+from .re import SubPattern
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -183,9 +182,7 @@ def at_to_string(at: NamedIntConstant) -> str:
         raise NotImplementedError(f"Unknown at: {at}") from e
 
 
-def to_string_f(
-    x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]
-) -> str:
+def to_string_f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
     if x is None:
         return "".join(ys)
     opcode, operand = x

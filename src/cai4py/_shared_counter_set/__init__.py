@@ -52,8 +52,7 @@ class SharedCounterSet:
         while True:
             if node is None:
                 return
-            for value in node.get_values(color):
-                yield value
+            yield from node.get_values(color)
             node = node.nexts[color]
 
     def to_dict(self) -> dict[int, list[int]]:

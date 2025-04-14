@@ -17,7 +17,7 @@ def get_outlier_bounds(data: npt.NDArray[np.float32]) -> tuple[float, float]:
 
 
 def escape(text: str) -> str:
-    return json.dumps(text)
+    return json.dumps(text, indent=2)
 
 
 def unescape(text: str) -> str:

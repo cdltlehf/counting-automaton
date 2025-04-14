@@ -159,7 +159,7 @@ def main(method: str) -> None:
         pca.PositionCountingAutomaton.create
     )
     for pattern, texts in read_test_cases(
-        line for line in sys.stdin if line[0] != "#"
+        line for line in sys.stdin if line[0] != "#" and line != "\n"
     ):
         logger.info("Pattern: %s", pattern)
         try:
@@ -177,7 +177,7 @@ def main(method: str) -> None:
             logger.error("Error in pattern %s: %s", pattern, e)
         finally:
             output_dict = {"pattern": pattern, "results": results}
-            print(json.dumps(output_dict))
+            print(json.dumps(output_dict, indent=2))
 
 
 if __name__ == "__main__":

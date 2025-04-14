@@ -60,9 +60,7 @@ class OrderedSet(Generic[T]):
                     self.node[node.value] = node
                 node = node.next
 
-    def append_iterable(
-        self, values: Iterable[T], at: Optional[T] = None
-    ) -> None:
+    def append_iterable(self, values: Iterable[T], at: Optional[T] = None) -> None:
         """Time complexity: O(n)"""
         if at is None:
             node = self.list.tail
@@ -83,9 +81,7 @@ class OrderedSet(Generic[T]):
         """Time complexity: O(1)"""
         self.append_iterable([value], at)
 
-    def prepend_iterable(
-        self, values: Iterable[T], at: Optional[T] = None
-    ) -> None:
+    def prepend_iterable(self, values: Iterable[T], at: Optional[T] = None) -> None:
         """Time complexity: O(1)"""
         if at is None:
             node = self.list.head
