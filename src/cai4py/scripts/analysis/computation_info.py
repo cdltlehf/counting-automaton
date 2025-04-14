@@ -6,7 +6,7 @@ import io
 import json
 import logging
 import sys
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional, Type
 
 import timeout_decorator  # type: ignore
 
@@ -126,7 +126,7 @@ def collect_optional_computation_info(
 
 
 def run_and_log_trace(
-    sc_class: sc.SuperConfigBase,
+    sc_class: Type[sc.SuperConfigBase],
     test_cases: Iterable[tuple[str, list[str]]],
 ):
     """
@@ -187,7 +187,7 @@ def run_and_log_trace(
 
 def main(args: argparse.Namespace) -> None:
     method: str = args.method
-    sc_class: sc.SuperConfigBase = {
+    sc_class: Type[sc.SuperConfigBase] = {
         "super_config": sc.SuperConfig,
         "bounded_super_config": sc.BoundedSuperConfig,
         "counter_config": sc.CounterConfig,
