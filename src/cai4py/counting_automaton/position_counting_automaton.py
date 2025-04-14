@@ -7,23 +7,25 @@ import logging
 from typing import Any, Iterable, NewType, Optional
 
 from cai4py.more_collections import OrderedSet
-from cai4py.parser_tools import (
-    fold,
-    MAX_PLUS,
-    MAX_QUESTION,
-    MAX_REPEAT,
-    MAX_STAR,
-    MIN_PLUS,
-    MIN_QUESTION,
-    MIN_REPEAT,
-    MIN_STAR,
-    parse,
-)
+from cai4py.parser_tools import fold
+from cai4py.parser_tools import MAX_PLUS
+from cai4py.parser_tools import MAX_QUESTION
+from cai4py.parser_tools import MAX_REPEAT
+from cai4py.parser_tools import MAX_STAR
+from cai4py.parser_tools import MIN_PLUS
+from cai4py.parser_tools import MIN_QUESTION
+from cai4py.parser_tools import MIN_REPEAT
+from cai4py.parser_tools import MIN_STAR
+from cai4py.parser_tools import parse
 from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
-from cai4py.parser_tools.re import _compile, SubPattern
+from cai4py.parser_tools.re import _compile
+from cai4py.parser_tools.re import SubPattern
 
-from .counter_vector import Action, CounterVector, Guard
-from .logging import ComputationStep, VERBOSE
+from .counter_vector import Action
+from .counter_vector import CounterVector
+from .counter_vector import Guard
+from .logging import ComputationStep
+from .logging import VERBOSE
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +106,9 @@ class PositionCountingAutomaton:
         return fold(callback, tree)
 
     def is_flat(self) -> bool:
-        return all(len(state_scope) <= 1 for state_scope in self.state_scopes.values())
+        return all(
+            len(state_scope) <= 1 for state_scope in self.state_scopes.values()
+        )
 
     def eval_state(self, state: State, symbol: str) -> bool:
         assert len(symbol) == 1
@@ -184,7 +188,9 @@ class PositionCountingAutomaton:
             return self.check_final(config)
 
         next_configs = self.get_next_configs(config, w[index])
-        return any(self.backtrack(w, config, index + 1) for config in next_configs)
+        return any(
+            self.backtrack(w, config, index + 1) for config in next_configs
+        )
 
     def __call__(self, w: str) -> bool:
         logger.debug("Backtrack matching")
@@ -366,9 +372,13 @@ class _PositionConstructionCallback:
             final_guard = guard
 
             if lower_bound != 0:
-                final_guard += Guard.not_less_than(counter_variable, lower_bound)
+                final_guard += Guard.not_less_than(
+                    counter_variable, lower_bound
+                )
             if upper_bound is not None:
-                final_guard += Guard.not_greater_than(counter_variable, upper_bound)
+                final_guard += Guard.not_greater_than(
+                    counter_variable, upper_bound
+                )
 
             final_action = action + Action.inactivate(counter_variable)
             final_arc = (final_guard, final_action, FINAL_STATE)
@@ -383,7 +393,9 @@ class _PositionConstructionCallback:
             initial_guard, initial_action, first_state = initial_arc
 
             if first_state != FINAL_STATE:
-                initial_action = initial_action + Action.activate(counter_variable)
+                initial_action = initial_action + Action.activate(
+                    counter_variable
+                )
             initial_arc = (Guard(), initial_action, first_state)
             new_initial_arcs.append(initial_arc)
 
@@ -397,7 +409,9 @@ class _PositionConstructionCallback:
                 y.follow[INITIAL_STATE].append(nullable_arc)
 
         y.counters[counter_variable] = (lower_bound, upper_bound)
-        y.counter_scopes.setdefault(counter_variable, set()).update(y.states.keys())
+        y.counter_scopes.setdefault(counter_variable, set()).update(
+            y.states.keys()
+        )
         return y
 
     def __call__(

@@ -10,8 +10,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import cai4py.parser_tools as pt
-from cai4py.parser_tools.constants import MAX_REPEAT, MAXREPEAT, MIN_REPEAT
-from cai4py.utils import get_outlier_bounds, unescape
+from cai4py.parser_tools.constants import MAX_REPEAT
+from cai4py.parser_tools.constants import MAXREPEAT
+from cai4py.parser_tools.constants import MIN_REPEAT
+from cai4py.utils import get_outlier_bounds
+from cai4py.utils import unescape
 
 Range = tuple[int, Union[int, float]]
 
@@ -151,7 +154,9 @@ def main(input_file: TextIO, output: Path) -> None:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
-    parser.add_argument("input", type=argparse.FileType("r"), help="Filtered patterns")
+    parser.add_argument(
+        "input", type=argparse.FileType("r"), help="Filtered patterns"
+    )
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
     main(args.input, args.output)

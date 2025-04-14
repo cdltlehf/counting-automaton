@@ -5,7 +5,8 @@ import sys
 
 import cai4py.parser_tools as pt
 import cai4py.parser_tools.utils as pt_utils
-from cai4py.utils import escape, unescape
+from cai4py.utils import escape
+from cai4py.utils import unescape
 
 
 def main() -> None:

@@ -1,5 +1,6 @@
 import math
 import unittest
+
 from cai4py.counting_automaton.counting_set import CountingSet
 from cai4py.counting_automaton.counting_set import SparseCountingSet
 
@@ -17,6 +18,8 @@ class TestCountingSet(unittest.TestCase):
                 print(counting_set)
                 print(sparse_counting_set)
 
-                self.assertEqual(counting_set.check(), sparse_counting_set.check())
+                self.assertEqual(
+                    counting_set.check(), sparse_counting_set.check()
+                )
                 length_bound = 2 * math.ceil(high / (k + 1))
                 assert len(list(sparse_counting_set)) <= length_bound

@@ -6,7 +6,8 @@ from enum import Enum
 import logging
 from typing import Any, Hashable, Iterable, Mapping, Optional, TypeVar
 
-from .logging import ComputationStep, VERBOSE
+from .logging import ComputationStep
+from .logging import VERBOSE
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,9 @@ class Guard(dd[T, list[CounterPredicate]], Hashable):
 
     @classmethod
     def not_greater_than(cls, counter_variable: T, value: int) -> "Guard[T]":
-        return cls({counter_variable: [CounterPredicate.not_greater_than(value)]})
+        return cls(
+            {counter_variable: [CounterPredicate.not_greater_than(value)]}
+        )
 
     def __hash__(self) -> int:  # type: ignore
         return hash(tuple((key, tuple(value)) for key, value in self.items()))
@@ -198,13 +201,17 @@ class Action(dd[T, CounterOperationComponent], Hashable):
 
     @classmethod
     def activate(cls, counter_variable: T) -> "Action[T]":
-        return cls({counter_variable: CounterOperationComponent.ACTIVATE_OR_RESET})
+        return cls(
+            {counter_variable: CounterOperationComponent.ACTIVATE_OR_RESET}
+        )
 
     @classmethod
     def inactivate(cls, counter_variable: T) -> "Action[T]":
         return cls({counter_variable: CounterOperationComponent.INACTIVATE})
 
-    def move_and_apply(self, counter_vector: CounterVector[T]) -> CounterVector[T]:
+    def move_and_apply(
+        self, counter_vector: CounterVector[T]
+    ) -> CounterVector[T]:
         for variable in self:
             value = counter_vector.get(variable, None)
             # value = reduce(lambda x, y: y(x), self[variable], value)

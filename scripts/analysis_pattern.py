@@ -9,11 +9,11 @@ import sys
 from typing import Any, TypedDict, Union
 
 import matplotlib as mpl
+import matplotlib.axes as mpl_axes
+import matplotlib.colors as mpl_colors
+import matplotlib.patches as mpl_patches
 import matplotlib.pyplot as plt
 import matplotlib.text as mpl_text
-import matplotlib.axes as mpl_axes
-import matplotlib.patches as mpl_patches
-import matplotlib.colors as mpl_colors
 import numpy as np
 
 import cai4py.parser_tools as pt

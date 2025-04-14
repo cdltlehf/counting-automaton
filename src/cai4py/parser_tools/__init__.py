@@ -9,7 +9,7 @@ from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
 
 from .constants import *
-from .parser import parse # type: ignore
+from .parser import parse  # type: ignore
 from .re import State
 from .re import SubPattern
 
@@ -182,7 +182,9 @@ def at_to_string(at: NamedIntConstant) -> str:
         raise NotImplementedError(f"Unknown at: {at}") from e
 
 
-def to_string_f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
+def to_string_f(
+    x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]
+) -> str:
     if x is None:
         return "".join(ys)
     opcode, operand = x

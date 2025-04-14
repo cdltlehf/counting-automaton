@@ -39,7 +39,9 @@ class KeyToCountingSet(
     def __init__(
         self,
         key_constructor: Callable[[int, Optional[int]], StateToCountingSet[_T]],
-        value_constructor: Callable[[int, Optional[int]], MultiHeadCountingSetBase[_T]],
+        value_constructor: Callable[
+            [int, Optional[int]], MultiHeadCountingSetBase[_T]
+        ],
         low: int,
         high: Optional[int],
     ) -> None:
@@ -50,14 +52,18 @@ class KeyToCountingSet(
         self._value_constructor = value_constructor
 
     def to_json(self) -> dict[str, list[int]]:
-        return {str(key): list(value.counting_set) for key, value in self.items()}
+        return {
+            str(key): list(value.counting_set) for key, value in self.items()
+        }
 
     def __str__(self) -> str:
         return str(self.to_json())
 
     def apply_next_state_to_r_terms(
         self,
-        next_state_to_r_terms: dd[State, dd[State, set[CounterOperationComponent]]],
+        next_state_to_r_terms: dd[
+            State, dd[State, set[CounterOperationComponent]]
+        ],
         current_state_to_reference_count: dd[State, int],
     ) -> tuple["KeyToCountingSet[_T]", set[State]]:
         next_key_to_counting_set = KeyToCountingSet(
@@ -75,7 +81,9 @@ class KeyToCountingSet(
             for current_state, operations in r_terms.items():
                 if CounterOperationComponent.ACTIVATE_OR_RESET in operations:
                     new_states.add(next_state)
-                    operations.remove(CounterOperationComponent.ACTIVATE_OR_RESET)
+                    operations.remove(
+                        CounterOperationComponent.ACTIVATE_OR_RESET
+                    )
                 if not operations:
                     removed_current_states.add(current_state)
             for current_state in removed_current_states:
@@ -88,7 +96,8 @@ class KeyToCountingSet(
         for r_terms in next_state_to_r_terms.values():
             for operations in r_terms.values():
                 assert (
-                    CounterOperationComponent.ACTIVATE_OR_RESET not in operations
+                    CounterOperationComponent.ACTIVATE_OR_RESET
+                    not in operations
                 ), "ACTIVATE_OR_RESET not removed"
 
         logger.debug("Start key computation")
@@ -101,7 +110,9 @@ class KeyToCountingSet(
             removed_next_states.remove(state)
             new_key[state].add_zero()
         logger.debug("End key computation")
-        logger.log(VERBOSE, ComputationStepMark.END_DETERMINIZED_KEY_COMPUTATION.value)
+        logger.log(
+            VERBOSE, ComputationStepMark.END_DETERMINIZED_KEY_COMPUTATION.value
+        )
         logger.debug("New key: %s", new_key)
 
         if len(new_key) > 0:
@@ -117,9 +128,11 @@ class KeyToCountingSet(
                 ComputationStepMark.START_DETERMINIZED_KEY_COMPUTATION.value,
             )
             next_key: StateToCountingSet[_T]
-            next_key, some_removed_next_states = key.apply_next_state_to_r_terms(
-                next_state_to_r_terms,
-                copy(current_state_to_reference_count),
+            next_key, some_removed_next_states = (
+                key.apply_next_state_to_r_terms(
+                    next_state_to_r_terms,
+                    copy(current_state_to_reference_count),
+                )
             )
             logger.debug("End key computation")
             logger.log(
@@ -130,7 +143,9 @@ class KeyToCountingSet(
                 continue
 
             logger.debug("Temporal next key: %s", next_key)
-            minimum_delta = min(next(iter(deltas)) for deltas in next_key.values())
+            minimum_delta = min(
+                next(iter(deltas)) for deltas in next_key.values()
+            )
             assert minimum_delta <= 1
 
             if minimum_delta == 1:
@@ -171,7 +186,9 @@ class DeterminizedCounterConfigBase(
         self,
         automaton: PositionCountingAutomaton,
         states: OrderedSet[State],
-        counter_to_key_to_counting_set: dict[CounterVariable, KeyToCountingSet[_T]],
+        counter_to_key_to_counting_set: dict[
+            CounterVariable, KeyToCountingSet[_T]
+        ],
     ) -> None:
         super().__init__(automaton)
 
@@ -184,7 +201,9 @@ class DeterminizedCounterConfigBase(
         self._counter_to_key_to_counting_set = counter_to_key_to_counting_set
 
     @staticmethod
-    def _key_constructor(low: int, high: Optional[int]) -> StateToCountingSet[_T]:
+    def _key_constructor(
+        low: int, high: Optional[int]
+    ) -> StateToCountingSet[_T]:
         raise NotImplementedError()
 
     @staticmethod
@@ -203,7 +222,9 @@ class DeterminizedCounterConfigBase(
         low, high = self.counters[counter]
         return self._counter_to_key_to_counting_set.get(
             counter,
-            KeyToCountingSet(self._key_constructor, self._value_constructor, low, high),
+            KeyToCountingSet(
+                self._key_constructor, self._value_constructor, low, high
+            ),
         )
 
     def __iter__(self) -> Iterator[CounterVariable]:
@@ -258,7 +279,9 @@ class DeterminizedCounterConfigBase(
 
                 key_deltas = state_to_counting_set[state]
 
-                if any(multi_head_counting_set.check(delta) for delta in key_deltas):
+                if any(
+                    multi_head_counting_set.check(delta) for delta in key_deltas
+                ):
                     flag = True
                     break
             if flag:
@@ -317,7 +340,9 @@ class DeterminizedCounterConfigBase(
             next_state_to_r_terms,
         ) in counter_variable_to_next_state_to_r_terms.items():
             current_state_to_reference_count = (
-                counter_variable_to_next_state_to_reference_count[counter_variable]
+                counter_variable_to_next_state_to_reference_count[
+                    counter_variable
+                ]
             )
             logger.debug("Updating counter variable %d", counter_variable)
             current_state_to_counting_set = self[counter_variable]

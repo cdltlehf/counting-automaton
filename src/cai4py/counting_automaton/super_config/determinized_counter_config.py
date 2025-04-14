@@ -47,7 +47,9 @@ class DeterminizedBoundedCounterConfig(
         return MultiHeadBoundedCountingSet(low, high)
 
 
-class DeterminizedSparseCounterConfig(DeterminizedCounterConfigBase[SparseCountingSet]):
+class DeterminizedSparseCounterConfig(
+    DeterminizedCounterConfigBase[SparseCountingSet]
+):
     """Multi-head sparse counting set"""
 
     @staticmethod

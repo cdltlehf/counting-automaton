@@ -12,7 +12,9 @@ class TestParserTools(unittest.TestCase):
     def setUp(self) -> None:
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None  # pylint: disable=invalid-name
-        self.dataset = open("data/filtered/all_regexes.txt", "r", encoding="utf-8")
+        self.dataset = open(
+            "data/filtered/all_regexes.txt", "r", encoding="utf-8"
+        )
         self.patterns = (unescape(line) for line in self.dataset.readlines())
 
     def test_to_string(self) -> None:

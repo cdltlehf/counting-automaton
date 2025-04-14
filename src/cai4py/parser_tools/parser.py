@@ -106,7 +106,8 @@ class State:
                 raise source.error("cannot refer to an open group")
             if gid >= self.lookbehindgroups:
                 raise source.error(
-                    "cannot refer to group defined in the same " "lookbehind subpattern"
+                    "cannot refer to group defined in the same "
+                    "lookbehind subpattern"
                 )
 
 
@@ -390,7 +391,8 @@ def _class_escape(source, escape):
             c = int(escape[1:], 8)
             if c > 0o377:
                 raise source.error(
-                    "octal escape value %s outside of " "range 0-0o377" % escape,
+                    "octal escape value %s outside of "
+                    "range 0-0o377" % escape,
                     len(escape),
                 )
             return LITERAL, c
@@ -477,10 +479,14 @@ def _escape(source, escape, state):
             group = int(escape[1:])
             if group < state.groups:
                 if not state.checkgroup(group):
-                    raise source.error("cannot refer to an open group", len(escape))
+                    raise source.error(
+                        "cannot refer to an open group", len(escape)
+                    )
                 state.checklookbehindgroup(group, source)
                 return GROUPREF, group
-            raise source.error("invalid group reference %d" % group, len(escape) - 1)
+            raise source.error(
+                "invalid group reference %d" % group, len(escape) - 1
+            )
         if len(escape) == 2:
             if c in ASCIILETTERS:
                 raise source.error("bad escape %s" % escape, len(escape))
@@ -741,11 +747,15 @@ def _parse(source, state, verbose, nested, first=False):
                 if lo:
                     min = int(lo)
                     if min >= MAXREPEAT:
-                        raise OverflowError("the repetition number is too large")
+                        raise OverflowError(
+                            "the repetition number is too large"
+                        )
                 if hi:
                     max = int(hi)
                     if max >= MAXREPEAT:
-                        raise OverflowError("the repetition number is too large")
+                        raise OverflowError(
+                            "the repetition number is too large"
+                        )
                     if max < min:
                         raise source.error(
                             "min repeat greater than max repeat",
@@ -764,7 +774,9 @@ def _parse(source, state, verbose, nested, first=False):
                     "nothing to repeat", source.tell() - here + len(this)
                 )
             if item[0][0] in _REPEATCODES:
-                raise source.error("multiple repeat", source.tell() - here + len(this))
+                raise source.error(
+                    "multiple repeat", source.tell() - here + len(this)
+                )
             if item[0][0] is SUBPATTERN:
                 group, add_flags, del_flags, p = item[0][1]
                 if group is None and not add_flags and not del_flags:
@@ -842,7 +854,9 @@ def _parse(source, state, verbose, nested, first=False):
                         char = sourceget()
                         if char is None:
                             raise source.error("unexpected end of pattern")
-                        raise source.error("unknown extension ?P" + char, len(char) + 2)
+                        raise source.error(
+                            "unknown extension ?P" + char, len(char) + 2
+                        )
                 elif char == ":":
                     # non-capturing group
                     capture = False
@@ -906,7 +920,9 @@ def _parse(source, state, verbose, nested, first=False):
                             msg = "bad character in group name %r" % condname
                             raise source.error(msg, len(condname) + 1) from None
                         if not condgroup:
-                            raise source.error("bad group number", len(condname) + 1)
+                            raise source.error(
+                                "bad group number", len(condname) + 1
+                            )
                         if condgroup >= MAXGROUPS:
                             msg = "invalid group reference %d" % condgroup
                             raise source.error(msg, len(condname) + 1)
@@ -945,7 +961,9 @@ def _parse(source, state, verbose, nested, first=False):
                             "missing ), unterminated subpattern",
                             source.tell() - start,
                         )
-                    subpatternappend((GROUPREF_EXISTS, (condgroup, item_yes, item_no)))
+                    subpatternappend(
+                        (GROUPREF_EXISTS, (condgroup, item_yes, item_no))
+                    )
                     continue
 
                 elif char == ">":
@@ -958,7 +976,8 @@ def _parse(source, state, verbose, nested, first=False):
                     if flags is None:  # global flags
                         if not first or subpattern:
                             raise source.error(
-                                "global flags not at the start " "of the expression",
+                                "global flags not at the start "
+                                "of the expression",
                                 source.tell() - start,
                             )
                         verbose = state.flags & SRE_FLAG_VERBOSE
@@ -967,7 +986,9 @@ def _parse(source, state, verbose, nested, first=False):
                     add_flags, del_flags = flags
                     capture = False
                 else:
-                    raise source.error("unknown extension ?" + char, len(char) + 1)
+                    raise source.error(
+                        "unknown extension ?" + char, len(char) + 1
+                    )
 
             # parse group contents
             if capture:
@@ -1030,7 +1051,9 @@ def _parse_flags(source, state, char):
                     raise source.error(msg)
             add_flags |= flag
             if (flag & TYPE_FLAGS) and (add_flags & TYPE_FLAGS) != flag:
-                msg = "bad inline flags: flags 'a', 'u' and 'L' are incompatible"
+                msg = (
+                    "bad inline flags: flags 'a', 'u' and 'L' are incompatible"
+                )
                 raise source.error(msg)
             char = sourceget()
             if char is None:
@@ -1155,7 +1178,9 @@ def parse_template(source, state):
                     try:
                         index = groupindex[name]
                     except KeyError:
-                        raise IndexError("unknown group name %r" % name) from None
+                        raise IndexError(
+                            "unknown group name %r" % name
+                        ) from None
                 else:
                     try:
                         index = int(name)
@@ -1193,7 +1218,11 @@ def parse_template(source, state):
                 isoctal = False
                 if s.next in DIGITS:
                     this += sget()
-                    if c in OCTDIGITS and this[2] in OCTDIGITS and s.next in OCTDIGITS:
+                    if (
+                        c in OCTDIGITS
+                        and this[2] in OCTDIGITS
+                        and s.next in OCTDIGITS
+                    ):
                         this += sget()
                         isoctal = True
                         c = int(this[1:], 8)
@@ -1211,7 +1240,9 @@ def parse_template(source, state):
                     this = chr(ESCAPES[this][1])
                 except KeyError:
                     if c in ASCIILETTERS:
-                        raise s.error("bad escape %s" % this, len(this)) from None
+                        raise s.error(
+                            "bad escape %s" % this, len(this)
+                        ) from None
                 lappend(this)
         else:
             lappend(this)
@@ -1220,7 +1251,9 @@ def parse_template(source, state):
     if not isinstance(source, str):
         # The tokenizer implicitly decodes bytes objects as latin-1, we must
         # therefore re-encode the final representation.
-        literals = [None if s is None else s.encode("latin-1") for s in literals]
+        literals = [
+            None if s is None else s.encode("latin-1") for s in literals
+        ]
     return groups, literals
 
 
