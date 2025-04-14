@@ -13,7 +13,7 @@ $(foreach pattern_basename,$(PATTERN_BASENAMES:.txt=),\
 .PHONY: static-analysis
 static-analysis: $(FILTERED_PATTERNS)
 	$(foreach filtered_pattern, $(FILTERED_PATTERNS), \
-		$(PYTHON) $(PYFLAGS) scripts/analysis_pattern.py \
+		$(PYTHON) $(PYFLAGS) $(SCRIPT_DIR)/analysis_pattern.py \
 		--output-dir $(STATIC_ANALYSIS_DIR)/$(notdir $(basename $(filtered_pattern))) \
 		< $(filtered_pattern); \
 	)
@@ -21,7 +21,7 @@ static-analysis: $(FILTERED_PATTERNS)
 define COMPUTATION_INFO_RULE
 $(COMPUTATION_INFO_DIR)/$1-$2.jsonl: $(TEST_CASES_DIR)/$1.txt
 	@mkdir -p $$(dir $$@)
-	- $(PYTHON) $(PYFLAGS) scripts/analysis/computation_info.py \
+	- $(PYTHON) $(PYFLAGS) $(SCRIPT_DIR)/analysis/computation_info.py \
 		--method $2 \
 		< $$< \
 		> $$@ 2> /dev/null

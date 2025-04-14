@@ -4,6 +4,7 @@ PYFLAGS := -O
 
 DATA_DIR := data
 PATTERNS_DIR := $(DATA_DIR)/patterns
+SCRIPT_DIR := src/cai4py/scripts
 PATTERN_BASENAMES := all_regexes.txt
 PATTERNS := $(addprefix $(PATTERNS_DIR)/, $(PATTERN_BASENAMES))
 METHODS := \

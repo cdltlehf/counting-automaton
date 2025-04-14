@@ -83,15 +83,11 @@ def collect_computation_info(
                     elif computation_step.startswith("END_"):
                         computation_step = computation_step[4:]
                         if not mark_flags[computation_step]:
-                            raise ValueError(
-                                f"Duplicate end mark: {computation_step}"
-                            )
+                            raise ValueError(f"Duplicate end mark: {computation_step}")
                         mark_flags[computation_step] = False
                 else:
                     print(list(ComputationStepMark.__members__))
-                    raise ValueError(
-                        f"Unknown computation step: {computation_step}"
-                    )
+                    raise ValueError(f"Unknown computation step: {computation_step}")
             stream.seek(0)
             stream.truncate(pos)
             last_super_config = super_config
@@ -129,27 +125,36 @@ def collect_optional_computation_info(
         return None
 
 
-def main(method: str) -> None:
-    get_computation = {
-        "super_config": sc.SuperConfig.get_computation,
-        "bounded_super_config": sc.BoundedSuperConfig.get_computation,
-        "counter_config": sc.CounterConfig.get_computation,
-        "bounded_counter_config": sc.BoundedCounterConfig.get_computation,
-        "sparse_counter_config": sc.SparseCounterConfig.get_computation,
-        "determinized_counter_config": (
-            sc.DeterminizedCounterConfig.get_computation
-        ),
-        "determinized_bounded_counter_config": (
-            sc.DeterminizedBoundedCounterConfig.get_computation
-        ),
-        "determinized_sparse_counter_config": (
-            sc.DeterminizedSparseCounterConfig.get_computation
-        ),
-    }[method]
+def run_and_log_trace(
+    sc_class: sc.SuperConfigBase,
+    test_cases: Iterable[tuple[str, list[str]]],
+):
+    """
+    Create and run a `PositionCountingAutomaton` for each test case, and log a trace of its execution (with log level INFO).
+
+
+    Args:
+        sc_class (sc.SuperConfigBase):
+            The class that defines the type of super configuration to use for the automaton.
+        test_cases (Iterable[tuple[str, list[str]]]):
+            An iterable of test cases, where each test case is a tuple containing a pattern (str)
+            and a list of texts (list[str]) to process. Call `cai4py.utils.read_test_cases` to create the `Iterable` `test_cases`.
+    Logs:
+        - Logs the pattern being processed.
+        - Logs warnings if the automaton construction times out.
+        - Logs errors if any exceptions occur during processing.
+    Raises:
+        timeout_decorator.TimeoutError: If the automaton construction exceeds the specified timeout.
+        Exception: For any other errors encountered during processing.
+    Outputs:
+        Logs the results of the computations in JSON format, including the pattern and the results
+        for each text in the test case.
+    Notes:
+        - The timeout for automaton creation is set to 0 in debug mode and 60 seconds otherwise.
+        - Uses a timeout decorator to enforce the timeout for automaton creation.
+    """
     handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s:%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     if __debug__:
@@ -160,9 +165,7 @@ def main(method: str) -> None:
     create_position_automaton_with_timeout = timeout_decorator.timeout(timeout)(
         pca.PositionCountingAutomaton.create
     )
-    for pattern, texts in read_test_cases(
-        line for line in sys.stdin if line[0] != "#" and line != "\n"
-    ):
+    for pattern, texts in test_cases:
         logger.info("Pattern: %s", pattern)
         try:
             results: Optional[list[dict[str, Any]]] = None
@@ -170,7 +173,7 @@ def main(method: str) -> None:
             results = []
             for text in texts:
                 result = collect_optional_computation_info(
-                    automaton, text, get_computation, timeout
+                    automaton, text, sc_class.get_computation, timeout
                 )
                 results.append({"text": text, "result": result})
         except timeout_decorator.TimeoutError:
@@ -180,6 +183,21 @@ def main(method: str) -> None:
         finally:
             output_dict = {"pattern": pattern, "results": results}
             print(json.dumps(output_dict, indent=2))
+
+
+def main(args: argparse.Namespace) -> None:
+    method: str = args.method
+    sc_class: sc.SuperConfigBase = {
+        "super_config": sc.SuperConfig,
+        "bounded_super_config": sc.BoundedSuperConfig,
+        "counter_config": sc.CounterConfig,
+        "bounded_counter_config": sc.BoundedCounterConfig,
+        "sparse_counter_config": sc.SparseCounterConfig,
+        "determinized_counter_config": sc.DeterminizedCounterConfig,
+        "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
+        "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
+    }[method]
+    run_and_log_trace(sc_class, test_cases=read_test_cases(sys.stdin))
 
 
 if __name__ == "__main__":
@@ -203,5 +221,4 @@ if __name__ == "__main__":
             "determinized_sparse_counter_config",
         ],
     )
-    args = parser.parse_args()
-    main(args.method)
+    main(parser.parse_args())
