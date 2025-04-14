@@ -38,7 +38,6 @@ def read_test_cases(dataset: Iterable[str]) -> Iterable[tuple[str, list[str]]]:
     for line in dataset:
         entries = line.rstrip("\n").split("\t")
         assert entries
-
         pattern = unescape(entries[0])
         texts = [unescape(text) for text in entries[1:]]
         yield pattern, texts
