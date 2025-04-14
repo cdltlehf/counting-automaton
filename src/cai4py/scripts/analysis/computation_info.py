@@ -138,7 +138,7 @@ def run_and_log_trace(
 
 
     Args:
-        sc_class (sc.SuperConfigBase):
+        sc_class (Type[sc.SuperConfigBase]):
             The class that defines the type of super configuration to use for the automaton.
         test_cases (Iterable[tuple[str, list[str]]]):
             An iterable of test cases, where each test case is a tuple containing a pattern (str)
