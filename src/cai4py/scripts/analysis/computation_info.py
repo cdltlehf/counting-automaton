@@ -83,15 +83,11 @@ def collect_computation_info(
                     elif computation_step.startswith("END_"):
                         computation_step = computation_step[4:]
                         if not mark_flags[computation_step]:
-                            raise ValueError(
-                                f"Duplicate end mark: {computation_step}"
-                            )
+                            raise ValueError(f"Duplicate end mark: {computation_step}")
                         mark_flags[computation_step] = False
                 else:
                     print(list(ComputationStepMark.__members__))
-                    raise ValueError(
-                        f"Unknown computation step: {computation_step}"
-                    )
+                    raise ValueError(f"Unknown computation step: {computation_step}")
             stream.seek(0)
             stream.truncate(pos)
             last_super_config = super_config
@@ -129,7 +125,7 @@ def collect_optional_computation_info(
         return None
 
 
-def run_and_log_trace(
+def run_and_trace(
     sc_class: Type[sc.SuperConfigBase],
     test_cases: Iterable[tuple[str, list[str]]],
 ):
@@ -142,7 +138,7 @@ def run_and_log_trace(
             The class that defines the type of super configuration to use for the automaton.
         test_cases (Iterable[tuple[str, list[str]]]):
             An iterable of test cases, where each test case is a tuple containing a pattern (str)
-            and a list of texts (list[str]) to process. Call `cai4py.utils.read_test_cases` to create the `Iterable` `test_cases`.
+            and a list of texts (list[str]) to process. Call `cai4py.utils.load_test_cases` or `cai4py.utils.read_test_cases` to create the `Iterable` `test_cases`.
     Logs:
         - Logs the pattern being processed.
         - Logs warnings if the automaton construction times out.
@@ -158,9 +154,7 @@ def run_and_log_trace(
         - Uses a timeout decorator to enforce the timeout for automaton creation.
     """
     handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s:%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     if __debug__:
@@ -191,8 +185,8 @@ def run_and_log_trace(
             print(json.dumps(output_dict, indent=2))
 
 
-def main(args: argparse.Namespace) -> None:
-    method: str = args.method
+def main(parsed_args: argparse.Namespace) -> None:
+    method: str = parsed_args.method
     sc_class: Type[sc.SuperConfigBase] = {
         "super_config": sc.SuperConfig,
         "bounded_super_config": sc.BoundedSuperConfig,
@@ -203,7 +197,11 @@ def main(args: argparse.Namespace) -> None:
         "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
         "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
     }[method]
-    run_and_log_trace(sc_class, test_cases=read_test_cases(sys.stdin))
+    if parsed_args.pattern is not None:
+        test_cases = [(parsed_args.pattern, (parsed_args.text,))]
+    else:
+        test_cases = read_test_cases(sys.stdin)
+    run_and_trace(sc_class, test_cases=test_cases)
 
 
 if __name__ == "__main__":
@@ -227,4 +225,9 @@ if __name__ == "__main__":
             "determinized_sparse_counter_config",
         ],
     )
-    main(parser.parse_args())
+    parser.add_argument("--pattern", type=str, default=None, required=False)
+    parser.add_argument("--text", type=str, default=None)
+    args = parser.parse_args()
+    if args.pattern is not None and args.text is None:
+        parser.error("--text must be provided if --pattern is provided.")
+    main(args)

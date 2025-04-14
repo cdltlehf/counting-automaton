@@ -48,7 +48,7 @@ python -m coverage html
 When `raw-data/polyglot/all_regexes.jsonl` exists:
 
 ```bash
-python scripts/preprocessing/preprocess_polyglot.py
+python src/cai4py/scripts/preprocessing/preprocess_polyglot.py
 make computation-comparison
 ```
 
@@ -60,7 +60,7 @@ raw-data/polyglot/sl_regexes.jsonl
 
 ./data/patterns/examples.txt
 
-$ scripts/preprocessing/preprocess_polyglot.py
+$ src/cai4py/scripts/preprocessing/preprocess_polyglot.py
 
 ./data/patterns/all_regexes.txt
 ./data/patterns/sl_regexes.txt
@@ -89,8 +89,10 @@ It runs the following commands.
 
 ### Computation info
 
+Use the `-O` flag to suppress `DEBUG` logs.
+
 ```bash
-python scripts/analysis/computation_info.py \
+python -O src/cai4py/scripts/analysis/computation_info.py \
     --method {super_config,bounded_super_config,...} \
     < ./data/test-cases/example.txt
     > ./data/analysis/dynamic/computation_info/example-{method}.jsonl
@@ -104,13 +106,19 @@ You can run the following to print the results into `stdout` and logs into
 `stderr`.
 
 ```bash
-python scripts/figures/computation_info.py --method super_config
+python src/cai4py/scripts/figures/computation_info.py --method super_config
+```
+
+If you want to run a single example, execute the following:
+
+```bash
+python -O src/cai4py/scripts/analysis/computation_info.py --method {...} --pattern "{...}" --text "{...}"
 ```
 
 ### Draw plots
 
 ```bash
-python scripts/figures/plot_computation_comparison.py \
+python src/cai4py/scripts/figures/plot_computation_comparison.py \
     --x-label <method-1> \
     --y-label <method-2> \
     data/analysis/dynamic/computation-info/example-<method-1>.jsonl \
