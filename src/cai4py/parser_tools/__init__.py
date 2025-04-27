@@ -131,7 +131,7 @@ def category_to_string(category: NamedIntConstant) -> str:
 def repeat_to_string(
     opcode: NamedIntConstant,
     operand: Any,
-    ys: Iterable[str],
+    ys_str: str,
 ) -> str:
     repeat_ch = {
         MAX_REPEAT: "",
@@ -140,8 +140,6 @@ def repeat_to_string(
     }[opcode]
 
     m, n = operand
-    ys = list(ys)
-    ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
     if n is MAXREPEAT:
         return f"{ys_str}{{{m},}}{repeat_ch}"
     return f"{ys_str}{{{m},{n}}}{repeat_ch}"
@@ -187,6 +185,8 @@ def to_string_f(
 ) -> str:
     if x is None:
         return "".join(ys)
+    ys = list(ys)
+    ys_str = f"(?:{''.join(ys)})"
     opcode, operand = x
     if opcode is LITERAL:
         return f"{escape(operand)}"
@@ -204,10 +204,8 @@ def to_string_f(
     elif opcode is BRANCH:
         return f"(?:{'|'.join(ys)})"
     elif opcode in {MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT}:
-        return repeat_to_string(opcode, operand, ys)
+        return repeat_to_string(opcode, operand, ys_str)
     elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
-        ys = list(ys)
-        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
         if opcode is MAX_QUESTION:
             return f"{ys_str}?"
         elif opcode is MIN_QUESTION:
@@ -216,8 +214,6 @@ def to_string_f(
             return f"{ys_str}?+"
         assert False
     elif opcode in {MAX_STAR, MIN_STAR, POSSESSIVE_STAR}:
-        ys = list(ys)
-        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
         if opcode is MAX_STAR:
             return f"{ys_str}*"
         elif opcode is MIN_STAR:
@@ -226,8 +222,6 @@ def to_string_f(
             return f"{ys_str}*+"
         assert False
     elif opcode in {MAX_PLUS, MIN_PLUS, POSSESSIVE_PLUS}:
-        ys = list(ys)
-        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
         if opcode is MAX_PLUS:
             return f"{ys_str}+"
         elif opcode is MIN_PLUS:
@@ -254,15 +248,15 @@ def normalize(tree: SubPattern) -> SubPattern:
     1. Remove anchors (at).
     2. Remove flags in subpatterns.
     3. Turn atomic and capturing groups into non-capturing groups.
-    4. Raise error if the pattern has possessive quantifiers.
-    5. Raise error if the pattern has look-around assertions.
-    6. Raise error if the pattern has back-references.
-    7. Raise error if the pattern has other features that are not supported.
-    8. Let upper-bound of repeat quantifiers be 65,535 (2^16 - 1). Note that
+    4. Turn possessive quantifiers into greedy quantifiers.
+    5. Remove unsupported features.
+    6. Let upper-bound of repeat quantifiers be 65,535 (2^16 - 1). Note that
        the maximum bound of re2 is 1,000.
     """
 
     def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
+        ys = list(ys)
+        ys_str = f"(?:{''.join(ys)})"
         if x is None:
             return "".join(ys)
         opcode, operand = x
@@ -292,40 +286,33 @@ def normalize(tree: SubPattern) -> SubPattern:
             if n is not MAXREPEAT:
                 n = min(n, 65535)
             m = min(m, 65535)
-            return repeat_to_string(opcode, (m, n), ys)
+            if n is MAXREPEAT:
+                return f"{ys_str}{{{m},}}"
+            return f"{ys_str}{{{m},{n}}}"
         elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
-            ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
-            if opcode is MAX_QUESTION:
-                return f"{ys_str}?"
-            elif opcode is MIN_QUESTION:
-                return f"{ys_str}??"
-            elif opcode is POSSESSIVE_QUESTION:
-                return f"{ys_str}?+"
-            assert False
+            return f"{ys_str}?"
         elif opcode in {MAX_STAR, MIN_STAR, POSSESSIVE_STAR}:
-            ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
-            if opcode is MAX_STAR:
-                return f"{ys_str}*"
-            elif opcode is MIN_STAR:
-                return f"{ys_str}*?"
-            elif opcode is POSSESSIVE_STAR:
-                return f"{ys_str}*+"
-            assert False
+            return f"{ys_str}*"
         elif opcode in {MAX_PLUS, MIN_PLUS, POSSESSIVE_PLUS}:
-            ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
-            if opcode is MAX_PLUS:
-                return f"{ys_str}+"
-            elif opcode is MIN_PLUS:
-                return f"{ys_str}+?"
-            elif opcode is POSSESSIVE_PLUS:
-                return f"{ys_str}++"
-            assert False
+            return f"{ys_str}+"
         else:
-            # 4., 5., 6., 7.
-            raise NotImplementedError(f"Unknown opcode: {opcode}")
+            return ""
 
     pattern = fold(f, tree)
     return parse(pattern)
+
+
+__all__ = [
+    "get_operand_and_children",
+    "fold",
+    "dfs",
+    "in_to_string",
+    "category_to_string",
+    "repeat_to_string",
+    "subpattern_to_string",
+    "at_to_string",
+    "to_string_f",
+    "to_string",
+    "normalize",
+    "parse",
+]

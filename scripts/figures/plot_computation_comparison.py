@@ -14,6 +14,7 @@ import numpy.typing as npt
 from cai4py.counting_automaton.logging import ComputationStep
 from cai4py.parser_tools.constants import MAXREPEAT
 from cai4py.utils import escape
+from cai4py.utils import get_outlier_bounds
 from cai4py.utils.analysis import OutputDict
 
 Range = tuple[int, Union[int, float]]
@@ -32,11 +33,11 @@ def results_to_arrays(
     merged_list: list[bool] = []
     for output_dict in filtered_results:
         results = output_dict["results"]
-        if results is None:
-            continue
+        assert results is not None
 
         for test_case_result in results:
             x = float("inf")
+            marked_x = 0
             merged = False
             copied = False
             result = test_case_result["result"]
@@ -47,11 +48,17 @@ def results_to_arrays(
                     for key, value in computation_info.items()
                     if key in ComputationStep.__members__
                 )
+                marked_x = sum(
+                    value
+                    for key, value in computation_info.items()
+                    if key not in ComputationStep.__members__
+                )
                 copied = computation_info.get("ACCESS_NODE_CLONE", 0) > 0
                 merged = computation_info.get("ACCESS_NODE_MERGE", 0) > 0
 
             copied_list.append(copied)
             merged_list.append(merged)
+            # xs.append(x - marked_x)
             xs.append(x)
 
     return np.array(xs), np.array(copied_list), np.array(merged_list)
@@ -62,6 +69,7 @@ def filter_analysis(
 ) -> tuple[list[OutputDict], list[OutputDict]]:
     x_filtered_results: list[OutputDict] = []
     y_filtered_results: list[OutputDict] = []
+
     for x_json_object, y_json_object in zip(x_objects, y_objects):
         x_output_dict = OutputDict(**x_json_object)  # type: ignore
         y_output_dict = OutputDict(**y_json_object)  # type: ignore
@@ -125,6 +133,7 @@ def main(
     x_label: str,
     y_label: str,
 ) -> None:
+    plt.rcParams.update({"text.usetex": True})
 
     x_label = x_label.replace("_", " ")
     y_label = y_label.replace("_", " ")
@@ -139,22 +148,14 @@ def main(
     xs_total, x_copied, x_merged = results_to_arrays(filtered_results_x)
     ys_total, y_copied, y_merged = results_to_arrays(filtered_results_y)
 
-    copied = x_copied | y_copied
-    merged = x_merged | y_merged
-    copied_or_merged = copied | merged
-
-    # scatter_lower_bound = np.percentile(np.concat([xs_total, ys_total]), 99)
-    scatter_lower_bound = 500
-    xs_over_scatter_lower_bound = xs_total >= scatter_lower_bound
-    ys_over_scatter_lower_bound = ys_total >= scatter_lower_bound
-
-    # xs = xs_total[xs_over_scatter_lower_bound | ys_over_scatter_lower_bound]
-    # ys = ys_total[xs_over_scatter_lower_bound | ys_over_scatter_lower_bound]
-    # lower_bound, upper_bound = get_outlier_bounds(np.concat([xs, ys]))
-    lower_bound, upper_bound = 0, 10000
+    scatter_indices = ~y_copied & ~y_merged
 
     xs_timeout = np.isinf(xs_total)
     ys_timeout = np.isinf(ys_total)
+    lower_bound, upper_bound = get_outlier_bounds(
+        np.concat([xs_total, ys_total])
+    )
+
     xs_outlier = (
         (xs_total < lower_bound) | (xs_total >= upper_bound)
     ) & ~xs_timeout
@@ -200,30 +201,30 @@ def main(
 
     assert cnt == len(xs_total)
 
-    logging.info("Non-copying: %d", sum(~copied_or_merged))
-    logging.info(
-        f"{x_label} Inlier, Non-copying: %d", sum(xs_inlier & ~copied_or_merged)
-    )
-    logging.info(
-        f"{x_label} Outlier, Non-copying: %d",
-        sum(xs_outlier & ~copied_or_merged),
-    )
-    logging.info(
-        f"{x_label} Timeout, Non-copying: %d",
-        sum(xs_timeout & ~copied_or_merged),
-    )
+    # logging.info("Scatter: %d", sum(scatter_indices))
+    # logging.info(
+    #     f"{x_label} Inlier, Scatter: %d", sum(xs_inlier & scatter_indices)
+    # )
+    # logging.info(
+    #     f"{x_label} Outlier, Scatter: %d",
+    #     sum(xs_outlier & scatter_indices),
+    # )
+    # logging.info(
+    #     f"{x_label} Timeout, Scatter: %d",
+    #     sum(xs_timeout & scatter_indices),
+    # )
 
-    logging.info(
-        f"{y_label} Inlier, Non-copying: %d", sum(ys_inlier & ~copied_or_merged)
-    )
-    logging.info(
-        f"{y_label} Outlier, Non-copying: %d",
-        sum(ys_outlier & ~copied_or_merged),
-    )
-    logging.info(
-        f"{y_label} Timeout, Non-copying: %d",
-        sum(ys_timeout & ~copied_or_merged),
-    )
+    # logging.info(
+    #     f"{y_label} Inlier, Scatter: %d", sum(ys_inlier & scatter_indices)
+    # )
+    # logging.info(
+    #     f"{y_label} Outlier, Scatter: %d",
+    #     sum(ys_outlier & scatter_indices),
+    # )
+    # logging.info(
+    #     f"{y_label} Timeout, Scatter: %d",
+    #     sum(ys_timeout & scatter_indices),
+    # )
     for x_type, x_indices in {
         f"{x_label} Inlier": xs_inlier,
         f"{x_label} Outlier": xs_outlier,
@@ -235,22 +236,21 @@ def main(
             f"{y_label} Timeout": ys_timeout,
         }.items():
             logging.info(
-                f"{x_type}, {y_type}, Non-copying: %d",
-                sum(x_indices & y_indices & ~copied_or_merged),
+                f"{x_type}, {y_type}, Scatter: %d",
+                sum(x_indices & y_indices & scatter_indices),
             )
             if x_type == f"{x_label} Inlier" and y_type == f"{y_label} Inlier":
-                inlier = x_indices & y_indices & ~copied_or_merged
+                inlier = x_indices & y_indices & scatter_indices
                 logging.info(
                     "Inlier (xs > ys): %d",
                     sum(xs_total[inlier] > ys_total[inlier]),
                 )
 
-    # plt.figure(figsize=(6, 4))
     plt.figure(figsize=(4, 8 / 3))
     ax = plt.gca()
 
     # Main plot
-    norm = mpl.colors.LogNorm()
+    norm = mpl.colors.LogNorm(vmin=0.1)
     xbins = np.linspace(0, upper_bound, 21, dtype=int)
     steps = xbins[1] - xbins[0]
     x_max = xbins[-1]
@@ -267,7 +267,9 @@ def main(
 
     _, _, _, image = ax.hist2d(xs, ys, cmap="Blues", norm=norm, bins=bins)
     ax.set_aspect("equal")
-    plt.colorbar(image, ax=ax)
+    cbar = plt.colorbar(image, ax=ax)
+    vmax = cbar.mappable.norm.vmax
+    cbar.ax.set_ylim(1, vmax)
 
     linewidth = mpl.rcParams["xtick.major.width"]
     xmin = xbins[0]
@@ -283,57 +285,44 @@ def main(
             y, ymin, ymax, color="black", linestyles="--", linewidth=linewidth
         )
 
-    ax.hlines(
-        scatter_lower_bound,
-        0,
-        scatter_lower_bound,
-        color="black",
-        linestyles="--",
-        linewidth=linewidth,
-    )
-    ax.vlines(
-        scatter_lower_bound,
-        0,
-        scatter_lower_bound,
-        color="black",
-        linestyles="--",
-        linewidth=linewidth,
-    )
-
-    over_scatter_lower_bound = (
-        xs_over_scatter_lower_bound | ys_over_scatter_lower_bound
-    )
-    # The sparse counter config shows more dots than the bounded counter config
-    # due to the timeouted results
-    scatter_xs = xs[~copied_or_merged & over_scatter_lower_bound]
-    scatter_ys = ys[~copied_or_merged & over_scatter_lower_bound]
+    scatter_xs = xs[scatter_indices]
+    scatter_ys = ys[scatter_indices]
     ax.scatter(
         scatter_xs,
         scatter_ys,
         color="red",
-        marker="o",
+        marker=".",
         s=5,
         linewidth=1.0,
         alpha=0.5,
     )
 
-    tickstep = 4
-    ax.set_xticks([e for e in xbins[:-3:tickstep]] + list(xbins[-3:-1]))
-    ax.set_xticks(xbins[:-3], minor=True)
-    ax.set_yticks([e for e in ybins[:-3:tickstep]] + list(ybins[-3:-1]))
-    ax.set_yticks(ybins[:-3], minor=True)
-    xticklabels = [str(e) for e in xbins[:-3:tickstep]]
-    xticklabels += [str(upper_bound), ""]
-    yticklabels = [str(e) for e in ybins[:-3:tickstep]]
-    yticklabels += ["", "Timeout"]
-    ax.set_xticklabels(xticklabels, rotation=30, ha="right")
+    # tickstep = 4
+    # ax.set_xticks([e for e in xbins[:-3:tickstep]] + list(xbins[-3:-1]))
+    # ax.set_xticks(xbins[:-3], minor=True)
+    # ax.set_yticks([e for e in ybins[:-3:tickstep]] + list(ybins[-3:-1]))
+    # ax.set_yticks(ybins[:-3], minor=True)
+
+    xticks = [xtick for xtick in ax.get_xticks() if xtick < upper_bound]
+    xticklabels = ax.get_xticklabels()[: len(xticks)]
+    xticks += [xbins[-3], xbins[-2]]
+    xticklabels += [xbins[-3], ""]  # type: ignore
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels)
+
+    yticks = [ytick for ytick in ax.get_yticks() if ytick < upper_bound]
+    yticklabels = ax.get_yticklabels()[: len(yticks)]
+    yticks += [xbins[-3], xbins[-2]]
+    yticklabels += ["", "Timeout"]  # type: ignore
+    ax.set_yticks(yticks)
     ax.set_yticklabels(yticklabels)
 
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
+    # ax.set_xlabel(x_label)
+    # ax.set_ylabel(y_label)
     # ax.set_title("Number of operations")
     # plt.tight_layout()
-    plt.savefig(output, bbox_inches="tight")
+    plt.savefig(output, bbox_inches="tight", dpi=300)
+    plt.savefig(output.with_suffix(".pgf"), bbox_inches="tight", dpi=300)
     plt.clf()
 
 

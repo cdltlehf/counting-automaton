@@ -12,14 +12,16 @@ from cai4py.utils import unescape
 def main() -> None:
     for line in sys.stdin:
         try:
-            parsed = pt.parse(unescape(line))
+            line = unescape(line.strip())
+            parsed = pt.parse(line)
             normalized = pt.normalize(parsed)
-            if pt_utils.counting_height(normalized) != 1:
+
+            counting_height = pt_utils.counting_height(normalized)
+            if counting_height != 1:
                 continue
-            print(escape(pt.to_string(normalized)))
-        except NotImplementedError as e:
-            print(e, file=sys.stderr)
-            continue
+
+            stringified = pt.to_string(normalized)
+            print(escape(stringified))
         except (re.error, OverflowError, ValueError):
             continue
 

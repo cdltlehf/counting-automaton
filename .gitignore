@@ -20,3 +20,6 @@ raw-data/*
 data/figures/*/example*.pdf
 htmlcov
 .coverage
+
+third_party/*
+!third_party/.gitkeep

@@ -24,7 +24,7 @@ FORCE:
 
 define COUNTER_RANGE_RULE
 $(foreach ext,pdf png pgf,\
-$(COUNTER_RANGE_DIR)/$1.$(ext)): $(FILTERED_PATTERNS_DIR)/$1.txt FORCE
+$(COUNTER_RANGE_DIR)/$1.$(ext)): $(TEST_CASES_DIR)/$1.txt FORCE
 	@mkdir -p $$(dir $$@)
 	- $(PYTHON) $(PYFLAGS) scripts/figures/plot_counter_range.py $$< $$@
 

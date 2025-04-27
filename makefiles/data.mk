@@ -17,7 +17,8 @@ filter: $(FILTERED_PATTERNS)
 
 $(TEST_CASES_DIR)/%.txt: $(FILTERED_PATTERNS_DIR)/%.txt
 	@mkdir -p $(dir $@)
-	- $(PYTHON) $(PYFLAGS) scripts/data/append_test_cases.py < $< > $@
+	# - $(PYTHON) $(PYFLAGS) scripts/data/append_test_cases.py < $< > $@
+	- $(PYTHON) $(PYFLAGS) scripts/data/append_test_cases_evil_str_gen.py < $< > $@
 
 .PHONY: test-cases
 test-cases: $(TEST_CASES)
