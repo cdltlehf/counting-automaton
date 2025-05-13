@@ -2,24 +2,24 @@ __pycache__/
 *.egg-info/
 .DS_Store
 .ropeproject/
-data/*
-!data/.gitkeep
-!data/figures
 
-!data/test-cases
-data/test-cases/*
-!data/test-cases/example.txt
+.data*
 
-!data/filtered
-data/filtered/*
-!data/filtered/all_regexes.txt
+data*/*
+!data*/.gitkeep
+!data*/figures/**/*.pdf
+
+!data*/test-cases
+data*/test-cases/*
+!data*/test-cases/example.txt
+
+!data*/filtered
+data*/filtered/*
+!data*/filtered/all_regexes.txt
 
 raw-data/*
 !raw-data/.gitkeep
 .*venv/
-data/figures/*/example*.pdf
-htmlcov
-.coverage
 
 third_party/*
 !third_party/.gitkeep
