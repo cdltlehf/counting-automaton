@@ -243,7 +243,7 @@ def main(
         sum(indices),
         sum(indices) / len(xs_total) * 100,
     )
-    indices = 1.0 * xs_total < ys_total
+    indices = 2.0 * xs_total < ys_total
     logging.info(
         "2.0 x < y: %d (%0.2f)",
         sum(indices),
