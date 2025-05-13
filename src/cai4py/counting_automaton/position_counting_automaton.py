@@ -358,7 +358,13 @@ class _PositionConstructionCallback:
                 repeat_guard = copy(guard)
                 # NOTE: We can choose to add this guard or not.
                 # if upper_bound is not None:
-                #     repeat_guard += Guard.less_than(self.counter, upper_bound)
+                #     repeat_guard += Guard.less_than(
+                #         counter_variable, upper_bound
+                #     )
+                # else:
+                #     repeat_guard += Guard.less_than(
+                #         counter_variable, upper_bound
+                #     )
                 repeat_guard += initial_guard
 
                 repeat_action = action + Action.increase(counter_variable)

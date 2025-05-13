@@ -18,12 +18,32 @@ def evil_str_gen(pattern: str, length: int) -> str:
                 raise ValueError("Pattern contains newline character")
             input_file.write(pattern.encode("utf-8"))
             input_file.flush()
+            engine_types = {
+                "RE2": 1,
+                "RUST": 2,
+                "GO": 3,
+                "SRM": 4,
+                "NonBacktracking": 5,
+                "awk": 6,
+                "grep": 7,
+                "Hyperscan": 8,
+                "Java": 9,
+                "JavaScript": 10,
+                "PCRE2": 11,
+                "Perl": 12,
+                "PHP": 13,
+                "Python": 14,
+                "Boost": 15,
+                "Net": 16,
+                "Backtracking": 17,
+                # "NonBacktracking": 18,
+            }
             subprocess.run(
                 [
                     "EvilStrGen",
                     input_file.name,
                     output_file.name.removesuffix(".txt"),
-                    "5",
+                    str(engine_types["NonBacktracking"]),
                     str(length),
                     "0",
                 ],
@@ -39,10 +59,11 @@ def evil_str_gen(pattern: str, length: int) -> str:
 def main() -> None:
     num_cases = 1
     timeout = 60
-    length = 1000
+    length = 5000
     safe_evil_str_gen = timeout_decorator.timeout(timeout)(evil_str_gen)
 
-    for pattern in map(unescape, sys.stdin):
+    for i, pattern in enumerate(map(unescape, sys.stdin), 1):
+        logging.warning("Processing %d-th pattern", i)
         try:
             inputs = []
             for _ in range(num_cases):

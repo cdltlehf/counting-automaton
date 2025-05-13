@@ -250,8 +250,8 @@ def normalize(tree: SubPattern) -> SubPattern:
     3. Turn atomic and capturing groups into non-capturing groups.
     4. Turn possessive quantifiers into greedy quantifiers.
     5. Remove unsupported features.
-    6. Let upper-bound of repeat quantifiers be 65,535 (2^16 - 1). Note that
-       the maximum bound of re2 is 1,000.
+    6. (Deprecated) Let upper-bound of repeat quantifiers be 65,535 (2^16 - 1).
+    Note that the maximum bound of re2 is 1,000.
     """
 
     def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
@@ -283,9 +283,9 @@ def normalize(tree: SubPattern) -> SubPattern:
             return subpattern_to_string(opcode, operand, ys)
         elif opcode in {MIN_REPEAT, MAX_REPEAT}:
             m, n = operand
-            if n is not MAXREPEAT:
-                n = min(n, 65535)
-            m = min(m, 65535)
+            # if n is not MAXREPEAT:
+            #     n = min(n, 65535)
+            # m = min(m, 65535)
             if n is MAXREPEAT:
                 return f"{ys_str}{{{m},}}"
             return f"{ys_str}{{{m},{n}}}"

@@ -20,6 +20,15 @@ $(foreach pattern_basename,$(PATTERN_BASENAMES:.txt=),\
 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-determinized_bounded_counter_config-determinized_sparse_counter_config.pdf \
 )
 
+# COMPUTATION_COMPARISON := \
+# $(foreach pattern_basename,$(PATTERN_BASENAMES:.txt=),\
+# 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_super_config-bounded_counter_config.pdf \
+# 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_super_config-determinized_bounded_counter_config.pdf \
+# 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_super_config-determinized_sparse_counter_config.pdf \
+# 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_counter_config-sparse_counter_config.pdf \
+# 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_counter_config-determinized_bounded_counter_config.pdf \
+# )
+
 FORCE:
 
 define COUNTER_RANGE_RULE
@@ -42,7 +51,7 @@ $(COMPUTATION_COMPARISON_DIR)/$1-$2-$3.$(ext)): \
 		--y-label $3 \
 		$(COMPUTATION_INFO_DIR)/$1-$2.jsonl \
 		$(COMPUTATION_INFO_DIR)/$1-$3.jsonl \
-		$$@
+		$$@ > $$(basename $$@).txt 2> $$(basename $$@)_log.txt
 
 endef
 
@@ -60,3 +69,9 @@ counter-range: $(COUNTER_RANGE)
 
 .PHONY: computation-comparison
 computation-comparison: $(COMPUTATION_COMPARISON)
+computation-comparison.zip: $(COMPUTATION_COMPARISON_DIR).zip
+
+$(COMPUTATION_COMPARISON_DIR).zip: FORCE
+	@rm -f $@
+	@mkdir -p $(dir $@)
+	zip -rj $@ $(dir $(COMPUTATION_COMPARISON))

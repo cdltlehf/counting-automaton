@@ -27,17 +27,27 @@ def operand_to_range(operand: Any) -> Range:
 
 def results_to_arrays(
     filtered_results: list[OutputDict],
-) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.bool], npt.NDArray[np.bool]]:
+) -> tuple[
+    npt.NDArray[np.float32],
+    npt.NDArray[np.bool],
+    npt.NDArray[np.bool],
+    npt.NDArray[np.int32],
+    npt.NDArray[np.int32],
+]:
     xs: list[float] = []
     copied_list: list[bool] = []
     merged_list: list[bool] = []
+    max_num_keys_list: list[int] = []
+    max_synchronization_degree_list: list[int] = []
     for output_dict in filtered_results:
         results = output_dict["results"]
         assert results is not None
 
-        for test_case_result in results:
+        for test_case_result in results[:1]:
             x = float("inf")
-            marked_x = 0
+            max_num_keys = 0
+            max_synchronization_degree = 0
+            marked_x = 0  # pylint: disable=unused-variable
             merged = False
             copied = False
             result = test_case_result["result"]
@@ -53,15 +63,27 @@ def results_to_arrays(
                     for key, value in computation_info.items()
                     if key not in ComputationStep.__members__
                 )
+                max_num_keys = computation_info.get("max_num_keys", 0)
+                max_synchronization_degree = computation_info.get(
+                    "max_synchronization_degree", 0
+                )
                 copied = computation_info.get("ACCESS_NODE_CLONE", 0) > 0
                 merged = computation_info.get("ACCESS_NODE_MERGE", 0) > 0
 
+            max_num_keys_list.append(max_num_keys)
+            max_synchronization_degree_list.append(max_synchronization_degree)
             copied_list.append(copied)
             merged_list.append(merged)
             # xs.append(x - marked_x)
             xs.append(x)
 
-    return np.array(xs), np.array(copied_list), np.array(merged_list)
+    return (
+        np.array(xs),
+        np.array(copied_list),
+        np.array(merged_list),
+        np.array(max_num_keys_list),
+        np.array(max_synchronization_degree_list),
+    )
 
 
 def filter_analysis(
@@ -145,10 +167,14 @@ def main(
         map(json.loads, input_file_y),
     )
 
-    xs_total, x_copied, x_merged = results_to_arrays(filtered_results_x)
-    ys_total, y_copied, y_merged = results_to_arrays(filtered_results_y)
-
-    scatter_indices = ~y_copied & ~y_merged
+    # pylint: disable-next=unused-variable
+    (xs_total, x_copied, x_merged, xs_num_key, xs_degree) = results_to_arrays(
+        filtered_results_x
+    )
+    # pylint: disable-next=unused-variable
+    (ys_total, y_copied, y_merged, ys_num_key, ys_degree) = results_to_arrays(
+        filtered_results_y
+    )
 
     xs_timeout = np.isinf(xs_total)
     ys_timeout = np.isinf(ys_total)
@@ -167,6 +193,116 @@ def main(
     ys_inlier = ~ys_outlier & ~ys_timeout
     assert len(xs_total) == len(ys_total)
 
+    ############################################################################
+    # Print the simple comparisons
+    ############################################################################
+    logging.info("total: %d", len(xs_total))
+    ############################################################################
+    indices = xs_total > ys_total
+    logging.info(
+        "x > y: %d (%0.2f)",
+        sum(indices),
+        sum(indices) / len(xs_total) * 100,
+    )
+    indices = xs_total < ys_total
+    logging.info(
+        "x < y: %d (%0.2f)",
+        sum(indices),
+        sum(indices) / len(xs_total) * 100,
+    )
+    ############################################################################
+    indices = xs_total > 1.1 * ys_total
+    logging.info(
+        "x > 1.1 y: %d (%0.2f)",
+        sum(indices),
+        sum(indices) / len(xs_total) * 100,
+    )
+    indices = 1.1 * xs_total < ys_total
+    logging.info(
+        "1.1 x < y: %d (%0.2f)",
+        sum(indices),
+        sum(indices) / len(xs_total) * 100,
+    )
+    ############################################################################
+    indices = xs_total > 1.5 * ys_total
+    logging.info(
+        "x > 1.5 y: %d (%0.2f)",
+        sum(indices),
+        sum(indices) / len(xs_total) * 100,
+    )
+    indices = 1.5 * xs_total < ys_total
+    logging.info(
+        "1.5 x < y: %d (%0.2f)",
+        sum(indices),
+        sum(indices) / len(xs_total) * 100,
+    )
+    ############################################################################
+    indices = xs_total > 2.0 * ys_total
+    logging.info(
+        "x > 2.0 y: %d (%0.2f)",
+        sum(indices),
+        sum(indices) / len(xs_total) * 100,
+    )
+    indices = 1.0 * xs_total < ys_total
+    logging.info(
+        "2.0 x < y: %d (%0.2f)",
+        sum(indices),
+        sum(indices) / len(xs_total) * 100,
+    )
+    ############################################################################
+    # not x_copied
+    # indices = ~x_copied & ~y_copied
+    # logging.info("non-copied: %d", sum(indices))
+    # logging.info("x > y: %d", sum((xs_total > ys_total)[indices]))
+    # logging.info("x < y: %d", sum((xs_total < ys_total)[indices]))
+
+    # y degree <= 1
+    # indices = ys_degree <= 1
+    # logging.info("y degree <= 1: %d", sum(indices))
+    # logging.info("x > y: %d", sum((xs_total > ys_total)[indices]))
+    # logging.info("x < y: %d", sum((xs_total < ys_total)[indices]))
+    ############################################################################
+
+    ############################################################################
+    # Print the pattern with the largest difference among inliers
+    ############################################################################
+    diff = np.where(xs_timeout, 0, xs_total) - np.where(ys_timeout, 0, ys_total)
+    indices = xs_inlier & ys_inlier
+
+    x_diff_max = np.argmax(np.where(~indices, 0, diff))
+
+    logging.info("x >> y: %d", diff[x_diff_max])
+    logging.info("degree: %d", ys_degree[x_diff_max])
+    logging.info("num_key: %d", ys_num_key[x_diff_max])
+    results_x = filtered_results_x[x_diff_max]
+    logging.info(filtered_results_x[x_diff_max])
+    logging.info(filtered_results_y[x_diff_max])
+
+    pattern = results_x["pattern"]
+    if results_x["results"] is not None:
+        for results in results_x["results"]:
+            text = results["text"]
+            print(escape(pattern), escape(text), sep="\t")
+
+    y_diff_max = np.argmax(np.where(~indices, 0, -diff))
+
+    logging.info("x << y: %d", -diff[y_diff_max])
+    logging.info("degree: %d", ys_degree[y_diff_max])
+    logging.info("num_key: %d", ys_num_key[y_diff_max])
+    results_y = filtered_results_y[y_diff_max]
+    logging.info(filtered_results_x[y_diff_max])
+    logging.info(filtered_results_y[y_diff_max])
+    ############################################################################
+
+    pattern = results_y["pattern"]
+    if results_y["results"] is not None:
+        for results in results_y["results"]:
+            text = results["text"]
+            print(escape(pattern), escape(text), sep="\t")
+
+    ############################################################################
+    # Print histogram information
+    ############################################################################
     logging.info("total: %d", len(xs_total))
     logging.info(f"{x_label} Inlier: %d", sum(xs_inlier))
     logging.info(f"{x_label} Outlier: %d", sum(xs_outlier))
@@ -198,76 +334,44 @@ def main(
                     "Inlier (xs > ys): %d",
                     sum(xs_total[inlier] > ys_total[inlier]),
                 )
+    ############################################################################
 
     assert cnt == len(xs_total)
 
-    # logging.info("Scatter: %d", sum(scatter_indices))
-    # logging.info(
-    #     f"{x_label} Inlier, Scatter: %d", sum(xs_inlier & scatter_indices)
-    # )
-    # logging.info(
-    #     f"{x_label} Outlier, Scatter: %d",
-    #     sum(xs_outlier & scatter_indices),
-    # )
-    # logging.info(
-    #     f"{x_label} Timeout, Scatter: %d",
-    #     sum(xs_timeout & scatter_indices),
-    # )
-
-    # logging.info(
-    #     f"{y_label} Inlier, Scatter: %d", sum(ys_inlier & scatter_indices)
-    # )
-    # logging.info(
-    #     f"{y_label} Outlier, Scatter: %d",
-    #     sum(ys_outlier & scatter_indices),
-    # )
-    # logging.info(
-    #     f"{y_label} Timeout, Scatter: %d",
-    #     sum(ys_timeout & scatter_indices),
-    # )
-    for x_type, x_indices in {
-        f"{x_label} Inlier": xs_inlier,
-        f"{x_label} Outlier": xs_outlier,
-        f"{x_label} Timeout": xs_timeout,
-    }.items():
-        for y_type, y_indices in {
-            f"{y_label} Inlier": ys_inlier,
-            f"{y_label} Outlier": ys_outlier,
-            f"{y_label} Timeout": ys_timeout,
-        }.items():
-            logging.info(
-                f"{x_type}, {y_type}, Scatter: %d",
-                sum(x_indices & y_indices & scatter_indices),
-            )
-            if x_type == f"{x_label} Inlier" and y_type == f"{y_label} Inlier":
-                inlier = x_indices & y_indices & scatter_indices
-                logging.info(
-                    "Inlier (xs > ys): %d",
-                    sum(xs_total[inlier] > ys_total[inlier]),
-                )
-
-    plt.figure(figsize=(4, 8 / 3))
+    plt.figure(figsize=(2, 2))
     ax = plt.gca()
 
     # Main plot
     norm = mpl.colors.LogNorm(vmin=0.1)
-    xbins = np.linspace(0, upper_bound, 21, dtype=int)
+    xbins = np.linspace(0, upper_bound, 11, dtype=int)
     steps = xbins[1] - xbins[0]
     x_max = xbins[-1]
     xbins = np.append(xbins, [x_max + steps, x_max + 2 * steps])
     ybins = xbins
     bins = (xbins, ybins)
 
-    xs = xs_total[:]
-    ys = ys_total[:]
+    xs = xs_total.copy()
+    ys = ys_total.copy()
     xs[xs_outlier] = xbins[-3]
     ys[ys_outlier] = ybins[-3]
     xs[xs_timeout] = xbins[-2]
     ys[ys_timeout] = ybins[-2]
 
-    _, _, _, image = ax.hist2d(xs, ys, cmap="Blues", norm=norm, bins=bins)
+    ############################################################################
+    indices = np.full_like(xs, True, dtype=bool)
+    ############################################################################
+    # indices = ys_degree <= 2
+    # logging.info("2-sync: %d", sum(indices))
+    ############################################################################
+    # indices = ~x_copied & ~y_copied
+    # logging.info("non-replicating: %d", sum(indices))
+    ############################################################################
+
+    _, _, _, image = ax.hist2d(
+        xs[indices], ys[indices], cmap="Blues", norm=norm, bins=bins
+    )
     ax.set_aspect("equal")
-    cbar = plt.colorbar(image, ax=ax)
+    cbar = plt.colorbar(image, ax=ax, shrink=0.8)
     vmax = cbar.mappable.norm.vmax
     cbar.ax.set_ylim(1, vmax)
 
@@ -285,24 +389,6 @@ def main(
             y, ymin, ymax, color="black", linestyles="--", linewidth=linewidth
         )
 
-    scatter_xs = xs[scatter_indices]
-    scatter_ys = ys[scatter_indices]
-    ax.scatter(
-        scatter_xs,
-        scatter_ys,
-        color="red",
-        marker=".",
-        s=5,
-        linewidth=1.0,
-        alpha=0.5,
-    )
-
-    # tickstep = 4
-    # ax.set_xticks([e for e in xbins[:-3:tickstep]] + list(xbins[-3:-1]))
-    # ax.set_xticks(xbins[:-3], minor=True)
-    # ax.set_yticks([e for e in ybins[:-3:tickstep]] + list(ybins[-3:-1]))
-    # ax.set_yticks(ybins[:-3], minor=True)
-
     xticks = [xtick for xtick in ax.get_xticks() if xtick < upper_bound]
     xticklabels = ax.get_xticklabels()[: len(xticks)]
     xticks += [xbins[-3], xbins[-2]]
@@ -313,7 +399,7 @@ def main(
     yticks = [ytick for ytick in ax.get_yticks() if ytick < upper_bound]
     yticklabels = ax.get_yticklabels()[: len(yticks)]
     yticks += [xbins[-3], xbins[-2]]
-    yticklabels += ["", "Timeout"]  # type: ignore
+    yticklabels += ["", "T/O"]  # type: ignore
     ax.set_yticks(yticks)
     ax.set_yticklabels(yticklabels)
 

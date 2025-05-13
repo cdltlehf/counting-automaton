@@ -15,6 +15,7 @@ from cai4py.counting_automaton.logging import ComputationStepMark
 from cai4py.counting_automaton.logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
+from cai4py.counting_automaton.super_config.determinized_counter_config_base import DeterminizedCounterConfigBase
 from cai4py.utils import read_test_cases
 
 logger = logging.getLogger(__name__)
@@ -57,8 +58,22 @@ def collect_computation_info(
     last_super_config: Optional[sc.SuperConfigBase] = None
     try:
         mark_flags: dd[str, bool] = dd(bool)
+        max_num_keys = 0
+        max_synchronization_degree = 0
         for i, super_config in enumerate(get_computation(automaton, w)):
             logger.info("Super config %d: %s", i, super_config)
+            if isinstance(super_config, DeterminizedCounterConfigBase):
+                num_keys = super_config.get_num_keys()
+                synchronization_degrees = (
+                    super_config.get_synchronization_degrees()
+                )
+                max_num_keys = max(
+                    max_num_keys, max(num_keys.values(), default=0)
+                )
+                max_synchronization_degree = max(
+                    max_synchronization_degree,
+                    max(synchronization_degrees.values(), default=0),
+                )
             pos = stream.tell()
             value = stream.getvalue()[:pos]
             for computation_step in value.splitlines():
@@ -94,6 +109,10 @@ def collect_computation_info(
             stream.seek(0)
             stream.truncate(pos)
             last_super_config = super_config
+            computation_info["max_num_keys"] = max_num_keys
+            computation_info["max_synchronization_degree"] = (
+                max_synchronization_degree
+            )
             logger.debug("Computation info %d: %s", i, dict(computation_info))
         assert last_super_config is not None
     finally:
