@@ -2,9 +2,12 @@ FIGURES_DIR := $(DATA_DIR)/figures
 COUNTER_RANGE_DIR := $(FIGURES_DIR)/counter-range
 COUNTER_RANGE := $(COUNTER_RANGE_DIR)/$(PATTERN_BASENAMES:.txt=.pdf)
 COMPUTATION_COMPARISON_DIR := $(FIGURES_DIR)/computations-comparison
+CASE_STUDY_DIR := $(FIGURES_DIR)/case-study
 
 COMPUTATION_COMPARISON := \
 $(foreach pattern_basename,$(PATTERN_BASENAMES:.txt=),\
+	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_counter_config-bounded_counter_config.pdf \
+	\
 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_super_config-bounded_counter_config.pdf \
 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_super_config-sparse_counter_config.pdf \
 	$(COMPUTATION_COMPARISON_DIR)/$(pattern_basename)-bounded_super_config-determinized_bounded_counter_config.pdf \
@@ -63,6 +66,12 @@ $(eval $(foreach name,$(PATTERN_BASENAMES:.txt=),\
 		)\
 	)\
 ))
+
+case-study:
+	@mkdir -p $(CASE_STUDY_DIR)
+	$(PYTHON) $(PYFLAGS) scripts/figures/plot_case_study.py \
+		$(CASE_STUDY_DIR)
+
 
 .PHONY: counter-range
 counter-range: $(COUNTER_RANGE)

@@ -133,27 +133,35 @@ def main(output_dir: Path) -> None:
     k = 100
 
     get_computations = {
-        "Super config": sc.BoundedSuperConfig.get_computation,
-        "C-config": sc.BoundedCounterConfig.get_computation,
-        "Sparse c-config": sc.SparseCounterConfig.get_computation,
-        "Dc-config": sc.DeterminizedBoundedCounterConfig.get_computation,
+        "super-": sc.BoundedSuperConfig.get_computation,
+        "c-": sc.BoundedCounterConfig.get_computation,
+        "sc-": sc.SparseCounterConfig.get_computation,
+        "dc-": sc.DeterminizedBoundedCounterConfig.get_computation,
+        "dsc-": sc.DeterminizedSparseCounterConfig.get_computation,
     }
     plt.rcParams.update({"text.usetex": True})
 
     patterns = [
         (f"a*a{{{k}}}", f"$a^*a^{k}$"),
-        (f"(aa*){{0,{k}}}", f"$(a^*a)^{{0,{k}}}$"),
-        (f"a*(a|a){{{k}}}", f"$a^*(a|a)^{k}$"),
+        (f"(aa*){{0,{k}}}", f"$(aa^*)^{{0,{k}}}$"),
+        (f"a*(a|aab){{{k}}}", f"$a^*(a|aab)^{k}$"),
+        (f"(aa*){{{k}}}", f"$(aa*)^{k}$"),
     ]
     ylim = (-400, 15000)
     for i, (pattern, _) in enumerate(patterns):
         logger.info("Pattern: %s", pattern)
-        # output = output_dir / f"case_study_{i}.pdf"
         output = output_dir / f"case_study_{i}.pgf"
-        plt.figure(figsize=(2.5, 2))
+        pdf_output = output_dir / f"case_study_{i}.pdf"
+        plt.figure(figsize=(2, 1.5))
         ax = plt.gca()
         automaton = pca.PositionCountingAutomaton.create(pattern)
-        colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
+        colors = [
+            "tab:blue",
+            "tab:orange",
+            "tab:green",
+            "tab:red",
+            "tab:purple",
+        ]
         markers = ["o", "s", "D", "^", "v"]
         for j, (method, get_computation) in enumerate(get_computations.items()):
             logger.info("Method: %s", method)
@@ -175,7 +183,7 @@ def main(output_dir: Path) -> None:
                 xs.append(x)
                 if x > ylim[1]:
                     break
-            markevery = range(j * 8, len(xs), 32)
+            markevery = range(j * 5, len(xs), 32)
             color = colors[j]
             marker = markers[j]
             ax.plot(xs, label=method, color=color)
@@ -187,6 +195,7 @@ def main(output_dir: Path) -> None:
                 linestyle="",
                 zorder=10,
                 color=color,
+                markersize=5,
             )
 
         formatter = ScalarFormatter(useMathText=True)
@@ -207,10 +216,17 @@ def main(output_dir: Path) -> None:
                 handles=legend_handles,
                 labels=get_computations.keys(),
                 loc="upper left",
+                labelspacing=0.1,
+                columnspacing=0.0,
+                ncol=2,
+                handlelength=0.2,
+                borderpad=0.5,
+                fontsize=12,
             )
         ax.set_ylim(ylim)
         ax.minorticks_on()
         plt.savefig(output, bbox_inches="tight", dpi=300)
+        plt.savefig(pdf_output, bbox_inches="tight", dpi=300)
 
 
 if __name__ == "__main__":
