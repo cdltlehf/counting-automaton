@@ -1,4 +1,4 @@
-"""Plot the computation comparison of configuration representation."""
+"""Plot the distribution of delayed operations."""
 
 import argparse
 import json
@@ -148,19 +148,8 @@ def filter_analysis(
     return x_filtered_results, y_filtered_results
 
 
-def main(
-    input_file_x: TextIO,
-    input_file_y: TextIO,
-    output: Path,
-    x_label: str,
-    y_label: str,
-) -> None:
+def main(input_file: TextIO, output: Path) -> None:
     plt.rcParams.update({"text.usetex": True})
-
-    x_label = x_label.replace("_", " ")
-    y_label = y_label.replace("_", " ")
-    x_label = x_label[0].upper() + x_label[1:]
-    y_label = y_label[0].upper() + y_label[1:]
 
     filtered_results_x, filtered_results_y = filter_analysis(
         map(json.loads, input_file_x),
@@ -180,7 +169,7 @@ def main(
     ys_timeout = np.isinf(ys_total)
 
     # Base for log
-    base = 2.0
+    # base = 2.0
 
     ############################################################################
     # Get the outlier bounds
@@ -442,22 +431,7 @@ def main(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "computation_info_x",
-        type=argparse.FileType("r"),
-    )
-    parser.add_argument(
-        "computation_info_y",
-        type=argparse.FileType("r"),
-    )
-    parser.add_argument("--x-label", type=str, required=True)
-    parser.add_argument("--y-label", type=str, required=True)
+    parser.add_argument("computation_info", type=argparse.FileType("r"))
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
-    main(
-        args.computation_info_x,
-        args.computation_info_y,
-        args.output,
-        args.x_label,
-        args.y_label,
-    )
+    main(args.computation_info, args.output)

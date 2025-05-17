@@ -16,6 +16,7 @@ def evil_str_gen(pattern: str, length: int) -> str:
         with tempfile.NamedTemporaryFile(suffix=".txt") as output_file:
             if "\n" in pattern:
                 raise ValueError("Pattern contains newline character")
+            pattern = f"^(?:{pattern})$"
             input_file.write(pattern.encode("utf-8"))
             input_file.flush()
             engine_types = {
@@ -59,7 +60,7 @@ def evil_str_gen(pattern: str, length: int) -> str:
 def main() -> None:
     num_cases = 1
     timeout = 60
-    length = 5000
+    length = 1000
     safe_evil_str_gen = timeout_decorator.timeout(timeout)(evil_str_gen)
 
     for i, pattern in enumerate(map(unescape, sys.stdin), 1):
