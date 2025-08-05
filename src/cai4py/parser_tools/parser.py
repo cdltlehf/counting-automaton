@@ -1,5 +1,5 @@
-# type: ignore
 # pylint: disable=W,C,R
+# type: ignore
 
 """Modified version of the sre_parse module from the Python standard library."""
 
