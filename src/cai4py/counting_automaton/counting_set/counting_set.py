@@ -5,8 +5,8 @@ import logging
 from typing import Iterable, Iterator, Optional, TypeVar
 import warnings
 
-from cai4py.more_collections import Node
-from cai4py.more_collections import SortedLinkedList
+from cai4py.collections import Node
+from cai4py.collections import SortedLinkedList
 
 from ..logging import ComputationStep
 from ..logging import VERBOSE

@@ -6,7 +6,7 @@ from copy import copy
 import logging
 from typing import Callable, Generic, Iterator, Mapping, Optional, TypeVar
 
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 
 from ..counter_vector import CounterOperationComponent
 from ..counter_vector import Guard

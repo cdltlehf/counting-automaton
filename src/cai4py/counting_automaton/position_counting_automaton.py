@@ -6,7 +6,7 @@ from json import dumps
 import logging
 from typing import Any, Iterable, NewType, Optional
 
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 from cai4py.parser_tools import fold
 from cai4py.parser_tools import MAX_PLUS
 from cai4py.parser_tools import MAX_QUESTION

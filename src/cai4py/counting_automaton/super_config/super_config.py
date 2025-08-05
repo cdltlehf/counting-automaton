@@ -3,7 +3,7 @@
 from collections import defaultdict as dd
 from typing import Collection, Iterator, Optional
 
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 
 from ..counter_vector import CounterVector
 from ..position_counting_automaton import Config

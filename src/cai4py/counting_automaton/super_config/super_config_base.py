@@ -5,7 +5,7 @@ from collections import defaultdict as dd
 from json import dumps
 from typing import Any, Iterator
 
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 
 from ..counter_vector import CounterVector
 from ..position_counting_automaton import CounterVariable

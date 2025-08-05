@@ -5,7 +5,7 @@ import logging
 from typing import Callable, Generic, Iterable, Optional, TypeVar
 import warnings
 
-from cai4py.more_collections import Node
+from cai4py.collections import Node
 
 from ..counting_set import BoundedCountingSet
 from ..counting_set import CountingSet

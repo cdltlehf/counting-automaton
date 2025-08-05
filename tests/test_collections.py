@@ -2,7 +2,7 @@
 
 import unittest
 
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 
 
 class TestOrderedSet(unittest.TestCase):
