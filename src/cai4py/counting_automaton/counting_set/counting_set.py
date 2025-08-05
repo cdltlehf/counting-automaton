@@ -47,10 +47,12 @@ class CountingSet(Iterable[int]):
         return self.list.is_empty()
 
     def __iter__(self) -> Iterator[int]:
+        """Iterate over the values in the counting-set"""
         for node in self.list:
             yield self.offset - node.value
 
     def increase(self: Self) -> Self:
+        """Implicitly increment all the values in the counting-set"""
         logger.debug("Increasing counting-set %s", self)
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
         self.offset += 1
@@ -62,6 +64,7 @@ class CountingSet(Iterable[int]):
         return self
 
     def merge(self: Self, other: Self) -> Self:
+        """Merge `other` counting-set into `self`"""
         logger.debug("Merging counter-set %s with %s", self, other)
         assert (self.low, self.high) == (other.low, other.high)
         if self.offset < other.offset:
@@ -93,6 +96,7 @@ class CountingSet(Iterable[int]):
         return self
 
     def __ior__(self: Self, other: Self) -> Self:
+        """Merge the counting-set with the smaller offset into the counting-set with the larger offset"""
         if self.offset < other.offset:
             return other.merge(self)
         else:
@@ -115,6 +119,7 @@ class CountingSet(Iterable[int]):
         return self.head_value >= self.low
 
     def add_one(self: Self) -> Self:
+        """Put the value 1 into the counting-set"""
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
         if self.list.head is not None:
             if next(iter(self)) == 1:
@@ -127,6 +132,7 @@ class CountingSet(Iterable[int]):
         return self
 
     def add_zero(self: Self) -> Self:
+        """Put the value 0 into the counting-set"""
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
         if self.list.head is not None:
             if next(iter(self)) == 0:

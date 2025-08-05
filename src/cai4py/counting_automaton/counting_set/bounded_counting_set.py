@@ -12,6 +12,9 @@ class BoundedCountingSet(CountingSet):
     """Bounded counting set"""
 
     def increase(self) -> "BoundedCountingSet":
+        """
+        Implicitly increment all the counter values by one.
+        """
         tail = self.list.tail
         super().increase()
         if tail is None or self.high is None:
@@ -23,6 +26,9 @@ class BoundedCountingSet(CountingSet):
         return self
 
     def add_one(self) -> "BoundedCountingSet":
+        """
+        Put the value 1 in the counting-set
+        """
         if self.high == 0:
             return self
 
