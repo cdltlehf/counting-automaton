@@ -83,11 +83,15 @@ def collect_computation_info(
                     elif computation_step.startswith("END_"):
                         computation_step = computation_step[4:]
                         if not mark_flags[computation_step]:
-                            raise ValueError(f"Duplicate end mark: {computation_step}")
+                            raise ValueError(
+                                f"Duplicate end mark: {computation_step}"
+                            )
                         mark_flags[computation_step] = False
                 else:
                     print(list(ComputationStepMark.__members__))
-                    raise ValueError(f"Unknown computation step: {computation_step}")
+                    raise ValueError(
+                        f"Unknown computation step: {computation_step}"
+                    )
             stream.seek(0)
             stream.truncate(pos)
             last_super_config = super_config
@@ -154,7 +158,9 @@ def run_and_trace(
         - Uses a timeout decorator to enforce the timeout for automaton creation.
     """
     handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s:%(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
+    )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     if __debug__:
