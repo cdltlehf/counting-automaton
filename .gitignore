@@ -20,3 +20,5 @@ raw-data/*
 data/figures/*/example*.pdf
 htmlcov
 .coverage
+sparse_counter_config_attack_durations.tsv
+sparse_counter_config_random_durations.tsv
