@@ -89,6 +89,7 @@ class PositionCountingAutomaton:
 
     @classmethod
     def create(cls, pattern: str) -> "PositionCountingAutomaton":
+        """TODO: document"""
         tree = parse(pattern)
         logger.debug(tree)
         callback_object = _PositionConstructionCallback()
@@ -103,7 +104,8 @@ class PositionCountingAutomaton:
             logger.debug("\n")
             return automaton
 
-        return fold(callback, tree)
+        automaton = fold(callback, tree)
+        return automaton
 
     def is_flat(self) -> bool:
         return all(
