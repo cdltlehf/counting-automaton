@@ -30,20 +30,24 @@ def main(parsed_args: argparse.Namespace) -> None:
         "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
         "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
     }[method]
-    with open(parsed_args.regex_file, "r", encoding='utf-8') as regex_file:
+    with open(parsed_args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
     with open(parsed_args.regex_file, "r", encoding="utf-8") as regex_file:
         i = 1
-        timing_log_file = open(parsed_args.timing_log_file, 'w', encoding='utf-8')
+        timing_log_file = open(
+            parsed_args.timing_log_file, "w", encoding="utf-8"
+        )
         timing_log_file.write("Regex ID\tNormalised attack duration\n")
         for regex in tqdm(regex_file, total=num_regexes):
             try:
                 with open(
-                    f"{parsed_args.attack_string_dir}/{i}.txt", "r", encoding='latin1'
+                    f"{parsed_args.attack_string_dir}/{i}.txt",
+                    "r",
+                    encoding="latin1",
                 ) as attack_str_file:
                     attack_str = attack_str_file.read()
                     try:
-                      automaton = pca.PositionCountingAutomaton.create(regex)
+                        automaton = pca.PositionCountingAutomaton.create(regex)
                     except NotImplementedError:
                         continue
                     except re.PatternError:
@@ -58,8 +62,10 @@ def main(parsed_args: argparse.Namespace) -> None:
                         pass  # do nothing
                     t1 = time.perf_counter()
                     duration = t1 - t0
-                    num_bytes = len(attack_str.encode('latin1'))
-                    timing_log_file.write(f'{i}\t{duration * 1000 / num_bytes}\n')
+                    num_bytes = len(attack_str.encode("latin1"))
+                    timing_log_file.write(
+                        f"{i}\t{duration * 1000 / num_bytes}\n"
+                    )
             except FileNotFoundError:
                 pass
             i += 1
