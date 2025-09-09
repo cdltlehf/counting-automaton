@@ -76,6 +76,7 @@ def fold(
     tree: SubPattern,
 ) -> T:
     """TODO: document"""
+
     def _fold(tree: SubPattern) -> Iterable[T]:
         for node in tree:
             opcode, _ = node
