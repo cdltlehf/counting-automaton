@@ -4,7 +4,7 @@ from copy import copy
 from functools import reduce
 from json import dumps
 import logging
-from typing import Any, Iterable, NewType, Optional
+from typing import Any, Iterable, NewType, Optional, Literal
 
 from cai4py.collections import OrderedSet
 from cai4py.parser_tools import fold
@@ -20,6 +20,7 @@ from cai4py.parser_tools import parse
 from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from cai4py.parser_tools.re import _compile
 from cai4py.parser_tools.re import SubPattern
+from cai4py.parser_tools.utils import expand_nested_counters
 
 from .counter_vector import Action
 from .counter_vector import CounterVector
@@ -88,9 +89,10 @@ class PositionCountingAutomaton:
         return self._state_scopes
 
     @classmethod
-    def create(cls, pattern: str) -> "PositionCountingAutomaton":
+    def create(cls, pattern: str, expansion_type: Literal["inner", "outer"]) -> "PositionCountingAutomaton":
         """TODO: document"""
         tree = parse(pattern)
+        tree = expand_nested_counters(tree, expansion_type)
         logger.debug(tree)
         callback_object = _PositionConstructionCallback()
 
