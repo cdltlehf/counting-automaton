@@ -9,7 +9,6 @@ from .counting_set import CountingSet
 
 logger = logging.getLogger(__name__)
 
-
 class SparseCountingSet(BoundedCountingSet):
     """Sparse counting set"""
 

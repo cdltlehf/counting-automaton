@@ -1,5 +1,17 @@
 # Counting Automaton
 
+## Additions
+
+Non-exhaustive list of changes/additions:
+
+- `custom_counters` contains implemented counters along with base class and `counter_type` for easy switching between counters
+- `super_config.py` has changes in `update`, `match` and `__init__`. This class also previously had a base class which is removed.
+- `position_counting_automaton.py` has changes in `get_initial_config`, `check_final` and `get_next_configs`. Most of these changes are there to allow for the switching of counter types.
+- `counter_vector.py` has changes in all of its classes. This is again to allow for the switching of classes.
+- `__init__.py` of `parser_tools` has a counter expansion methods in `flatten_inner_quantifers` and `flatten_quantifiers`. These use `quantifer_fold` and `flatten` to perform the counter expansion. These methods are modelled of the original `normalize` and `fold` methods. Feel free to rename the methods from `flatten` to `expansion`.
+
+Please look at `demo/demo.py` for an example of how the automaton and matchers are used. These are very similar to the original implementation with the addition of counter selection. In the counters and the return of the `SuperConfig` matcher are places where data collection is performed. This is still being developed for my project so feel free to remove it.
+
 ## Set up
 
 Create a virtual environment and install the packages in `src/` using the commands in the code block below.
@@ -7,41 +19,12 @@ After the `pip install`, you should be able to import `cai4py` from Python scrip
 
 ```bash
 # Create a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .ca-venv
+source .ca-venv/bin/activate
 pip install --editable . # install all packages in `src/` in editable mode (no need to reinstall after making changes)
 ```
 
 The following sections assume that the virtual environment `.ca-venv` is active.
-
-## Development
-
-If `black`, `pylint`, or `coverage` are not installed in your virtual environment, re-run `pip install -e .`.
-
-### Code style
-
-Format all Python files using `black`.
-
-```bash
-python -m black .
-```
-
-### Linting
-
-Lint all Python files in `src/` and `tests/`
-
-```bash
-python -m pylint src tests
-```
-
-### Unit test code coverage
-
-Run the unit tests and generate a coverage report
-
-```bash
-python -m coverage run -m unittest discover tests
-python -m coverage html
-```
 
 ## Preprocessing
 

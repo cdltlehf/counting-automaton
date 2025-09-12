@@ -5,8 +5,7 @@ import logging
 from typing import Iterable, Iterator, Optional, TypeVar
 import warnings
 
-from cai4py.more_collections import Node
-from cai4py.more_collections import SortedLinkedList
+from cai4py.more_collections import Node, SortedLinkedList
 
 from ..logging import ComputationStep
 from ..logging import VERBOSE
@@ -156,9 +155,7 @@ class CountingSet(Iterable[int]):
         return " -> ".join(map(str, self))
 
     @classmethod
-    def from_list(
-        cls, l: list[int], low: int, high: Optional[int]
-    ) -> "CountingSet":
+    def from_list(cls, l: list[int], low: int, high: Optional[int]) -> "CountingSet":
         s = cls(low, high)
         last_n = None
         for n in reversed(l):

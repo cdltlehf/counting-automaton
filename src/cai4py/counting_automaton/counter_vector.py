@@ -3,21 +3,22 @@
 from collections import defaultdict as dd
 from copy import copy
 from enum import Enum
-import logging
+
+from cai4py.custom_counters.counter_type import CounterType
+
+from ..utils.util_logging import setup_debugger
+logger = setup_debugger(__name__)
+
 from typing import Any, Hashable, Iterable, Mapping, Optional, TypeVar
 
-from .logging import ComputationStep
-from .logging import VERBOSE
+from cai4py.custom_counters.counter_base import CounterBase
 
-logger = logging.getLogger(__name__)
-
+from .logging import ComputationStep, VERBOSE
 
 class StrEnum(str, Enum):
     pass
 
-
 T = TypeVar("T", bound=Hashable)
-
 
 class CounterVector(dict[T, int], Hashable):
     """Counter vector."""
@@ -50,7 +51,6 @@ class CounterVector(dict[T, int], Hashable):
             return NotImplemented
         return hash(self) == hash(other)
 
-
 class CounterPredicate(Hashable):
     """Counter Predicate"""
 
@@ -78,19 +78,20 @@ class CounterPredicate(Hashable):
     def __hash__(self) -> int:
         return hash((self.type, self.value))
 
-    def __call__(self, counter_value: int) -> bool:
+    def __call__(self, counter: CounterBase) -> bool:
         if self.type is CounterPredicate.Type.NOT_LESS_THAN:
-            return counter_value >= self.value
+            return counter.ge_lower_bound()
+        
         elif self.type is CounterPredicate.Type.NOT_GREATER_THAN:
-            return counter_value <= self.value
+            return counter.le_upper_bound()
+        
         elif self.type is CounterPredicate.Type.LESS_THAN:
-            return counter_value < self.value
+            return counter.le_upper_bound()
         else:
             raise ValueError(f"Unhandled predicate type: {self.type}")
 
     def __str__(self) -> str:
         return f"{self.type}{self.value}"
-
 
 class Guard(dd[T, list[CounterPredicate]], Hashable):
     """Guard"""
@@ -113,18 +114,20 @@ class Guard(dd[T, list[CounterPredicate]], Hashable):
 
     @classmethod
     def not_greater_than(cls, counter_variable: T, value: int) -> "Guard[T]":
-        return cls(
-            {counter_variable: [CounterPredicate.not_greater_than(value)]}
-        )
+        return cls({counter_variable: [CounterPredicate.not_greater_than(value)]})
 
     def __hash__(self) -> int:  # type: ignore
         return hash(tuple((key, tuple(value)) for key, value in self.items()))
 
-    def __call__(self, counter_vector: CounterVector[T]) -> bool:
-        for counter_variable, predicates in self.items():
+    def __call__(self, counter: CounterBase) -> bool:
+
+        for _, predicates in self.items():
+
             logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
+
             for predicate in predicates:
-                if not predicate(counter_vector[counter_variable]):
+                logger.debug(f"\t\t\tPredicate: {predicate}")
+                if not predicate(counter):
                     return False
         return True
 
@@ -147,42 +150,82 @@ class Guard(dd[T, list[CounterPredicate]], Hashable):
             for counter, predicates in self.items()
         )
 
-
-class CounterOperationComponent(StrEnum):
+class CounterOperationComponent():
     """Counter Operation Component"""
 
-    NO_OPERATION = ""
-    ACTIVATE_OR_RESET = " = 1"
-    INCREASE = "++"
-    INACTIVATE = " = None"
+    class Type(StrEnum):
+        NO_OPERATION = ""
+        ACTIVATE_OR_RESET = " = 1"
+        INCREASE = "++"
+        INACTIVATE = " = None"
 
-    def __call__(self, counter_value: Optional[int]) -> Optional[int]:
+    def __init__(self, operation_type: Type, range: Optional[tuple[int, int]]) -> None:
+        self.type = operation_type
+
+        if range is not None:
+            lo, hi = range
+            self.lower_bound = lo
+            self.upper_bound = hi
+        else:
+            self.lower_bound = 0
+            self.upper_bound = 0
+
+    @classmethod
+    def no_operation(cls):
+        return cls(CounterOperationComponent.Type.NO_OPERATION, None)
+
+    @classmethod
+    def activate_or_reset(cls, lower_bound: int, upper_bound: int):
+        return cls(CounterOperationComponent.Type.ACTIVATE_OR_RESET, (lower_bound, upper_bound))
+
+    @classmethod
+    def increase(cls):
+        return cls(CounterOperationComponent.Type.INCREASE, None)
+    
+    @classmethod
+    def inactivate(cls):
+        return cls(CounterOperationComponent.Type.INACTIVATE, None)
+
+    def __call__(self, counter: Optional[CounterBase], counter_type: CounterType) -> Optional[CounterBase]:
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
-        if self is CounterOperationComponent.NO_OPERATION:
-            return counter_value
-        elif self is CounterOperationComponent.ACTIVATE_OR_RESET:
-            return 1
-        elif self is CounterOperationComponent.INCREASE:
-            assert counter_value is not None
-            return counter_value + 1
-        elif self is CounterOperationComponent.INACTIVATE:
+
+        if self.type is CounterOperationComponent.Type.NO_OPERATION:
+            return counter
+
+        elif self.type is CounterOperationComponent.Type.ACTIVATE_OR_RESET:
+            counter = counter_type.create_counter(self.lower_bound, self.upper_bound)
+            return counter
+
+        elif self.type is CounterOperationComponent.Type.INCREASE:
+            assert counter is not None
+            counter.inc()
+            return counter
+
+        elif self.type is CounterOperationComponent.Type.INACTIVATE:
             return None
 
     def __mul__(self, other: object) -> "CounterOperationComponent":
+
         if not isinstance(other, CounterOperationComponent):
             return NotImplemented
-        if other is CounterOperationComponent.NO_OPERATION:
-            return self
-        elif other is CounterOperationComponent.ACTIVATE_OR_RESET:
-            return other
-        elif other is CounterOperationComponent.INCREASE:
-            if self is CounterOperationComponent.NO_OPERATION:
-                return other
-            return NotImplemented
-        elif other is CounterOperationComponent.INACTIVATE:
-            return other
-        assert False, other
 
+        if other.type is CounterOperationComponent.Type.NO_OPERATION:
+            
+            return self
+
+        elif other.type is CounterOperationComponent.Type.ACTIVATE_OR_RESET:
+            return other
+
+        elif other.type is CounterOperationComponent.Type.INCREASE:
+            if self.type is CounterOperationComponent.Type.NO_OPERATION:
+                return other
+
+            return NotImplemented
+
+        elif other.type is CounterOperationComponent.Type.INACTIVATE:
+            return other
+
+        assert False, other
 
 class Action(dd[T, CounterOperationComponent], Hashable):
     """Action"""
@@ -191,42 +234,46 @@ class Action(dd[T, CounterOperationComponent], Hashable):
         self,
         action: Optional[Mapping[T, CounterOperationComponent]] = None,
     ) -> None:
-        super().__init__(lambda: CounterOperationComponent.NO_OPERATION)
+        super().__init__(lambda: CounterOperationComponent.no_operation())
         if action is not None:
             self.update(action)
 
     @classmethod
     def increase(cls, counter_variable: T) -> "Action[T]":
-        return cls({counter_variable: CounterOperationComponent.INCREASE})
+        return cls({counter_variable: CounterOperationComponent.increase()})
 
     @classmethod
-    def activate(cls, counter_variable: T) -> "Action[T]":
-        return cls(
-            {counter_variable: CounterOperationComponent.ACTIVATE_OR_RESET}
-        )
+    def activate(cls, counter_variable: T, lower_bound: int, upper_bound: Optional[int]) -> "Action[T]":
+        if upper_bound is None:
+            upper_bound = -1
+
+        return cls({counter_variable: CounterOperationComponent.activate_or_reset(lower_bound, upper_bound)})
 
     @classmethod
     def inactivate(cls, counter_variable: T) -> "Action[T]":
-        return cls({counter_variable: CounterOperationComponent.INACTIVATE})
+        return cls({counter_variable: CounterOperationComponent.inactivate()})
 
-    def move_and_apply(
-        self, counter_vector: CounterVector[T]
-    ) -> CounterVector[T]:
+    def move_and_apply(self, counter: CounterBase, counter_type: CounterType) -> CounterBase:
+        # Loop over keys of default dict
+      
+        looped = False
+        new_counter = None
         for variable in self:
-            value = counter_vector.get(variable, None)
-            # value = reduce(lambda x, y: y(x), self[variable], value)
-            value = self[variable](value)
-            if value is not None:
-                counter_vector[variable] = value
-            else:
-                del counter_vector[variable]
-        return counter_vector
+            looped = True
+
+            logger.debug(f"\t\t\tCounter operation: {self[variable].type}({self[variable].lower_bound},{self[variable].upper_bound})")
+            new_counter = self[variable](counter, counter_type)
+
+        if not looped:
+            return counter
+        else:
+            return new_counter
 
     def __hash__(self) -> int:  # type: ignore
-        return hash(tuple((key, tuple(value)) for key, value in self.items()))
+        return hash(tuple((key, (value.type, getattr(value, "lo", None), getattr(value, "hi", None))) for key, value in self.items()))
 
-    def __call__(self, counter_vector: CounterVector[T]) -> CounterVector[T]:
-        return self.move_and_apply(copy(counter_vector))
+    def __call__(self, counter: CounterBase) -> CounterBase:
+        return self.move_and_apply(copy(counter))
 
     def __copy__(self) -> "Action[T]":
         return Action(self)
@@ -243,7 +290,7 @@ class Action(dd[T, CounterOperationComponent], Hashable):
 
     def __str__(self) -> str:
         return ", ".join(
-            f"c[{counter}]{operation}" for counter, operation in self.items()
+            f"c[{counter}]{operation.type}({operation.lower_bound},{operation.upper_bound})" for counter, operation in self.items()
         )
 
     def __eq__(self, other: Any) -> bool:
