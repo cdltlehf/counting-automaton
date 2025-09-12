@@ -89,7 +89,9 @@ class PositionCountingAutomaton:
         return self._state_scopes
 
     @classmethod
-    def create(cls, pattern: str, expansion_type: Literal["inner", "outer"]) -> "PositionCountingAutomaton":
+    def create(
+        cls, pattern: str, expansion_type: Literal["inner", "outer"] = "inner"
+    ) -> "PositionCountingAutomaton":
         """TODO: document"""
         tree = parse(pattern)
         tree = expand_nested_counters(tree, expansion_type)

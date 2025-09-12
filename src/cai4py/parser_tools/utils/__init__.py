@@ -108,7 +108,7 @@ def _expand_inner_counters(
     updated_tokens = []
 
     for op, av in tokens:
-        if op in (MIN_REPEAT, MAX_REPEAT):
+        if op in (MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT):
             # av is (min, max, subpattern)
             lower_b, upper_b, subexpr = av
             is_counter = not (lower_b == 0 and upper_b == 1) and not (
@@ -129,7 +129,16 @@ def _expand_inner_counters(
                 if upper_b != MAXREPEAT:
                     assert isinstance(upper_b, int)
                     for i in range(upper_b - lower_b):
-                        expansion += [(MAX_QUESTION if op is MAX_REPEAT else MIN_QUESTION, subexpr)]
+                        expansion += [
+                            (
+                                (
+                                    MAX_QUESTION
+                                    if op is MAX_REPEAT
+                                    else MIN_QUESTION
+                                ),
+                                subexpr,
+                            )
+                        ]
                 else:
                     expansion += [(op, (0, MAXREPEAT, subexpr))]
                 updated_tokens.append(expansion)
@@ -153,11 +162,25 @@ def _expand_inner_counters(
             d, subexpr = av
             subexpr = _expand_inner_counters(subexpr, in_counter=in_counter)
             updated_tokens.append((op, (d, subexpr)))
-        elif op is LITERAL:
+        elif op in (LITERAL, NOT_LITERAL, ANY, IN, RANGE, CATEGORY, AT, NEGATE):
+            updated_tokens.append((op, av))
+        elif op in (
+            MAX_PLUS,
+            MAX_QUESTION,
+            MAX_STAR,
+            MIN_PLUS,
+            MIN_QUESTION,
+            MIN_STAR,
+            POSSESSIVE_STAR,
+            POSSESSIVE_PLUS,
+            POSSESSIVE_QUESTION,
+            ATOMIC_GROUP,
+        ):
+            av = _expand_inner_counters(av, in_counter=in_counter)
             updated_tokens.append((op, av))
         else:
             raise RuntimeError(f"Unhandled op: {op}")
-        
+
         if isinstance(av, SubPattern):
             av = _expand_inner_counters(av, in_counter=in_counter)
             updated_tokens.append((op, av))
@@ -189,7 +212,7 @@ def _expand_outer_counters(subexpr):
     updated_tokens = []
     contains_counter = False
     for op, av in tokens:
-        if op in (MIN_REPEAT, MAX_REPEAT):
+        if op in (MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT):
             # av is (min, max, subpattern)
             lower_b, upper_b, subexpr = av
             is_counter = not (lower_b == 0 and upper_b == 1) and not (
@@ -239,9 +262,25 @@ def _expand_outer_counters(subexpr):
             d, subexpr = av
             subexpr, contains_counter = _expand_outer_counters(subexpr)
             updated_tokens.append((op, (d, subexpr)))
-        elif op is LITERAL:
+        elif op in (LITERAL, NOT_LITERAL, ANY, IN, RANGE, CATEGORY, AT, NEGATE):
+            updated_tokens.append((op, av))
+        elif op in (
+            MAX_PLUS,
+            MAX_QUESTION,
+            MAX_STAR,
+            MIN_PLUS,
+            MIN_QUESTION,
+            MIN_STAR,
+            POSSESSIVE_STAR,
+            POSSESSIVE_PLUS,
+            POSSESSIVE_QUESTION,
+            ATOMIC_GROUP,
+        ):
+            av, av_contains_counter = _expand_outer_counters(av)
+            contains_counter = contains_counter or av_contains_counter
             updated_tokens.append((op, av))
         else:
+            print(subexpr)
             raise RuntimeError(f"Unhandled op: {op}")
 
         if isinstance(av, SubPattern):
