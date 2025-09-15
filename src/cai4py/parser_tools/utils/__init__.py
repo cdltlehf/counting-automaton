@@ -146,10 +146,10 @@ def _expand_inner_counters(
                 updated_tokens.append((op, (lower_b, upper_b, subexpr)))
         elif op is SUBPATTERN:
             # av is (groupnum, add_flags, del_flags, subpattern)
-            groupnum, add_flags, del_flags, subexpr = av
-            subexpr = _expand_inner_counters(subexpr, in_counter)
+            groupnum, add_flags, del_flags, subexpr2 = av
+            subexpr2 = _expand_inner_counters(subexpr2, in_counter)
             updated_tokens.append(
-                (op, (groupnum, add_flags, del_flags, subexpr))
+                (op, (groupnum, add_flags, del_flags, subexpr2))
             )
         elif op is BRANCH:
             x, branches = av
@@ -159,9 +159,9 @@ def _expand_inner_counters(
             ]
             updated_tokens.append((op, (x, branches)))
         elif op in (ASSERT, ASSERT_NOT):
-            d, subexpr = av
-            subexpr = _expand_inner_counters(subexpr, in_counter=in_counter)
-            updated_tokens.append((op, (d, subexpr)))
+            d, subexpr2 = av
+            subexpr2 = _expand_inner_counters(subexpr2, in_counter=in_counter)
+            updated_tokens.append((op, (d, subexpr2)))
         elif op in (LITERAL, NOT_LITERAL, ANY, IN, RANGE, CATEGORY, AT, NEGATE):
             updated_tokens.append((op, av))
         elif op in (
@@ -180,14 +180,8 @@ def _expand_inner_counters(
             updated_tokens.append((op, av))
         else:
             raise RuntimeError(f"Unhandled op: {op}")
-
-        if isinstance(av, SubPattern):
-            av = _expand_inner_counters(av, in_counter=in_counter)
-            updated_tokens.append((op, av))
-
-        if isinstance(av, list):
-            av = _expand_inner_counters(av, in_counter=in_counter)
-            updated_tokens.append((op, av))
+        
+        assert not isinstance(av, SubPattern)
 
     flattened_token_list = []
     for token in updated_tokens:
@@ -283,15 +277,8 @@ def _expand_outer_counters(subexpr):
             print(subexpr)
             raise RuntimeError(f"Unhandled op: {op}")
 
-        if isinstance(av, SubPattern):
-            av, av_contains_counter = _expand_outer_counters(av)
-            contains_counter = contains_counter or av_contains_counter
-            updated_tokens.append((op, av))
+        assert not isinstance(av, SubPattern)
 
-        if isinstance(av, list):
-            av, av_contains_counter = _expand_outer_counters(av)
-            contains_counter = contains_counter or av_contains_counter
-            updated_tokens.append((op, av))
     flattened_token_list = []
     for token in updated_tokens:
         if isinstance(token, list):
