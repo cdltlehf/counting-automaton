@@ -1,20 +1,25 @@
 from collections import deque
 import sys
+from typing import Self
 
 from cai4py.custom_counters.counter_base import CounterBase
-from cai4py.utils.data_collection import DataCollection, Operation
+from cai4py.utils.data_collection import DataCollection
+from cai4py.utils.data_collection import Operation
+
 
 class SparseCountingSet(CounterBase):
 
-    _data_collection = DataCollection({
-        Operation.INIT: 1, 
-        Operation.INC: 1, 
-        Operation.UNION: 2, 
-        Operation.GE: 1, 
-        Operation.LE: 1
-    })
+    _data_collection = DataCollection(
+        {
+            Operation.INIT: 1,
+            Operation.INC: 1,
+            Operation.UNION: 2,
+            Operation.GE: 1,
+            Operation.LE: 1,
+        }
+    )
 
-    def __init__(self, lower_bound: int, upper_bound: int) -> "SparseCountingSet":
+    def __init__(self, lower_bound: int, upper_bound: int) -> None:
         SparseCountingSet._data_collection.count_update(Operation.INIT)
         SparseCountingSet._data_collection.full_update(Operation.INIT)
         SparseCountingSet._data_collection.half_update(2, Operation.INIT)
@@ -22,14 +27,16 @@ class SparseCountingSet(CounterBase):
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
 
-        self.queue = deque()
-        self.queue.append(1) # append at right end
+        self.queue: deque[int] = deque()
+        self.queue.append(1)  # append at right end
         self.offset = 0
         self.overflow = False
 
-        SparseCountingSet._data_collection.max_memory_update(sys.getsizeof(self.queue))
+        SparseCountingSet._data_collection.max_memory_update(
+            sys.getsizeof(self.queue)
+        )
 
-    def inc(self):
+    def inc(self) -> Self:
         SparseCountingSet._data_collection.count_update(Operation.INC)
         SparseCountingSet._data_collection.full_update(Operation.INC)
         SparseCountingSet._data_collection.half_update(1, Operation.INC)
@@ -47,12 +54,15 @@ class SparseCountingSet(CounterBase):
             if len(self.queue) >= 2:
                 if self.queue[1] + self.offset >= self.lower_bound:
                     self.queue.popleft()
+        return self
 
     @staticmethod
-    def _combine_sets(counter_1: "SparseCountingSet", counter_2: "SparseCountingSet") -> list:
+    def _combine_sets(
+        counter_1: SparseCountingSet, counter_2: SparseCountingSet
+    ) -> SparseCountingSet:
         combination = []
 
-        while len(counter_1.queue) > 0  or len(counter_2.queue) > 0:
+        while len(counter_1.queue) > 0 or len(counter_2.queue) > 0:
             SparseCountingSet._data_collection.half_update(1, Operation.UNION)
             val_1 = -1
             if len(counter_1.queue) > 0:
@@ -76,15 +86,19 @@ class SparseCountingSet(CounterBase):
         return combination
 
     @staticmethod
-    def union(counter_1: "SparseCountingSet", counter_2: "SparseCountingSet") -> "SparseCountingSet":
+    def union(
+        counter_1: SparseCountingSet, counter_2: SparseCountingSet
+    ) -> SparseCountingSet:
         SparseCountingSet._data_collection.count_update(Operation.UNION)
         SparseCountingSet._data_collection.full_update(Operation.UNION)
 
-        aux = deque()
+        aux: list[int] = deque()
 
         # combine both (all values are out of range)
         combined = SparseCountingSet._combine_sets(counter_1, counter_2)
-        SparseCountingSet._data_collection.half_update(len(combined) // 2, Operation.UNION)
+        SparseCountingSet._data_collection.half_update(
+            len(combined) // 2, Operation.UNION
+        )
 
         # infinity indicator (only have to know max value)
         if counter_1.upper_bound == -1:
@@ -100,7 +114,7 @@ class SparseCountingSet(CounterBase):
 
             if len(combined) >= 2:
                 for element in combined[1:]:
-                    
+
                     # best lowest in bound
                     if element > counter_1.lower_bound:
                         aux.pop()
@@ -122,7 +136,9 @@ class SparseCountingSet(CounterBase):
 
                     aux.append(element)
 
-        new_counter = SparseCountingSet(counter_1.lower_bound, counter_1.upper_bound)
+        new_counter = SparseCountingSet(
+            counter_1.lower_bound, counter_1.upper_bound
+        )
         new_counter.queue = aux
         new_counter.offset = 0
         new_counter.overflow = counter_1.overflow | counter_2.overflow
@@ -156,7 +172,7 @@ class SparseCountingSet(CounterBase):
 
         # get leftmost element
         return self.queue[-1] + self.offset <= self.upper_bound
-    
+
     def __str__(self):
         vals = [self.queue[i] + self.offset for i in range(len(self.queue))]
 
@@ -165,10 +181,10 @@ class SparseCountingSet(CounterBase):
             star = "*"
 
         return vals.__str__() + star
-    
+
     def __repr__(self):
         return self.__str__()
-    
+
     @classmethod
     def data_collection_details(cls):
         if cls._data_collection is None:

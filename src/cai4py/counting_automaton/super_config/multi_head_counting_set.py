@@ -90,9 +90,6 @@ class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
     def check(self, delta: int) -> bool:
         return self.head_value(delta) >= self.counting_set.low
 
-    def is_empty(self) -> bool:
-        return self.counting_set.is_empty()
-
     def values(self, delta: int) -> Iterable[int]:
         for value in self.counting_set:
             yield value + delta

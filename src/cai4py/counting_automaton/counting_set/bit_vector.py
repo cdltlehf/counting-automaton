@@ -1,4 +1,4 @@
-"""SuperConfig"""
+"""Bit-vector config"""
 
 from collections import defaultdict as dd
 from typing import Collection, Iterator, Optional
@@ -65,3 +65,4 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
 
     def is_final(self) -> bool:
         return any(map(self.automaton.check_final, self))
+

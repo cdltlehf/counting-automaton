@@ -2,6 +2,7 @@
 
 from typing import Optional, TypedDict
 
+
 class TestCaseResult(TypedDict):
     computation_info: dict[str, int]
     is_final: bool

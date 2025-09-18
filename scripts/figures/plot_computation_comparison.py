@@ -92,12 +92,16 @@ def filter_analysis(
     x_filtered_results: list[OutputDict] = []
     y_filtered_results: list[OutputDict] = []
 
-    for x_json_object, y_json_object in zip(x_objects, y_objects):
+    for i, (x_json_object, y_json_object) in enumerate(
+        zip(x_objects, y_objects), 1
+    ):
         x_output_dict = OutputDict(**x_json_object)  # type: ignore
         y_output_dict = OutputDict(**y_json_object)  # type: ignore
-        pattern = x_output_dict["pattern"]
-        if pattern != y_output_dict["pattern"]:
-            raise ValueError("Patterns do not match")
+        pattern = y_output_dict["pattern"]
+        # if pattern != y_output_dict["pattern"]:
+        #     raise ValueError(
+        #         "Patterns do not match %s %s", pattern, y_output_dict["pattern"]
+        #     )
         x_results = x_output_dict["results"]
         y_results = y_output_dict["results"]
 
@@ -140,7 +144,10 @@ def filter_analysis(
 
                 if x_is_final != y_is_final:
                     print(f"{escape(pattern)}\t{escape(text)}")
-                    raise ValueError("Final does not match")
+                    raise ValueError(
+                        f"Line {i} Final does not match: "
+                        f"{escape(pattern)} {escape(text)}"
+                    )
 
         x_filtered_results.append(x_output_dict)
         y_filtered_results.append(y_output_dict)
@@ -155,7 +162,7 @@ def main(
     x_label: str,
     y_label: str,
 ) -> None:
-    plt.rcParams.update({"text.usetex": True})
+    # plt.rcParams.update({"text.usetex": True})
 
     x_label = x_label.replace("_", " ")
     y_label = y_label.replace("_", " ")
@@ -180,7 +187,7 @@ def main(
     ys_timeout = np.isinf(ys_total)
 
     # Base for log
-    base = 2.0
+    # base = 2.0
 
     ############################################################################
     # Get the outlier bounds
@@ -435,7 +442,7 @@ def main(
     # ax.set_title("Number of operations")
     # plt.tight_layout()
     plt.savefig(output, bbox_inches="tight", dpi=300)
-    plt.savefig(output.with_suffix(".pgf"), bbox_inches="tight", dpi=300)
+    # plt.savefig(output.with_suffix(".pgf"), bbox_inches="tight", dpi=300)
     plt.clf()
 
 

@@ -1,7 +1,6 @@
 """Parser tools for regular expressions."""
 
 # mypy: disable-error-code=import-untyped
-# pylint: disable=useless-import-alias
 
 from itertools import chain
 from re import escape
@@ -10,9 +9,9 @@ from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
 
 from .constants import *
-from .parser import parse as parse  # type: ignore
+from .parser import parse  # type: ignore
 from .re import State
-from .re import SubPattern as SubPattern
+from .re import SubPattern
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -71,52 +70,7 @@ def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
     else:
         assert False, f"Unknown opcode: {opcode}"
 
-"""
-    Counter expansion of all counters. Can be used instead of normalize.
-"""
-def flatten_inner_quantifiers(tree: SubPattern):
-    pattern = quantifier_fold(flatten, tree)
-    return parse(pattern)
 
-"""
-    Counter expansion of only nested counters. Can be used instead of normalize.
-"""
-def flatten_quantifiers(tree: SubPattern) -> SubPattern:
-    pattern = fold(flatten, tree)
-    return parse(pattern)
-
-"""
-    Fold operation to support inner counter expansion.
-"""
-def quantifier_fold(
-    func: Callable[[Optional[tuple[NamedIntConstant, Any]], Iterable[T]], T],
-    tree: SubPattern
-) -> T:
-    def _quantifier_fold(tree: SubPattern) -> Iterable[T]:
-        for node in tree:
-            opcode, _ = node
-            operand, children = get_operand_and_children(node)
-
-            # Perform counter expansion whilst retaining outer counters
-            if opcode in {MIN_REPEAT, MAX_REPEAT}:
-                n,m = operand
-                inner = to_string(flatten_quantifiers(children[0]))
-
-                if m is MAXREPEAT:
-                    yield f"{inner}{{{n},}}"
-                else:
-                    yield f"{inner}{{{n},{m}}}" 
-            else:
-                yield func(
-                    (opcode, operand),
-                    (quantifier_fold(func, child) for child in children),
-                )
-
-    return func(None, _quantifier_fold(tree))
-
-"""
-    Normal fold of tree.
-"""
 def fold(
     f: Callable[[Optional[tuple[NamedIntConstant, Any]], Iterable[T]], T],
     tree: SubPattern,
@@ -125,7 +79,6 @@ def fold(
         for node in tree:
             opcode, _ = node
             operand, children = get_operand_and_children(node)
-
             yield f(
                 (opcode, operand),
                 (fold(f, child) for child in children),
@@ -139,6 +92,7 @@ def dfs(tree: SubPattern) -> Iterable[tuple[NamedIntConstant, Any]]:
         lambda x, ys: chain([] if x is None else [x], chain.from_iterable(ys)),
         tree,
     )
+
 
 def in_to_string(xs: list[Any]) -> str:
     result = ["["]
@@ -157,6 +111,7 @@ def in_to_string(xs: list[Any]) -> str:
     result.append("]")
     return "".join(result)
 
+
 def category_to_string(category: NamedIntConstant) -> str:
     try:
         return {
@@ -172,9 +127,7 @@ def category_to_string(category: NamedIntConstant) -> str:
     except KeyError as e:
         raise NotImplementedError(f"Unknown category: {category}") from e
 
-"""
-    Quantifier opcodes turned into string.
-"""
+
 def repeat_to_string(
     opcode: NamedIntConstant,
     operand: Any,
@@ -187,24 +140,11 @@ def repeat_to_string(
     }[opcode]
 
     m, n = operand
-
     ys = list(ys)
-    ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
-
+    ys_str = ys[0] if len(ys) == 1 else "".join(ys)
+    ys_str = ys_str if len(ys_str) == 1 else f"(?:{ys_str})"
     if n is MAXREPEAT:
-        # Remove {0,} and {1,} and replace with * and + respectively.
-        if m == 0:
-            return f"{ys_str}*{repeat_ch}"
-        elif m == 1:
-            return f"{ys_str}+{repeat_ch}"
-        else:
-            return f"{ys_str}{{{m},}}{repeat_ch}"
-        
-    
-    # Handles case where {0,0} quantifier is used
-    if m == 0 and n == 0:
-        return f"{repeat_ch}"
-
+        return f"{ys_str}{{{m},}}{repeat_ch}"
     return f"{ys_str}{{{m},{n}}}{repeat_ch}"
 
 
@@ -265,12 +205,11 @@ def to_string_f(
     elif opcode is BRANCH:
         return f"(?:{'|'.join(ys)})"
     elif opcode in {MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT}:
-       
         return repeat_to_string(opcode, operand, ys)
     elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
-        
         ys = list(ys)
-        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+        ys_str = ys[0] if len(ys) == 1 else "".join(ys)
+        ys_str = ys_str if len(ys_str) == 1 else f"(?:{ys_str})"
         if opcode is MAX_QUESTION:
             return f"{ys_str}?"
         elif opcode is MIN_QUESTION:
@@ -279,9 +218,9 @@ def to_string_f(
             return f"{ys_str}?+"
         assert False
     elif opcode in {MAX_STAR, MIN_STAR, POSSESSIVE_STAR}:
-        
         ys = list(ys)
-        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+        ys_str = ys[0] if len(ys) == 1 else "".join(ys)
+        ys_str = ys_str if len(ys_str) == 1 else f"(?:{ys_str})"
         if opcode is MAX_STAR:
             return f"{ys_str}*"
         elif opcode is MIN_STAR:
@@ -290,9 +229,9 @@ def to_string_f(
             return f"{ys_str}*+"
         assert False
     elif opcode in {MAX_PLUS, MIN_PLUS, POSSESSIVE_PLUS}:
-     
         ys = list(ys)
-        ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+        ys_str = ys[0] if len(ys) == 1 else "".join(ys)
+        ys_str = ys_str if len(ys_str) == 1 else f"(?:{ys_str})"
         if opcode is MAX_PLUS:
             return f"{ys_str}+"
         elif opcode is MIN_PLUS:
@@ -314,26 +253,23 @@ def to_string(tree: SubPattern) -> str:
 
 
 def normalize(tree: SubPattern) -> SubPattern:
-    """
-        Normalize a regular expression pattern.
-        This modifies semantics of the pattern to make it easier to analyze:
-            1. Remove anchors (at).
-            2. Remove flags in subpatterns.
-            3. Turn atomic and capturing groups into non-capturing groups.
-            4. Raise error if the pattern has possessive quantifiers.
-            5. Raise error if the pattern has look-around assertions.
-            6. Raise error if the pattern has back-references.
-            7. Raise error if the pattern has other features that are not supported.
-            8. Let upper-bound of repeat quantifiers be 65,535 (2^16 - 1). Note that
-            the maximum bound of re2 is 1,000.
+    """Normalize a regular expression pattern.
+    This modifies semantics of the pattern to make it easier to analyze.
+    1. Remove anchors (at).
+    2. Remove flags in subpatterns.
+    3. Turn atomic and capturing groups into non-capturing groups.
+    4. Raise error if the pattern has possessive quantifiers.
+    5. Raise error if the pattern has look-around assertions.
+    6. Raise error if the pattern has back-references.
+    7. Raise error if the pattern has other features that are not supported.
+    8. Let upper-bound of repeat quantifiers be 65,535 (2^16 - 1). Note that
+       the maximum bound of re2 is 1,000.
     """
 
     def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
-
         if x is None:
             return "".join(ys)
         opcode, operand = x
-
         if opcode is LITERAL:
             return f"{escape(operand)}"
         elif opcode is ANY:
@@ -363,7 +299,8 @@ def normalize(tree: SubPattern) -> SubPattern:
             return repeat_to_string(opcode, (m, n), ys)
         elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
             ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+            ys_str = ys[0] if len(ys) == 1 else "".join(ys)
+            ys_str = ys_str if len(ys_str) == 1 else f"(?:{ys_str})"
             if opcode is MAX_QUESTION:
                 return f"{ys_str}?"
             elif opcode is MIN_QUESTION:
@@ -373,7 +310,8 @@ def normalize(tree: SubPattern) -> SubPattern:
             assert False
         elif opcode in {MAX_STAR, MIN_STAR, POSSESSIVE_STAR}:
             ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+            ys_str = ys[0] if len(ys) == 1 else "".join(ys)
+            ys_str = ys_str if len(ys_str) == 1 else f"(?:{ys_str})"
             if opcode is MAX_STAR:
                 return f"{ys_str}*"
             elif opcode is MIN_STAR:
@@ -383,7 +321,8 @@ def normalize(tree: SubPattern) -> SubPattern:
             assert False
         elif opcode in {MAX_PLUS, MIN_PLUS, POSSESSIVE_PLUS}:
             ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
+            ys_str = ys[0] if len(ys) == 1 else "".join(ys)
+            ys_str = ys_str if len(ys_str) == 1 else f"(?:{ys_str})"
             if opcode is MAX_PLUS:
                 return f"{ys_str}+"
             elif opcode is MIN_PLUS:
@@ -397,94 +336,3 @@ def normalize(tree: SubPattern) -> SubPattern:
 
     pattern = fold(f, tree)
     return parse(pattern)
-
-"""
-    Modified normalizer to allow for counter expansion.
-"""
-def flatten(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
-
-        if x is None:
-            return "".join(ys)
-        opcode, operand = x
-
-        if opcode is LITERAL:
-            return f"{escape(operand)}"
-        
-        elif opcode is ANY:
-            return "."
-        
-        elif opcode is NOT_LITERAL:
-            _, [(_, c)] = x
-            return f"[^{escape(chr(c))}]"
-
-        elif opcode is IN:
-            _, [(_, zs)] = x
-            return in_to_string(zs)
-
-        elif opcode is BRANCH:
-            return f"(?:{'|'.join(ys)})"
-
-        elif opcode is SUBPATTERN:
-            return f"({''.join(ys)})"
-
-        elif opcode in {MIN_REPEAT, MAX_REPEAT}:
-            n, m = operand
-
-            if m is not MAXREPEAT:
-                m = min(m, 65535)
-            n = min(n, 65535)
-
-            ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
-
-            # Expansion of counters
-            if m is MAXREPEAT:
-
-                if n == 0:
-                    return f"{ys_str}*"
-                elif n == 1:
-                    return f"{ys_str}+"
-                else:
-                    return f"{ys_str*n}+"
-            elif n == m:
-                return f"{ys_str*n}"
-            else:
-                suffix = ys_str + "?"
-                return f"{ys_str*n}{suffix*(m-n)}"
-
-        elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
-            ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
-            if opcode is MAX_QUESTION:
-                return f"{ys_str}?"
-            elif opcode is MIN_QUESTION:
-                return f"{ys_str}??"
-            elif opcode is POSSESSIVE_QUESTION:
-                return f"{ys_str}?+"
-            assert False
-
-        elif opcode in {MAX_STAR, MIN_STAR, POSSESSIVE_STAR}:
-            ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
-            if opcode is MAX_STAR:
-                return f"{ys_str}*"
-            elif opcode is MIN_STAR:
-                return f"{ys_str}*?"
-            elif opcode is POSSESSIVE_STAR:
-                return f"{ys_str}*+"
-            assert False
-
-        elif opcode in {MAX_PLUS, MIN_PLUS, POSSESSIVE_PLUS}:
-            ys = list(ys)
-            ys_str = ys[0] if len(ys) == 1 else f"(?:{''.join(ys)})"
-            if opcode is MAX_PLUS:
-                return f"{ys_str}+"
-            elif opcode is MIN_PLUS:
-                return f"{ys_str}+?"
-            elif opcode is POSSESSIVE_PLUS:
-                return f"{ys_str}++"
-            assert False
-
-        else:
-
-            raise NotImplementedError(f"Unknown opcode: {opcode}")

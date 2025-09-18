@@ -1,25 +1,18 @@
-"""Filter regexes with counting heights"""
+"""Normalize regexes"""
 
 import logging
 import sys
 
 import cai4py.parser_tools as pt
-import cai4py.parser_tools.utils as pt_utils
 
 
 def main() -> None:
     for i, pattern in enumerate(map(str.rstrip, sys.stdin), 1):
         try:
             parsed = pt.parse(pattern)
-            counting_height = pt_utils.counting_height(parsed)
-
-            if counting_height == 0:
-                logging.info(
-                    "Line %d: Counting height is %d", i, counting_height
-                )
-                continue
-
-            print(pattern, flush=True)
+            normalized = pt.normalize(parsed)
+            stringified = pt.to_string(normalized)
+            print(stringified, flush=True)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logging.warning("Line %d: %s", i, e)
             continue

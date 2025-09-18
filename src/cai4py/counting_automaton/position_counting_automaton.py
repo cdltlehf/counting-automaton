@@ -1,52 +1,46 @@
 """Position counting automaton."""
 
-# pylint: disable=unused-wildcard-import
-# pylint: disable=wildcard-import
-
-from copy import copy, deepcopy
+from copy import copy
 from functools import reduce
 from json import dumps
 import logging
 from typing import Any, Iterable, NewType, Optional
 
-from cai4py.custom_counters.counter_type import CounterType
-
 from cai4py.more_collections import OrderedSet
-from cai4py.parser_tools import (
-    fold,
-    MAX_PLUS,
-    MAX_QUESTION,
-    MAX_REPEAT,
-    MAX_STAR,
-    MIN_PLUS,
-    MIN_QUESTION,
-    MIN_REPEAT,
-    MIN_STAR,
-    parse,
-)
-from cai4py.parser_tools.constants import *
-from cai4py.parser_tools.re import _compile, SubPattern
+from cai4py.parser_tools import fold
+from cai4py.parser_tools import MAX_PLUS
+from cai4py.parser_tools import MAX_QUESTION
+from cai4py.parser_tools import MAX_REPEAT
+from cai4py.parser_tools import MAX_STAR
+from cai4py.parser_tools import MIN_PLUS
+from cai4py.parser_tools import MIN_QUESTION
+from cai4py.parser_tools import MIN_REPEAT
+from cai4py.parser_tools import MIN_STAR
+from cai4py.parser_tools import parse
+from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
+from cai4py.parser_tools.re import _compile
+from cai4py.parser_tools.re import SubPattern
 
-from cai4py.custom_counters.counter_base import CounterBase
+from .counter_vector import Action
+from .counter_vector import CounterVector
+from .counter_vector import Guard
+from .logging import ComputationStep
+from .logging import VERBOSE
 
-from .counter_vector import Action, CounterVector, Guard
-from .logging import ComputationStep, VERBOSE
-
-from ..utils.util_logging import setup_debugger
-logger = setup_debugger(__name__)
+logger = logging.getLogger(__name__)
 
 State = NewType("State", int)
 CounterVariable = NewType("CounterVariable", int)
 SymbolPredicate = Any
 Arc = tuple[Guard[CounterVariable], Action[CounterVariable], State]
 Follow = dict[State, OrderedSet[Arc]]
-
-Config = tuple[State, CounterBase]
+Config = tuple[State, CounterVector[CounterVariable]]
 Range = tuple[int, Optional[int]]
 
 INITIAL_STATE = State(0)
 FINAL_STATE = State(-1)
 GLOBAL_COUNTER = CounterVariable(0)
+
 
 def arc_to_str(arc: Arc) -> str:
     guard, action, adjacent_state = arc
@@ -96,8 +90,7 @@ class PositionCountingAutomaton:
     @classmethod
     def create(cls, pattern: str) -> "PositionCountingAutomaton":
         tree = parse(pattern)
-
-        # logger.debug(tree)
+        logger.debug(tree)
         callback_object = _PositionConstructionCallback()
 
         def callback(
@@ -105,15 +98,17 @@ class PositionCountingAutomaton:
             ys: Iterable[PositionCountingAutomaton],
         ) -> PositionCountingAutomaton:
             automaton = callback_object(x, ys)
-            # logger.debug(x)
-            # logger.debug(automaton)
-            # logger.debug("\n")
+            logger.debug(x)
+            logger.debug(automaton)
+            logger.debug("\n")
             return automaton
 
         return fold(callback, tree)
 
     def is_flat(self) -> bool:
-        return all(len(state_scope) <= 1 for state_scope in self.state_scopes.values())
+        return all(
+            len(state_scope) <= 1 for state_scope in self.state_scopes.values()
+        )
 
     def eval_state(self, state: State, symbol: str) -> bool:
         assert len(symbol) == 1
@@ -122,7 +117,9 @@ class PositionCountingAutomaton:
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
             compiled = _compile(self.states[state])
-            return compiled.fullmatch(symbol) is not None
+            return (
+                compiled.fullmatch(symbol) is not None
+            )  # NOTE: this is only used to check for character class matches.
         assert False, type(self.states[state])
 
     def __str__(self) -> str:
@@ -145,57 +142,41 @@ class PositionCountingAutomaton:
                 return True
         return False
 
-    """
-        Create list of configs.
-    """
-    def get_next_configs(self, config: Config, symbol: str, counter_type: CounterType) -> list[Config]:
-        logger.debug(f"\t\tConfig: {config}")
-
-        current_state, counter = config
+    def get_next_configs(self, config: Config, symbol: str) -> list[Config]:
+        current_state, counter_vector = config
         next_configs: list[Config] = []
 
         if current_state == FINAL_STATE:
             return next_configs
-        
-        # Given a config and symbol, follow the appropriate transitions and determined by the automaton.
-        for guard, action, adjacent_state in self.follow[current_state]:
-            logger.debug(f"\t\tFollowing an arc... ({current_state},{adjacent_state})")
 
+        for guard, action, adjacent_state in self.follow[current_state]:
             if adjacent_state is FINAL_STATE:
                 continue
 
-            # Counter does not adhere to guard
-            if not guard(counter):
+            if not guard(counter_vector):
                 continue
 
-            # Check transition symbols match
             if not self.eval_state(adjacent_state, symbol):
                 continue
 
-            next_counter = deepcopy(counter)
-            next_counter = action.move_and_apply(next_counter, counter_type)
-
-            next_configs.append((adjacent_state, next_counter))
-
-        logger.debug("\t\tEnd of following!")
+            next_counter_vector = copy(counter_vector)
+            action.move_and_apply(next_counter_vector)
+            next_configs.append((adjacent_state, next_counter_vector))
         return next_configs
 
     def check_final(self, config: Config) -> bool:
-        logger.debug(f"Check final - Configs: {config}")
-        current_state, counter = config
-
+        current_state, counter_vector = config
+        logger.debug(dumps(config_to_json(config)))
         for guard, _, adjacent_state in self.follow[current_state]:
             if adjacent_state is not FINAL_STATE:
                 continue
-            
-            if guard(counter):
+            if guard(counter_vector):
                 return True
         return False
 
     def get_initial_config(self) -> Config:
-        initial_counter = None
+        initial_counter = CounterVector(self.counters.keys())
         initial_config = (INITIAL_STATE, initial_counter)
-
         return initial_config
 
     def backtrack(self, w: str, config: Config, index: int) -> bool:
@@ -207,12 +188,13 @@ class PositionCountingAutomaton:
             return self.check_final(config)
 
         next_configs = self.get_next_configs(config, w[index])
-        return any(self.backtrack(w, config, index + 1) for config in next_configs)
+        return any(
+            self.backtrack(w, config, index + 1) for config in next_configs
+        )
 
     def __call__(self, w: str) -> bool:
         logger.debug("Backtrack matching")
         initial_config = self.get_initial_config()
-
         return self.backtrack(w, initial_config, 0)
 
 
@@ -380,7 +362,6 @@ class _PositionConstructionCallback:
                 repeat_guard += initial_guard
 
                 repeat_action = action + Action.increase(counter_variable)
-
                 repeat_action += initial_action
                 repeat_arc = (repeat_guard, repeat_action, initial_state)
 
@@ -391,9 +372,13 @@ class _PositionConstructionCallback:
             final_guard = guard
 
             if lower_bound != 0:
-                final_guard += Guard.not_less_than(counter_variable, lower_bound)
+                final_guard += Guard.not_less_than(
+                    counter_variable, lower_bound
+                )
             if upper_bound is not None:
-                final_guard += Guard.not_greater_than(counter_variable, upper_bound)
+                final_guard += Guard.not_greater_than(
+                    counter_variable, upper_bound
+                )
 
             final_action = action + Action.inactivate(counter_variable)
             final_arc = (final_guard, final_action, FINAL_STATE)
@@ -408,8 +393,9 @@ class _PositionConstructionCallback:
             initial_guard, initial_action, first_state = initial_arc
 
             if first_state != FINAL_STATE:
-                initial_action = initial_action + Action.activate(counter_variable, lower_bound, upper_bound)
-
+                initial_action = initial_action + Action.activate(
+                    counter_variable
+                )
             initial_arc = (Guard(), initial_action, first_state)
             new_initial_arcs.append(initial_arc)
 
@@ -423,7 +409,9 @@ class _PositionConstructionCallback:
                 y.follow[INITIAL_STATE].append(nullable_arc)
 
         y.counters[counter_variable] = (lower_bound, upper_bound)
-        y.counter_scopes.setdefault(counter_variable, set()).update(y.states.keys())
+        y.counter_scopes.setdefault(counter_variable, set()).update(
+            y.states.keys()
+        )
         return y
 
     def __call__(
@@ -466,4 +454,4 @@ class _PositionConstructionCallback:
         elif opcode in {ATOMIC_GROUP, SUBPATTERN}:
             return next(iter(ys))
         else:
-            assert False, f"Unknown opcode: {opcode}"
+            raise ValueError(f"Unknown opcode: {opcode}")

@@ -12,7 +12,7 @@ dependencies = [
   "importlib_resources==6.5.2",
   "kiwisolver==1.4.7",
   "matplotlib==3.9.4",
-  "numpy==2.0.2",
+  "numpy>=2.0.2",
   "packaging==24.2",
   "pillow==11.1.0",
   "pyparsing==3.2.1",
@@ -27,7 +27,7 @@ dependencies = [
   "black",
   "coverage"
 ]
-requires-python = '>=3.9'
+requires-python = ">=3.11"
 
 [tool.setuptools.packages.find]
 where = ["src"] # The location of the package(s) to install
