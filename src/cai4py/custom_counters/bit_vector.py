@@ -25,7 +25,18 @@ class BitVector(CounterBase):
             self.counter = 1
             self.overflow = False
             BitVector._data_collection.half_update(1, Operation.INIT)
-        else:
+
+        elif upper_bound <= 64: # Hardware implementation 
+
+            self.vector = np.uint64(1) << np.uint64(63)
+            self.mask = np.uint64(0)
+            for i in range(lower_bound, upper_bound + 1):
+                self.mask = self.mask | (np.uint64(1) << np.uint64(64-i))
+
+            num_bits = upper_bound - lower_bound + 1
+            self.mask = np.uint64(2**num_bits - 1) << np.uint64(64 - upper_bound)
+
+        else: # Software implementation
             self.vector = np.zeros(upper_bound, dtype=np.uint8)
 
             BitVector._data_collection.half_update(upper_bound // 20, Operation.INIT)
@@ -46,6 +57,10 @@ class BitVector(CounterBase):
         if self.upper_bound == -1:
             self.counter += 1
             self.overflow = self.counter >= self.lower_bound
+
+        elif self.upper_bound <= 64:
+            self.vector = self.vector >> 1
+
         else:
 
             BitVector._data_collection.full_update(Operation.INC)
@@ -55,14 +70,14 @@ class BitVector(CounterBase):
             self.start = (self.start - 1) % len(self.vector)
             self.vector[self.start] = 0
 
-            if self.size < len(self.vector):
-                self.size = self.size + 1
+            if self.size < self.upper_bound:
+                self.size += 1
 
             # Set minimum value within range
-            if self.vector[(self.start + self.lower_bound - 1) % len(self.vector)] == 1:
-                self.lowest_in_range = self.lower_bound
-            elif self.vector[(self.start + self.lowest_in_range) % len(self.vector)] == 1:
+            if self.lowest_in_range >= self.lower_bound and self.lowest_in_range < self.upper_bound:
                 self.lowest_in_range += 1
+            elif self.vector[(self.start + self.lower_bound - 1) % self.upper_bound] == 1:
+                self.lowest_in_range = self.lower_bound
             else:
                 self.lowest_in_range = -1
 
@@ -75,12 +90,19 @@ class BitVector(CounterBase):
             new_counter.overflow = counter_1.overflow | counter_2.overflow
 
             return new_counter
+        
+        elif counter_1.upper_bound <= 64:
+            new_counter = BitVector(counter_1.lower_bound, counter_1.upper_bound)
+            new_counter.vector = counter_1.vector | counter_2.vector
+
+            return new_counter
+
         else:
             BitVector._data_collection.full_update(Operation.UNION)
             BitVector._data_collection.half_update(len(counter_1.vector), Operation.UNION)
 
-            assert len(counter_1.vector) == len(counter_2.vector), "Vectors not of equal length!"
-            
+            assert counter_1.upper_bound == counter_2.upper_bound, "Vectors not of equal length!"
+
             # Quick return option for union
             if counter_1.size == 0:
                 return counter_2
@@ -89,19 +111,19 @@ class BitVector(CounterBase):
             
             # Perform union
             aux = []
-            for i in range(len(counter_1.vector)):
-                pos_1 = (counter_1.start + i) % len(counter_1.vector)
-                pos_2 = (counter_2.start + i) % len(counter_2.vector)
+            for i in range(counter_1.upper_bound):
+                pos_1 = (counter_1.start + i) % counter_1.upper_bound
+                pos_2 = (counter_2.start + i) % counter_1.upper_bound
 
                 if pos_1 >= counter_1.size:
-                    aux_1 = 0
+                     aux_1 = 0
                 else:
                     aux_1 = counter_1.vector[pos_1]
+                    
                 if pos_2 >= counter_2.size:
                     aux_2 = 0
                 else:
                     aux_2 = counter_2.vector[pos_2]
-
                 aux.append(aux_1 | aux_2)
             
             # Set new parameters
@@ -122,6 +144,8 @@ class BitVector(CounterBase):
 
         if self.upper_bound == -1:
             return self.overflow
+        elif self.upper_bound <= 64:
+            return self.vector & self.mask > 0
 
         BitVector._data_collection.full_update(Operation.GE)
         BitVector._data_collection.half_update(1, Operation.GE)
@@ -134,6 +158,8 @@ class BitVector(CounterBase):
         # If upper bound is infinity
         if self.upper_bound == -1:
             return True
+        elif self.upper_bound <= 64:
+            return self.vector & self.mask > 0
 
         BitVector._data_collection.full_update(Operation.LE)
         BitVector._data_collection.half_update(1, Operation.LE)
@@ -150,9 +176,18 @@ class BitVector(CounterBase):
                 star = "*"
     
             return f"({self.counter})" + star
+        
+        elif self.upper_bound <= 64:
+            vals = []
+            for i in range(self.upper_bound):
+                if self.vector & (np.uint64(1) << (63 - i)) > 0:
+                    vals.append(i + 1)
+
+            return vals.__str__()
+
         else:
             vals = []
-            for i in range(0, len(self.vector)):
+            for i in range(len(self.vector)):
                 pos = (self.start + i) % len(self.vector)
 
                 if self.vector[pos]:

@@ -100,7 +100,7 @@ def quantifier_fold(
             # Perform counter expansion whilst retaining outer counters
             if opcode in {MIN_REPEAT, MAX_REPEAT}:
                 n,m = operand
-                inner = to_string(flatten_quantifiers(children[0]))
+                inner = f"({to_string(flatten_quantifiers(children[0]))})"
 
                 if m is MAXREPEAT:
                     yield f"{inner}{{{n},}}"
@@ -449,8 +449,8 @@ def flatten(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str
             elif n == m:
                 return f"({ys_str*n})"
             else:
-                suffix = ys_str + "?"
-                return f"({ys_str*n}{suffix*(m-n)})"
+                suffix = f"({ys_str})?"
+                return f"({ys_str*n}){suffix*(m-n)}"
 
         elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
             ys = list(ys)
