@@ -72,14 +72,14 @@ def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
         assert False, f"Unknown opcode: {opcode}"
 
 """
-    Counter expansion of all counters. Can be used instead of normalize.
+    Counter expansion of only nested counters. Can be used instead of normalize.
 """
 def flatten_inner_quantifiers(tree: SubPattern):
     pattern = quantifier_fold(flatten, tree)
     return parse(pattern)
 
 """
-    Counter expansion of only nested counters. Can be used instead of normalize.
+    Counter expansion of all counters. Can be used instead of normalize.
 """
 def flatten_quantifiers(tree: SubPattern) -> SubPattern:
     pattern = fold(flatten, tree)
@@ -425,7 +425,7 @@ def flatten(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str
             return f"(?:{'|'.join(ys)})"
 
         elif opcode is SUBPATTERN:
-            return f"({''.join(ys)})"
+            return f"(?:{''.join(ys)})"
 
         elif opcode in {MIN_REPEAT, MAX_REPEAT}:
             n, m = operand
@@ -441,16 +441,16 @@ def flatten(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str
             if m is MAXREPEAT:
 
                 if n == 0:
-                    return f"{ys_str}*"
+                    return f"({ys_str}*)"
                 elif n == 1:
-                    return f"{ys_str}+"
+                    return f"({ys_str}+)"
                 else:
-                    return f"{ys_str*n}+"
+                    return f"({ys_str*n}+)"
             elif n == m:
-                return f"{ys_str*n}"
+                return f"({ys_str*n})"
             else:
                 suffix = ys_str + "?"
-                return f"{ys_str*n}{suffix*(m-n)}"
+                return f"({ys_str*n}{suffix*(m-n)})"
 
         elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
             ys = list(ys)
