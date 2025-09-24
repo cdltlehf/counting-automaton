@@ -19,7 +19,7 @@ define COMPUTATION_INFO_RULE
 $(COMPUTATION_INFO_DIR)/$1-%.jsonl: $(TEST_CASES_DIR)/%.jsonl
 	@mkdir -p $$(dir $$@)
 	$(PYTHON) $(PYFLAGS) scripts/analysis/computation_info.py \
-		--method $1 < $$< > $$@ 2> $$(basename $$@).log
+		--method $1 < $$< > $$@ 2> /dev/null
 endef
 
 $(foreach method,$(METHODS),$(eval $(call COMPUTATION_INFO_RULE,$(method))))

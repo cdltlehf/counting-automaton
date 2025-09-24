@@ -1,7 +1,7 @@
 PATTERNS_DIR := $(DATA_DIR)/patterns
 TEST_CASES_DIR := $(DATA_DIR)/test-cases
 
-FILTER_PREFIXES := ambiguous_normalized_filtered normalized_filtered
+FILTER_PREFIXES := ambiguous_filtered filtered
 TESTCASE_PREFIXES := evilstrgen xeger
 
 FILTERED_PATTERNS := \

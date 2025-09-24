@@ -17,6 +17,10 @@ from cai4py.counting_automaton.logging import ComputationStepMark
 from cai4py.counting_automaton.logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
+from cai4py.parser_tools import parse
+from cai4py.parser_tools import to_string
+from cai4py.parser_tools.utils import flatten_inner_quantifiers
+from cai4py.parser_tools.utils import flatten_quantifiers
 
 logger = logging.getLogger(__name__)
 
@@ -130,31 +134,36 @@ def collect_optional_computation_info(
 
 def main(output_dir: Path) -> None:
     timeout = 60
-    k = 100
+    k = 80
 
     get_computations = {
-        "super-": sc.BoundedSuperConfig.get_computation,
-        "c-": sc.BoundedCounterConfig.get_computation,
-        "sc-": sc.SparseCounterConfig.get_computation,
-        "dc-": sc.DeterminizedBoundedCounterConfig.get_computation,
-        "dsc-": sc.DeterminizedSparseCounterConfig.get_computation,
+        "c-expansion": sc.BoundedSuperConfig.get_computation,
+        "super-config": sc.BoundedSuperConfig.get_computation,
+        "c-config": sc.BoundedCounterConfig.get_computation,
+        "sc-config": sc.SparseCounterConfig.get_computation,
+        # "dc-": sc.DeterminizedBoundedCounterConfig.get_computation,
+        # "dsc-": sc.DeterminizedSparseCounterConfig.get_computation,
     }
-    plt.rcParams.update({"text.usetex": True})
+    # plt.rcParams.update({"text.usetex": True})
 
     patterns = [
         (f"a*a{{{k}}}", f"$a^*a^{k}$"),
         (f"(aa*){{0,{k}}}", f"$(aa^*)^{{0,{k}}}$"),
         (f"a*(a|aab){{{k}}}", f"$a^*(a|aab)^{k}$"),
-        (f"(aa*){{{k}}}", f"$(aa*)^{k}$"),
+        # (f"(aa*){{{k}}}", f"$(aa*)^{k}$"),
     ]
-    ylim = (-400, 15000)
+    ylim = (-400, 7000)
     for i, (pattern, _) in enumerate(patterns):
         logger.info("Pattern: %s", pattern)
         output = output_dir / f"case_study_{i}.pgf"
         pdf_output = output_dir / f"case_study_{i}.pdf"
-        plt.figure(figsize=(2, 1.5))
+        plt.figure(figsize=(3, 2))
         ax = plt.gca()
         automaton = pca.PositionCountingAutomaton.create(pattern)
+        expanded_pattern = to_string(flatten_quantifiers(parse(pattern)))
+        expanded_automaton = pca.PositionCountingAutomaton.create(
+            expanded_pattern
+        )
         colors = [
             "tab:blue",
             "tab:orange",
@@ -166,20 +175,28 @@ def main(output_dir: Path) -> None:
         for j, (method, get_computation) in enumerate(get_computations.items()):
             logger.info("Method: %s", method)
             xs = []
-            for n in range(1, 100):
+            for n in range(1, k):
                 text = "a" * n
-                result = collect_optional_computation_info(
-                    automaton, text, get_computation, timeout
-                )
+                if method == list(get_computations.keys())[0]:
+                    result = collect_optional_computation_info(
+                        expanded_automaton, text, get_computation, timeout
+                    )
+                else:
+                    result = collect_optional_computation_info(
+                        automaton, text, get_computation, timeout
+                    )
                 if result is None:
                     continue
 
                 computation_info = result["computation_info"]
-                x = sum(
-                    value
-                    for key, value in computation_info.items()
-                    if key in ComputationStep.__members__
-                )
+                keys = [
+                    "EVAL_SYMBOL",
+                    "EVAL_PREDICATE",
+                    "APPLY_OPERATION",
+                    "ACCESS_NODE_MERGE",
+                    "ACCESS_NODE_CLONE",
+                ]
+                x = sum(computation_info.get(k, 0) for k in keys)
                 xs.append(x)
                 if x > ylim[1]:
                     break
@@ -218,14 +235,14 @@ def main(output_dir: Path) -> None:
                 loc="upper left",
                 labelspacing=0.1,
                 columnspacing=0.0,
-                ncol=2,
+                ncol=1,
                 handlelength=0.2,
                 borderpad=0.5,
                 fontsize=12,
             )
         ax.set_ylim(ylim)
         ax.minorticks_on()
-        plt.savefig(output, bbox_inches="tight", dpi=300)
+        # plt.savefig(output, bbox_inches="tight", dpi=300)
         plt.savefig(pdf_output, bbox_inches="tight", dpi=300)
 
 

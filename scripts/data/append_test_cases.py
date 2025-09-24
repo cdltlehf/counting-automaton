@@ -26,7 +26,7 @@ def main() -> None:
                 logging.warning(e)
                 return None
 
-        texts = [get_text(pattern) for _ in range(num_cases)]
+        texts = [get_text(f".*(?:{pattern}).*") for _ in range(num_cases)]
         texts = list(set(texts))
         return list(filter(None, texts))
 

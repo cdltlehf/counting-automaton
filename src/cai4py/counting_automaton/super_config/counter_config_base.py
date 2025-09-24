@@ -10,6 +10,7 @@ from typing import Callable, Generic, Hashable, Iterator, Mapping, Optional, Typ
 from cai4py.more_collections import OrderedSet
 
 from ..counter_vector import CounterOperationComponent
+from ..counter_vector import CounterPredicate
 from ..counter_vector import Guard
 from ..counting_set import CountingSet
 from ..position_counting_automaton import CounterVariable
@@ -269,6 +270,12 @@ class CounterConfigBase(
                 continue
 
             if state not in self[counter_variable]:
+                continue
+
+            if all(
+                predicate.type == CounterPredicate.Type.LESS_THAN
+                for predicate in predicates
+            ):
                 continue
 
             counting_set = self[counter_variable][state]

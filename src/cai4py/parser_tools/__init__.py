@@ -3,7 +3,6 @@
 # mypy: disable-error-code=import-untyped
 
 from itertools import chain
-from re import escape
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
@@ -17,6 +16,13 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
+
+
+def escape(text: str) -> str:
+    if text.isprintable():
+        return text
+    encoded_bytes = text.encode("utf-8")
+    return "".join([f"\\x{byte:02x}" for byte in encoded_bytes])
 
 
 def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
@@ -255,7 +261,7 @@ def to_string(tree: SubPattern) -> str:
 def normalize(tree: SubPattern) -> SubPattern:
     """Normalize a regular expression pattern.
     This modifies semantics of the pattern to make it easier to analyze.
-    1. Remove anchors (at).
+    1. Raise error if the pattern has anchors (at).
     2. Remove flags in subpatterns.
     3. Turn atomic and capturing groups into non-capturing groups.
     4. Raise error if the pattern has possessive quantifiers.
@@ -282,7 +288,7 @@ def normalize(tree: SubPattern) -> SubPattern:
             return in_to_string(zs)
         elif opcode is AT:
             # 1.
-            return ""
+            raise NotImplementedError(f"Unknown opcode: {opcode}")
         elif opcode is BRANCH:
             return f"(?:{'|'.join(ys)})"
         elif opcode in {ATOMIC_GROUP, SUBPATTERN}:

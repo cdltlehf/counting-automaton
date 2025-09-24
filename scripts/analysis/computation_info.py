@@ -216,6 +216,8 @@ def main() -> None:
     def job(entry: dict[str, Any]) -> dict[str, Any]:
         pattern = entry["pattern"]
         texts = entry["texts"]
+        # XXX:
+        texts = texts[: min(len(texts), 1)]
         logger.debug("Pattern: %s", pattern)
         results: Optional[list[dict[str, Any]]] = None
         results = []
@@ -228,18 +230,20 @@ def main() -> None:
                 normalized_pattern = to_string(
                     flatten_inner_quantifiers(parse(pattern))
                 )
+            logging.debug("Normalized pattern: %s", normalized_pattern)
             automaton = create_position_automaton_with_timeout(
-                normalized_pattern
+                f".*(?:{normalized_pattern}).*"
             )
-            for text in texts:
-                result = collect_optional_computation_info(
-                    automaton, text, get_computation, timeout
+            try:
+                for text in texts:
+                    result = collect_optional_computation_info(
+                        automaton, text, get_computation, timeout
+                    )
+                    results.append({"text": text, "result": result})
+            except timeout_decorator.TimeoutError:
+                logger.warning(
+                    "Construction timeout in pattern %s", normalized_pattern
                 )
-                results.append({"text": text, "result": result})
-        except timeout_decorator.TimeoutError:
-            logger.warning(
-                "Construction timeout in pattern %s", normalized_pattern
-            )
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error in pattern %s: %s", pattern, e)
         finally:

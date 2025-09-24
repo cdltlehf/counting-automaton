@@ -9,7 +9,7 @@ from typing import Optional
 
 
 def run_checker(pattern: str, timeout: int) -> Optional[str]:
-    pattern = f"^(?:{pattern})$"
+    pattern = f".*(?:{pattern}).*"
     try:
         cmd = [
             "java",
@@ -44,7 +44,7 @@ def main() -> None:
         is_ambiguous = output.splitlines(False)[-2].endswith("true")
         return pattern, is_ambiguous
 
-    patterns = map(str.rstrip, sys.stdin)
+    patterns = map(lambda e: e.rstrip("\r\n"), sys.stdin)
     with open(args.unambiguous, "w", encoding="utf-8") as f:
         with ThreadPoolExecutor(max_workers) as executor:
             results = executor.map(job, patterns)

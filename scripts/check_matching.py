@@ -19,18 +19,18 @@ def main() -> None:
     method_to_get_computation = {
         "super_config": sc.SuperConfig.get_computation,
         "bounded_super_config": sc.BoundedSuperConfig.get_computation,
-        "counter_config": sc.CounterConfig.get_computation,
+        # "counter_config": sc.CounterConfig.get_computation,
         "bounded_counter_config": sc.BoundedCounterConfig.get_computation,
         "sparse_counter_config": sc.SparseCounterConfig.get_computation,
-        "determinized_counter_config": (
-            sc.DeterminizedCounterConfig.get_computation
-        ),
-        "determinized_bounded_counter_config": (
-            sc.DeterminizedBoundedCounterConfig.get_computation
-        ),
-        "determinized_sparse_counter_config": (
-            sc.DeterminizedSparseCounterConfig.get_computation
-        ),
+        # "determinized_counter_config": (
+        #     sc.DeterminizedCounterConfig.get_computation
+        # ),
+        # "determinized_bounded_counter_config": (
+        #     sc.DeterminizedBoundedCounterConfig.get_computation
+        # ),
+        # "determinized_sparse_counter_config": (
+        #     sc.DeterminizedSparseCounterConfig.get_computation
+        # ),
         # NOTE: Counter expansion
         "counter_expansion": sc.SuperConfig.get_computation,
     }

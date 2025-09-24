@@ -10,7 +10,6 @@ from typing import Optional
 
 
 def evil_str_gen(pattern: str, length: int, timeout: int) -> Optional[str]:
-    pattern = f"^(?:{pattern})$"
     try:
         with (
             tempfile.NamedTemporaryFile() as input_file,
@@ -49,15 +48,10 @@ def evil_str_gen(pattern: str, length: int, timeout: int) -> Optional[str]:
             subprocess.run(
                 cmd, check=True, stdout=subprocess.DEVNULL, timeout=timeout
             )
-            test_case = output_file.read().decode("utf-8").strip()
-
-            if test_case == "":
-                logging.debug("Generated test case is empty")
-                return None
-
+            bytestream = output_file.read()
+            test_case = bytestream.decode("utf-8", errors="ignore").strip()
             return test_case
     except Exception as e:  # pylint: disable=broad-exception-caught
-        # TODO: EvilStrGen often print invalid continuation byte
         logging.warning(e)
         return None
 
@@ -70,12 +64,13 @@ def main() -> None:
 
     def job(pattern: str) -> tuple[str, list[str]]:
         texts = [
-            evil_str_gen(pattern, length, timeout) for _ in range(num_cases)
+            evil_str_gen(f".*(?:{pattern}).*", length, timeout)
+            for _ in range(num_cases)
         ]
         texts = list(set(texts))
         return pattern, list(filter(None, texts))
 
-    patterns = map(str.rstrip, sys.stdin)
+    patterns = map(lambda e: e.rstrip("\r\n"), sys.stdin)
     with ThreadPoolExecutor(max_workers) as executor:
         results = executor.map(job, patterns)
         for i, (pattern, texts) in enumerate(results):

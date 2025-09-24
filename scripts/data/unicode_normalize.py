@@ -1,4 +1,4 @@
-"""Normalize regexes"""
+"""Normalize unicode regexes"""
 
 import logging
 import sys
@@ -7,17 +7,12 @@ import cai4py.parser_tools as pt
 
 
 def main() -> None:
-    for i, pattern in enumerate(map(lambda e: e.rstrip("\r\n"), sys.stdin), 1):
+    for i, pattern in enumerate(map(str.rstrip, sys.stdin), 1):
         try:
             parsed = pt.parse(pattern)
-            normalized = pt.normalize(parsed)
+            normalized = pt.unicode_normalize(parsed)
             stringified = pt.to_string(normalized)
-            if "\n" in stringified:
-                raise ValueError("newline in normalized")
-            print(pattern)
             print(stringified, flush=True)
-            # if i == 100:
-            #     exit()
         except Exception as e:  # pylint: disable=broad-exception-caught
             logging.warning("Line %d: %s", i, e)
             continue

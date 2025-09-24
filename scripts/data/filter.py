@@ -8,7 +8,7 @@ import cai4py.parser_tools.utils as pt_utils
 
 
 def main() -> None:
-    for i, pattern in enumerate(map(str.rstrip, sys.stdin), 1):
+    for i, pattern in enumerate(map(lambda e: e.rstrip("\r\n"), sys.stdin), 1):
         try:
             parsed = pt.parse(pattern)
             counting_height = pt_utils.counting_height(parsed)

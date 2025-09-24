@@ -7,11 +7,14 @@ PYFLAGS := -O
 
 DATA_DIR ?= data
 PATTERNS ?= polyglot.txt snort3.txt
+# PATTERNS ?= polyglot.txt
 METHODS ?= \
 counter_expansion \
 bounded_super_config \
 bounded_counter_config \
 sparse_counter_config
+
+# METHODS ?= bounded_counter_config sparse_counter_config
 
 # METHODS := \
 # 	   super_config \

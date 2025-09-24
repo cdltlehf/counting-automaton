@@ -148,20 +148,22 @@ def flatten(
         ys_str = ys[0] if len(ys) == 1 else "".join(ys)
         ys_str = ys_str if len(ys_str) == 1 else f"(?:{ys_str})"
 
+        def _flatten(ys_str: str, n: int) -> str:
+            if n == 0:
+                return ""
+            return f"(?:{ys_str}{_flatten(ys_str, n-1)})?"
+
         # Expansion of counters
         if m is MAXREPEAT:
-
             if n == 0:
                 return f"{ys_str}*"
             elif n == 1:
                 return f"{ys_str}+"
             else:
                 return f"{ys_str*n}+"
-        elif n == m:
-            return f"{ys_str*n}"
         else:
-            suffix = ys_str + "?"
-            return f"{ys_str*n}{suffix*(m-n)}"
+            suffix = _flatten(ys_str, m - n)
+            return f"{ys_str*n}{suffix}"
 
     elif opcode in {MAX_QUESTION, MIN_QUESTION, POSSESSIVE_QUESTION}:
         ys = list(ys)
@@ -204,11 +206,16 @@ def flatten(
 
 
 def flatten_inner_quantifiers(tree: SubPattern) -> SubPattern:
+    if counting_height(tree) < 2:
+        return tree
     pattern = quantifier_fold(flatten, tree)
     return parse(pattern)
 
 
 def flatten_quantifiers(tree: SubPattern) -> SubPattern:
+    if counting_height(tree) == 0:
+        return tree
+
     pattern = fold(flatten, tree)
     return parse(pattern)
 

@@ -60,8 +60,11 @@ $(COMPUTATION_COMPARISON_DIR)/$1-$2-%.pdf: \
 		$(COMPUTATION_INFO_DIR)/$2-%.jsonl
 	@mkdir -p $$(dir $$@)
 	$(PYTHON) $(PYFLAGS) scripts/figures/plot_computation_comparison.py \
-		--x-label $1 --y-label $2 $$+ $$@ \
-		> $$(basename $$@).txt
+		--x-label $1 --y-label $2 \
+		computation-steps \
+		$(COMPUTATION_INFO_DIR)/$1-$$*.jsonl \
+		$(COMPUTATION_INFO_DIR)/$2-$$*.jsonl \
+		$$@ > $$(basename $$@).txt
 endef
 
 $(foreach method_y,$(METHODS),\
@@ -76,8 +79,11 @@ $(MATCHING_TIME_COMPARISON_DIR)/$1-$2-%.pdf: \
 		$(COMPUTATION_INFO_DIR)/$2-%.jsonl
 	@mkdir -p $$(dir $$@)
 	$(PYTHON) $(PYFLAGS) scripts/figures/plot_computation_comparison.py \
-		--x-label $1 --y-label $2 $$+ $$@ \
-		> $$(basename $$@).txt
+		--x-label $1 --y-label $2 \
+		matching-time \
+		$(COMPUTATION_INFO_DIR)/$1-$$*.jsonl \
+		$(COMPUTATION_INFO_DIR)/$2-$$*.jsonl \
+		$$@ > $$(basename $$@).txt
 endef
 
 $(foreach method_y,$(METHODS),\
@@ -97,14 +103,32 @@ case-study:
 counter-range: $(COUNTER_RANGE)
 
 .PHONY: computation-comparison
-computation-comparison: $(COMPUTATION_COMPARISON)
-computation-comparison.zip: $(COMPUTATION_COMPARISON_DIR).zip
+computation-comparison:
+	rm -rf $(COMPUTATION_COMPARISON_DIR)
+	$(MAKE) $(COMPUTATION_COMPARISON)
 
 .PHONY: matching-time-comparison
-matching-time-comparison: $(MATCHING_TIME_COMPARISON)
-matching-time-comparison.zip: $(MATCHING_TIME_COMPARISON_DIR).zip
+matching-time-comparison:
+	rm -rf $(MATCHING_TIME_COMPARISON_DIR)
+	$(MAKE) $(MATCHING_TIME_COMPARISON)
 
+
+computation-comparison.zip: $(COMPUTATION_COMPARISON_DIR).zip
+	mv $< $@
+
+matching-time-comparison.zip: $(MATCHING_TIME_COMPARISON_DIR).zip
+	mv $< $@
+
+.PHONY: $(COMPUTATION_COMPARISON_DIR).zip
 $(COMPUTATION_COMPARISON_DIR).zip:
+	$(MAKE) computation-comparison
 	@rm -f $@
 	@mkdir -p $(dir $@)
-	zip j $@ $(dir $(COMPUTATION_COMPARISON))
+	zip -rj $@ $(dir $(COMPUTATION_COMPARISON))
+
+.PHONY: $(MATCHING_TIME_COMPARISON_DIR).zip
+$(MATCHING_TIME_COMPARISON_DIR).zip:
+	$(MAKE) matching-time-comparison
+	@rm -f $@
+	@mkdir -p $(dir $@)
+	zip -rj $@ $(dir $(MATCHING_TIME_COMPARISON_DIR))
