@@ -99,6 +99,111 @@ def counting_height(tree: SubPattern) -> int:
     return fold(f, tree)
 
 
+def _expand_all_counters(
+    subexpr: Union[SubPattern, list],
+) -> Union[SubPattern, list]:
+    """Expand all counters"""
+    subexpr_is_subpat = isinstance(subexpr, SubPattern)
+    tokens = subexpr.data if isinstance(subexpr, SubPattern) else subexpr
+    updated_tokens = []
+
+    for op, av in tokens:
+        if op in (MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT):
+            # av is (min, max, subpattern)
+            lower_b, upper_b, subexpr = av
+            is_counter = not (lower_b == 0 and upper_b == 1) and not (
+                (lower_b == 0 or lower_b == 1) and upper_b == MAXREPEAT
+            )  # not ?, *, or +
+            assert isinstance(lower_b, int)
+            subexpr = _expand_all_counters(subexpr)
+
+            if is_counter:
+                expansion = []
+                for i in range(lower_b):
+                    if isinstance(subexpr, list):
+                        expansion.extend(subexpr)
+                    else:
+                        expansion.extend([subexpr])
+                if upper_b != MAXREPEAT:
+                    assert isinstance(upper_b, int)
+                    for i in range(upper_b - lower_b):
+                        expansion += [
+                            (
+                                (
+                                    MAX_QUESTION
+                                    if op is MAX_REPEAT
+                                    else MIN_QUESTION
+                                ),
+                                subexpr,
+                            )
+                        ]
+                else:
+                    expansion += [(op, (0, MAXREPEAT, subexpr))]
+                updated_tokens.append(expansion)
+            else:
+                updated_tokens.append((op, (lower_b, upper_b, subexpr)))
+        elif op is SUBPATTERN:
+            # av is (groupnum, add_flags, del_flags, subpattern)
+            groupnum, add_flags, del_flags, subexpr2 = av
+            subexpr2 = _expand_all_counters(subexpr2)
+            updated_tokens.append(
+                (op, (groupnum, add_flags, del_flags, subexpr2))
+            )
+        elif op is BRANCH:
+            x, branches = av
+            branches = [_expand_all_counters(branch) for branch in branches]
+            updated_tokens.append((op, (x, branches)))
+        elif op in (ASSERT, ASSERT_NOT):
+            d, subexpr2 = av
+            subexpr2 = _expand_all_counters(subexpr2)
+            updated_tokens.append((op, (d, subexpr2)))
+        elif op in (
+            LITERAL,
+            NOT_LITERAL,
+            ANY,
+            IN,
+            RANGE,
+            CATEGORY,
+            AT,
+            NEGATE,
+            GROUPREF,
+        ):
+            updated_tokens.append((op, av))
+        elif op in (
+            MAX_PLUS,
+            MAX_QUESTION,
+            MAX_STAR,
+            MIN_PLUS,
+            MIN_QUESTION,
+            MIN_STAR,
+            POSSESSIVE_STAR,
+            POSSESSIVE_PLUS,
+            POSSESSIVE_QUESTION,
+            ATOMIC_GROUP,
+        ):
+            av = _expand_all_counters(av)
+            updated_tokens.append((op, av))
+        else:
+            raise RuntimeError(f"Unhandled op: {op}")
+
+        assert not isinstance(av, SubPattern)
+
+    flattened_token_list = []
+    for token in updated_tokens:
+        if isinstance(token, list):
+            flattened_token_list.extend(token)
+        else:
+            flattened_token_list.append(token)
+    updated_tokens = flattened_token_list
+
+    if subexpr_is_subpat:
+        assert subexpr is SubPattern
+        subexpr.data = updated_tokens
+    else:
+        subexpr = updated_tokens
+    return subexpr
+
+
 def _expand_inner_counters(
     subexpr: Union[SubPattern, list], in_counter: bool
 ) -> Union[SubPattern, list]:
@@ -162,7 +267,17 @@ def _expand_inner_counters(
             d, subexpr2 = av
             subexpr2 = _expand_inner_counters(subexpr2, in_counter=in_counter)
             updated_tokens.append((op, (d, subexpr2)))
-        elif op in (LITERAL, NOT_LITERAL, ANY, IN, RANGE, CATEGORY, AT, NEGATE):
+        elif op in (
+            LITERAL,
+            NOT_LITERAL,
+            ANY,
+            IN,
+            RANGE,
+            CATEGORY,
+            AT,
+            NEGATE,
+            GROUPREF,
+        ):
             updated_tokens.append((op, av))
         elif op in (
             MAX_PLUS,
@@ -180,7 +295,7 @@ def _expand_inner_counters(
             updated_tokens.append((op, av))
         else:
             raise RuntimeError(f"Unhandled op: {op}")
-        
+
         assert not isinstance(av, SubPattern)
 
     flattened_token_list = []
@@ -256,7 +371,17 @@ def _expand_outer_counters(subexpr):
             d, subexpr = av
             subexpr, contains_counter = _expand_outer_counters(subexpr)
             updated_tokens.append((op, (d, subexpr)))
-        elif op in (LITERAL, NOT_LITERAL, ANY, IN, RANGE, CATEGORY, AT, NEGATE):
+        elif op in (
+            LITERAL,
+            NOT_LITERAL,
+            ANY,
+            IN,
+            RANGE,
+            CATEGORY,
+            AT,
+            NEGATE,
+            GROUPREF,
+        ):
             updated_tokens.append((op, av))
         elif op in (
             MAX_PLUS,
@@ -294,10 +419,12 @@ def _expand_outer_counters(subexpr):
     return subexpr, contains_counter
 
 
-def expand_nested_counters(tree, method: Literal["inner", "outer"]):
+def expand_nested_counters(tree, method: Literal["inner", "outer", "all"]):
     match method:
         case "inner":
             return _expand_inner_counters(tree, in_counter=False)
         case "outer":
             tree, contains_counter = _expand_outer_counters(tree)
             return tree
+        case "all":
+            return _expand_all_counters(tree)
