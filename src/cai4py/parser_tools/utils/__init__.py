@@ -5,7 +5,7 @@ from typing import Any, Union, Iterable, Optional, Literal
 from .. import dfs
 from .. import fold
 from ..constants import *  # pylint: disable=unused-wildcard-import, wildcard-import
-from ..re import SubPattern
+from ..parser import SubPattern
 
 PREDICATE_OPCODES = frozenset({ANY, NOT_LITERAL, IN, LITERAL})
 SUBPATTERN_OPCODES = frozenset({ATOMIC_GROUP, SUBPATTERN})
@@ -99,12 +99,22 @@ def counting_height(tree: SubPattern) -> int:
     return fold(f, tree)
 
 
-def _expand_all_counters(
-    subexpr: Union[SubPattern, list],
-) -> Union[SubPattern, list]:
+def _flatten_list(xs: list):
+    flat_xs = []
+    for x in xs:
+        if isinstance(x, list):
+            flat_xs.extend(x)
+        else:
+            flat_xs.append(x)
+    if flat_xs != xs:
+        print(len(xs), len(flat_xs))
+        print(f"Flattening successful\n{xs}\n{flat_xs}")
+    return flat_xs
+
+
+def _expand_all_counters(subexpr: SubPattern) -> SubPattern:
     """Expand all counters"""
-    subexpr_is_subpat = isinstance(subexpr, SubPattern)
-    tokens = subexpr.data if isinstance(subexpr, SubPattern) else subexpr
+    tokens = subexpr.data
     updated_tokens = []
 
     for op, av in tokens:
@@ -120,6 +130,7 @@ def _expand_all_counters(
             if is_counter:
                 expansion = []
                 for i in range(lower_b):
+                    assert not isinstance(subexpr, list)
                     if isinstance(subexpr, list):
                         expansion.extend(subexpr)
                     else:
@@ -186,39 +197,26 @@ def _expand_all_counters(
         else:
             raise RuntimeError(f"Unhandled op: {op}")
 
-        assert not isinstance(av, SubPattern)
-
-    flattened_token_list = []
-    for token in updated_tokens:
-        if isinstance(token, list):
-            flattened_token_list.extend(token)
-        else:
-            flattened_token_list.append(token)
-    updated_tokens = flattened_token_list
-
-    if subexpr_is_subpat:
-        assert subexpr is SubPattern
-        subexpr.data = updated_tokens
-    else:
-        subexpr = updated_tokens
+    # updated_tokens = _flatten_list(updated_tokens)
+    assert isinstance(subexpr, SubPattern)
+    subexpr.data = updated_tokens
     return subexpr
 
 
-def _expand_inner_counters(
-    subexpr: Union[SubPattern, list], in_counter: bool
-) -> Union[SubPattern, list]:
+def _expand_inner_counters(subpat: SubPattern, in_counter: bool) -> SubPattern:
     """Remove nested counters by expanding the inner counters"""
-    subexpr_is_subpat = isinstance(subexpr, SubPattern)
-    tokens = subexpr.data if isinstance(subexpr, SubPattern) else subexpr
+    tokens = subpat.data
     updated_tokens = []
 
     for op, av in tokens:
         if op in (MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT):
-            # av is (min, max, subpattern)
             lower_b, upper_b, subexpr = av
-            is_counter = not (lower_b == 0 and upper_b == 1) and not (
-                (lower_b == 0 or lower_b == 1) and upper_b == MAXREPEAT
-            )  # not ?, *, or +
+
+            is_counter = (
+                not (lower_b == 0 and upper_b == 1) # ?
+                and not (lower_b == 0 and upper_b == MAXREPEAT) # *
+                and not (lower_b == 1 and upper_b == MAXREPEAT) # +
+            )
             assert isinstance(lower_b, int)
             subexpr = _expand_inner_counters(
                 subexpr, in_counter=in_counter or is_counter
@@ -226,14 +224,12 @@ def _expand_inner_counters(
 
             if is_counter and in_counter:
                 expansion = []
-                for i in range(lower_b):
-                    if isinstance(subexpr, list):
-                        expansion.extend(subexpr)
-                    else:
-                        expansion.extend([subexpr])
+                for _ in range(lower_b):
+                    assert isinstance(subexpr, SubPattern)
+                    expansion.append(subexpr)
                 if upper_b != MAXREPEAT:
                     assert isinstance(upper_b, int)
-                    for i in range(upper_b - lower_b):
+                    for _ in range(upper_b - lower_b):
                         expansion += [
                             (
                                 (
@@ -251,10 +247,10 @@ def _expand_inner_counters(
                 updated_tokens.append((op, (lower_b, upper_b, subexpr)))
         elif op is SUBPATTERN:
             # av is (groupnum, add_flags, del_flags, subpattern)
-            groupnum, add_flags, del_flags, subexpr2 = av
-            subexpr2 = _expand_inner_counters(subexpr2, in_counter)
+            groupnum, add_flags, del_flags, subexpr = av
+            subexpr = _expand_inner_counters(subexpr, in_counter)
             updated_tokens.append(
-                (op, (groupnum, add_flags, del_flags, subexpr2))
+                (op, (groupnum, add_flags, del_flags, subexpr))
             )
         elif op is BRANCH:
             x, branches = av
@@ -264,9 +260,9 @@ def _expand_inner_counters(
             ]
             updated_tokens.append((op, (x, branches)))
         elif op in (ASSERT, ASSERT_NOT):
-            d, subexpr2 = av
-            subexpr2 = _expand_inner_counters(subexpr2, in_counter=in_counter)
-            updated_tokens.append((op, (d, subexpr2)))
+            d, subexpr = av
+            subexpr = _expand_inner_counters(subexpr, in_counter=in_counter)
+            updated_tokens.append((op, (d, subexpr)))
         elif op in (
             LITERAL,
             NOT_LITERAL,
@@ -296,28 +292,15 @@ def _expand_inner_counters(
         else:
             raise RuntimeError(f"Unhandled op: {op}")
 
-        assert not isinstance(av, SubPattern)
-
-    flattened_token_list = []
-    for token in updated_tokens:
-        if isinstance(token, list):
-            flattened_token_list.extend(token)
-        else:
-            flattened_token_list.append(token)
-    updated_tokens = flattened_token_list
-
-    if subexpr_is_subpat:
-        assert subexpr is SubPattern
-        subexpr.data = updated_tokens
-    else:
-        subexpr = updated_tokens
-    return subexpr
+    # updated_tokens = _flatten_list(updated_tokens)
+    assert isinstance(subpat, SubPattern)
+    subpat.data = updated_tokens
+    return subpat
 
 
-def _expand_outer_counters(subexpr):
+def _expand_outer_counters(subexpr: SubPattern) -> tuple[SubPattern, bool]:
     """Remove nested counters by expanding the outer counters"""
-    subexpr_is_subpat = isinstance(subexpr, SubPattern)
-    tokens = subexpr.data if isinstance(subexpr, SubPattern) else subexpr
+    tokens = subexpr.data
     updated_tokens = []
     contains_counter = False
     for op, av in tokens:
@@ -402,29 +385,20 @@ def _expand_outer_counters(subexpr):
             print(subexpr)
             raise RuntimeError(f"Unhandled op: {op}")
 
-        assert not isinstance(av, SubPattern)
-
-    flattened_token_list = []
-    for token in updated_tokens:
-        if isinstance(token, list):
-            flattened_token_list.extend(token)
-        else:
-            flattened_token_list.append(token)
-    updated_tokens = flattened_token_list
-    if subexpr_is_subpat:
-        assert isinstance(subexpr, SubPattern)
-        subexpr.data = updated_tokens
-    else:
-        subexpr = updated_tokens
+    # updated_tokens = _flatten_list(updated_tokens)
+    assert isinstance(subexpr, SubPattern)
+    subexpr.data = updated_tokens
     return subexpr, contains_counter
 
 
-def expand_nested_counters(tree, method: Literal["inner", "outer", "all"]):
+def expand_counters(
+    tree: SubPattern, method: Literal["inner", "outer", "full"]
+) -> SubPattern:
     match method:
         case "inner":
             return _expand_inner_counters(tree, in_counter=False)
         case "outer":
-            tree, contains_counter = _expand_outer_counters(tree)
+            tree, _ = _expand_outer_counters(tree)
             return tree
-        case "all":
+        case "full":
             return _expand_all_counters(tree)

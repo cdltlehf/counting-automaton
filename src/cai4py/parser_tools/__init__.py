@@ -9,9 +9,7 @@ from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
 
 from .constants import *
-from .parser import parse  # type: ignore
-from .re import State
-from .re import SubPattern
+from .parser import parse, State, SubPattern  # type: ignore
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 

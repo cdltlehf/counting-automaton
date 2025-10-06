@@ -21,7 +21,7 @@ class TestNestedCounterExpansion(unittest.TestCase):
         for i, regex in enumerate(self.regexes):
             tree = pt.parse(regex)
             print(tree)
-            tree = utils.expand_nested_counters(tree, method="inner")
+            tree = utils.expand_counters(tree, method="inner")
             expected_tree = pt.parse(self.inner_expansions[i])
             if str(tree) != str(expected_tree):
                 print(tree)
@@ -31,7 +31,7 @@ class TestNestedCounterExpansion(unittest.TestCase):
     def test_outer_expansion(self):
         for i, regex in enumerate(self.regexes):
             tree = pt.parse(regex)
-            tree = utils.expand_nested_counters(tree, method="outer")
+            tree = utils.expand_counters(tree, method="outer")
             expected_tree = pt.parse(self.outer_expansions[i])
             if str(tree) != str(expected_tree):
                 print(tree)
@@ -42,12 +42,12 @@ class TestNestedCounterExpansion(unittest.TestCase):
         regex = r"((a){2,3}){2,3}"
         tree = pt.parse(regex)
         print(tree)
-        tree = utils.expand_nested_counters(tree, method="inner")
+        tree = utils.expand_counters(tree, method="inner")
         print(tree)
 
     def test_outer_expansion_captures(self):
         regex = r"((a){2,3}){2,3}"
         tree = pt.parse(regex)
         print(tree)
-        tree = utils.expand_nested_counters(tree, method="outer")
+        tree = utils.expand_counters(tree, method="outer")
         print(tree)
