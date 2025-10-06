@@ -112,9 +112,9 @@ def _flatten_list(xs: list):
     return flat_xs
 
 
-def _expand_all_counters(subexpr: SubPattern) -> SubPattern:
+def _expand_all_counters(subpat: SubPattern) -> SubPattern:
     """Expand all counters"""
-    tokens = subexpr.data
+    tokens = subpat.data
     updated_tokens = []
 
     for op, av in tokens:
@@ -197,10 +197,9 @@ def _expand_all_counters(subexpr: SubPattern) -> SubPattern:
         else:
             raise RuntimeError(f"Unhandled op: {op}")
 
-    # updated_tokens = _flatten_list(updated_tokens)
-    assert isinstance(subexpr, SubPattern)
-    subexpr.data = updated_tokens
-    return subexpr
+    assert isinstance(subpat, SubPattern)
+    subpat.data = updated_tokens
+    return subpat
 
 
 def _expand_inner_counters(subpat: SubPattern, in_counter: bool) -> SubPattern:
@@ -292,15 +291,14 @@ def _expand_inner_counters(subpat: SubPattern, in_counter: bool) -> SubPattern:
         else:
             raise RuntimeError(f"Unhandled op: {op}")
 
-    # updated_tokens = _flatten_list(updated_tokens)
     assert isinstance(subpat, SubPattern)
     subpat.data = updated_tokens
     return subpat
 
 
-def _expand_outer_counters(subexpr: SubPattern) -> tuple[SubPattern, bool]:
+def _expand_outer_counters(subpat: SubPattern) -> tuple[SubPattern, bool]:
     """Remove nested counters by expanding the outer counters"""
-    tokens = subexpr.data
+    tokens = subpat.data
     updated_tokens = []
     contains_counter = False
     for op, av in tokens:
@@ -382,13 +380,12 @@ def _expand_outer_counters(subexpr: SubPattern) -> tuple[SubPattern, bool]:
             contains_counter = contains_counter or av_contains_counter
             updated_tokens.append((op, av))
         else:
-            print(subexpr)
+            print(subpat)
             raise RuntimeError(f"Unhandled op: {op}")
 
-    # updated_tokens = _flatten_list(updated_tokens)
-    assert isinstance(subexpr, SubPattern)
-    subexpr.data = updated_tokens
-    return subexpr, contains_counter
+    assert isinstance(subpat, SubPattern)
+    subpat.data = updated_tokens
+    return subpat, contains_counter
 
 
 def expand_counters(
