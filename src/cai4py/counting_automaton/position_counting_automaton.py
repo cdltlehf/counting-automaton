@@ -92,7 +92,17 @@ class PositionCountingAutomaton:
     def create(
         cls, pattern: str, expansion_type: Literal["inner", "outer", "full"] = "inner"
     ) -> "PositionCountingAutomaton":
-        """TODO: document"""
+        """
+        Create a position counting automaton from a regex pattern.
+        Args:
+            pattern: A regex pattern.
+            expansion_type: Type of counter expansion.
+                "inner": Expand only inner counters.
+                "outer": Expand only outer counters.
+                "full": Expand all counters.
+        Returns:
+            A position counting automaton.
+        """
         tree = parse(pattern)
         tree = expand_counters(tree, expansion_type)
         logger.debug(tree)
