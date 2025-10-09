@@ -66,7 +66,7 @@ def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
     elif opcode is FAILURE:
         raise NotImplementedError(f"Unknown opcode: {opcode}")
     else:
-        assert False, f"Unknown opcode: {opcode}"
+        raise ValueError(f"Unknown opcode: {opcode}")
 
 
 def fold(

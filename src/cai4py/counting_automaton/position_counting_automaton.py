@@ -136,7 +136,7 @@ class PositionCountingAutomaton:
             return (
                 compiled.fullmatch(symbol) is not None
             )  # NOTE: this is only used to check for character class matches.
-        assert False, type(self.states[state])
+        raise RuntimeError(f"Unhandled state type: {type(self.states[state])}")
 
     def __str__(self) -> str:
 

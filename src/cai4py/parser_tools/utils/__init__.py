@@ -212,9 +212,9 @@ def _expand_inner_counters(subpat: SubPattern, in_counter: bool) -> SubPattern:
             lower_b, upper_b, subexpr = av
 
             is_counter = (
-                not (lower_b == 0 and upper_b == 1) # ?
-                and not (lower_b == 0 and upper_b == MAXREPEAT) # *
-                and not (lower_b == 1 and upper_b == MAXREPEAT) # +
+                not (lower_b == 0 and upper_b == 1)  # ?
+                and not (lower_b == 0 and upper_b == MAXREPEAT)  # *
+                and not (lower_b == 1 and upper_b == MAXREPEAT)  # +
             )
             assert isinstance(lower_b, int)
             subexpr = _expand_inner_counters(

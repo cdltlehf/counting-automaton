@@ -181,7 +181,7 @@ class CounterOperationComponent(StrEnum):
             return NotImplemented
         elif other is CounterOperationComponent.INACTIVATE:
             return other
-        assert False, other
+        raise ValueError(f"Unhandled operation component: {other}")
 
 
 class Action(dd[T, CounterOperationComponent], Hashable):
