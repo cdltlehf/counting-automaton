@@ -384,6 +384,7 @@ def _expand_outer_counters(subpat: SubPattern) -> tuple[SubPattern, bool]:
             raise RuntimeError(f"Unhandled op: {op}")
 
     assert isinstance(subpat, SubPattern)
+    assert all(len(x) == 2 and isinstance(x, tuple) for x in updated_tokens)
     subpat.data = updated_tokens
     return subpat, contains_counter
 
