@@ -6,7 +6,7 @@ import cai4py.parser_tools as pt
 import cai4py.parser_tools.utils as utils
 
 
-class TestNestedCounterExpansion(unittest.TestCase):
+class TestCounterExpansion(unittest.TestCase):
     regexes = [r"(?:(?:a){2,3}b){4,5}", r"(?:(?:a|b){2,4}){2,4}"]
     inner_expansions = [
         r"(?:(?:a)(?:a)(?:a)?b){4,5}",
