@@ -21,7 +21,7 @@ class TestPositionCountingAutomaton(unittest.TestCase):
         logging.basicConfig(level=logging.DEBUG)
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None  # pylint: disable=invalid-name
-        dataset_path = "data/patterns/all_regexes.txt"
+        dataset_path = "../data/filtered/all_regexes.txt"
         self.test_cases = load_test_cases(dataset_path)
         self.timeout = 1
 

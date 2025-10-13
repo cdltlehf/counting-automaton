@@ -446,7 +446,7 @@ class _PositionConstructionCallback:
             return self.call_at(x)
         elif opcode == BRANCH:
             return reduce(self.call_union, ys)
-        elif opcode in {MIN_REPEAT, MAX_REPEAT}:
+        elif opcode in {MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT}:
             y = next(iter(ys))
             lazy = opcode == MIN_REPEAT
 
@@ -455,15 +455,16 @@ class _PositionConstructionCallback:
                 return self.call_repeat(y, m, None, lazy)
             else:
                 return self.call_repeat(y, m, n, lazy)
-        elif opcode is MAX_STAR:
+        elif opcode is MAX_STAR or opcode is POSSESSIVE_STAR:
             return self.call_star(next(iter(ys)), False)
         elif opcode is MIN_STAR:
             return self.call_star(next(iter(ys)), True)
-        elif opcode is MAX_PLUS:
+
+        elif opcode is MAX_PLUS or opcode is POSSESSIVE_PLUS:
             return self.call_plus(next(iter(ys)), False)
         elif opcode is MIN_PLUS:
             return self.call_plus(next(iter(ys)), True)
-        elif opcode is MAX_QUESTION:
+        elif opcode is MAX_QUESTION or opcode is POSSESSIVE_QUESTION:
             return self.call_question(next(iter(ys)), False)
         elif opcode is MIN_QUESTION:
             return self.call_question(next(iter(ys)), True)
