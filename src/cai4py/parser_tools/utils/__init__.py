@@ -128,13 +128,11 @@ def _expand_all_counters(subpat: SubPattern) -> SubPattern:
             subexpr = _expand_all_counters(subexpr)
 
             if is_counter:
-                expansion = []
-                for i in range(lower_b):
+                expansion : list[tuple] = []
+                for _ in range(lower_b):
                     assert not isinstance(subexpr, list)
-                    if isinstance(subexpr, list):
-                        expansion.extend(subexpr)
-                    else:
-                        expansion.extend([subexpr])
+                    assert isinstance(subexpr, SubPattern)
+                    expansion.extend(subexpr.data)
                 if upper_b != MAXREPEAT:
                     assert isinstance(upper_b, int)
                     for i in range(upper_b - lower_b):
@@ -150,7 +148,8 @@ def _expand_all_counters(subpat: SubPattern) -> SubPattern:
                         ]
                 else:
                     expansion += [(op, (0, MAXREPEAT, subexpr))]
-                updated_tokens.append(expansion)
+                for op, av in expansion:
+                    updated_tokens.append((op, av))
             else:
                 updated_tokens.append((op, (lower_b, upper_b, subexpr)))
         elif op is SUBPATTERN:
@@ -222,14 +221,14 @@ def _expand_inner_counters(subpat: SubPattern, in_counter: bool) -> SubPattern:
             )
 
             if is_counter and in_counter:
-                expansion = []
+                expansion: list[tuple] = []
                 for _ in range(lower_b):
                     assert isinstance(subexpr, SubPattern)
-                    expansion.append(subexpr)
+                    expansion.extend(subexpr.data)
                 if upper_b != MAXREPEAT:
                     assert isinstance(upper_b, int)
                     for _ in range(upper_b - lower_b):
-                        expansion += [
+                        expansion.append(
                             (
                                 (
                                     MAX_QUESTION
@@ -238,10 +237,11 @@ def _expand_inner_counters(subpat: SubPattern, in_counter: bool) -> SubPattern:
                                 ),
                                 subexpr,
                             )
-                        ]
+                        )
                 else:
                     expansion += [(op, (0, MAXREPEAT, subexpr))]
-                updated_tokens.append(expansion)
+                for op, av in expansion:
+                    updated_tokens.append((op, av))
             else:
                 updated_tokens.append((op, (lower_b, upper_b, subexpr)))
         elif op is SUBPATTERN:
@@ -312,22 +312,20 @@ def _expand_outer_counters(subpat: SubPattern) -> tuple[SubPattern, bool]:
             subexpr, subexpr_contains_counter = _expand_outer_counters(subexpr)
 
             if is_counter and subexpr_contains_counter:
-                expansion = []
+                expansion : list[tuple] = []
+                assert isinstance(subexpr, SubPattern)
                 for i in range(lower_b):
-                    if isinstance(subexpr, list):
-                        expansion.extend(subexpr)
-                    else:
-                        expansion.extend([subexpr])
+                    expansion.extend(subexpr.data)
                 if upper_b != MAXREPEAT:
                     assert isinstance(upper_b, int)
                     for i in range(upper_b - lower_b):
                         if op is MAX_REPEAT:
-                            expansion += [(MAX_QUESTION, subexpr)]
+                            expansion.append((MAX_QUESTION, subexpr))
                         else:
-                            expansion += [(MIN_QUESTION, subexpr)]
+                            expansion.append((MIN_QUESTION, subexpr))
                 else:
-                    expansion += [(op, (0, MAXREPEAT, subexpr))]
-                updated_tokens.append(expansion)
+                    expansion.append((op, (0, MAXREPEAT, subexpr)))
+                updated_tokens.extend(expansion)
             else:
                 updated_tokens.append((op, (lower_b, upper_b, subexpr)))
             contains_counter = True
@@ -384,7 +382,8 @@ def _expand_outer_counters(subpat: SubPattern) -> tuple[SubPattern, bool]:
             raise RuntimeError(f"Unhandled op: {op}")
 
     assert isinstance(subpat, SubPattern)
-    assert all(len(x) == 2 and isinstance(x, tuple) for x in updated_tokens)
+    if not all(len(x) == 2 and isinstance(x, tuple) for x in updated_tokens):
+        print(updated_tokens)
     subpat.data = updated_tokens
     return subpat, contains_counter
 
