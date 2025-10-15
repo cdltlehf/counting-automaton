@@ -4,7 +4,7 @@ from copy import copy
 from functools import reduce
 from json import dumps
 import logging
-from typing import Any, Iterable, NewType, Optional, Literal
+from typing import Any, Iterable, Literal, NewType, Optional
 
 from cai4py.collections import OrderedSet
 from cai4py.parser_tools import fold
@@ -18,8 +18,8 @@ from cai4py.parser_tools import MIN_REPEAT
 from cai4py.parser_tools import MIN_STAR
 from cai4py.parser_tools import parse
 from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
-from cai4py.parser_tools.re import _compile
 from cai4py.parser_tools.parser import SubPattern
+from cai4py.parser_tools.re import _compile
 from cai4py.parser_tools.utils import expand_counters
 
 from .counter_vector import Action
@@ -90,7 +90,9 @@ class PositionCountingAutomaton:
 
     @classmethod
     def create(
-        cls, pattern: str, expansion_type: Literal["inner", "outer", "full"] = "inner"
+        cls,
+        pattern: str,
+        expansion_type: Literal["inner", "outer", "full"] = "inner",
     ) -> "PositionCountingAutomaton":
         """
         Create a position counting automaton from a regex pattern.
