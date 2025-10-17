@@ -1,6 +1,6 @@
 """Determinized Counter Config"""
 
-from typing import Optional
+from typing import Optional, IO
 
 from ..counting_set import BoundedCountingSet
 from ..counting_set import CountingSet
@@ -18,15 +18,15 @@ class DeterminizedCounterConfig(DeterminizedCounterConfigBase[CountingSet]):
 
     @staticmethod
     def _key_constructor(
-        low: int, high: Optional[int]
+        low: int, high: Optional[int], log_file: IO | None = None
     ) -> StateToCountingSet[CountingSet]:
-        return StateToCountingSet(CountingSet, low, high)
+        return StateToCountingSet(CountingSet, low, high, log_file)
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int]
+        low: int, high: Optional[int], log_file: IO | None = None
     ) -> MultiHeadCountingSetBase[CountingSet]:
-        return MultiHeadCountingSet(low, high)
+        return MultiHeadCountingSet(low, high, log_file)
 
 
 class DeterminizedBoundedCounterConfig(
@@ -36,15 +36,15 @@ class DeterminizedBoundedCounterConfig(
 
     @staticmethod
     def _key_constructor(
-        low: int, high: Optional[int]
+        low: int, high: Optional[int], log_file: IO | None = None
     ) -> StateToCountingSet[BoundedCountingSet]:
-        return StateToCountingSet(BoundedCountingSet, low, high)
+        return StateToCountingSet(BoundedCountingSet, low, high, log_file)
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int]
+        low: int, high: Optional[int], log_file: IO | None = None
     ) -> MultiHeadCountingSetBase[BoundedCountingSet]:
-        return MultiHeadBoundedCountingSet(low, high)
+        return MultiHeadBoundedCountingSet(low, high, log_file)
 
 
 class DeterminizedSparseCounterConfig(
@@ -54,12 +54,12 @@ class DeterminizedSparseCounterConfig(
 
     @staticmethod
     def _key_constructor(
-        low: int, high: Optional[int]
+        low: int, high: Optional[int], log_file: IO | None = None
     ) -> StateToCountingSet[SparseCountingSet]:
-        return StateToCountingSet(SparseCountingSet, low, high)
+        return StateToCountingSet(SparseCountingSet, low, high, log_file)
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int]
+        low: int, high: Optional[int], log_file: IO | None = None
     ) -> MultiHeadCountingSetBase[SparseCountingSet]:
-        return MultiHeadSparseCountingSet(low, high)
+        return MultiHeadSparseCountingSet(low, high, log_file)

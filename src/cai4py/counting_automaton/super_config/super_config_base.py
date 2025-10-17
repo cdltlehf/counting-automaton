@@ -3,7 +3,7 @@
 import abc
 from collections import defaultdict as dd
 from json import dumps
-from typing import Any, Iterator
+from typing import Any, IO, Iterator
 
 from cai4py.collections import OrderedSet
 
@@ -35,9 +35,12 @@ class SuperConfigBase(abc.ABC):
 
     @classmethod
     def get_computation(
-        cls, automaton: PositionCountingAutomaton, w: str
+        cls,
+        automaton: PositionCountingAutomaton,
+        w: str,
+        log_file: IO | None = None,
     ) -> Iterator["SuperConfigBase"]:
-        super_config = cls.get_initial(automaton)
+        super_config = cls.get_initial(automaton, log_file)
         yield super_config
         for symbol in w:
             super_config = super_config.update(symbol)
@@ -46,7 +49,7 @@ class SuperConfigBase(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def get_initial(
-        cls, automaton: PositionCountingAutomaton
+        cls, automaton: PositionCountingAutomaton, log_file: IO | None = None
     ) -> "SuperConfigBase":
         pass
 

@@ -2,7 +2,7 @@
 
 import abc
 import logging
-from typing import Callable, Generic, Iterable, Optional, TypeVar
+from typing import Callable, Generic, Iterable, Optional, TypeVar, IO
 import warnings
 
 from cai4py.collections import Node
@@ -21,14 +21,15 @@ _Self = TypeVar("_Self", bound="MultiHeadCountingSetBase[CountingSet]")
 class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
     """Multi-head counting set"""
 
-    _constructor: Callable[[int, Optional[int]], CountingSet]
+    _constructor: Callable[[int, Optional[int], Optional[IO]], CountingSet]
 
     def __init__(
         self,
         low: int,
         high: Optional[int],
+        log_file: Optional[IO] = None,
     ) -> None:
-        self.counting_set = self._constructor(low, high)
+        self.counting_set = self._constructor(low, high, log_file)
         self.heads = {0: self.counting_set.head}
 
     def update_deltas(self: _Self, deltas: list[int]) -> _Self:
