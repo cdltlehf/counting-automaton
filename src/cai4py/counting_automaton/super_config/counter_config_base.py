@@ -1,12 +1,12 @@
 """Counter Config Base"""
 
-from typing import IO
 import abc
 from collections import defaultdict as dd
 from copy import copy
 import logging
 # fmt: off
-from typing import Callable, Generic, Hashable, Iterator, Mapping, Optional, TypeVar
+from typing import (Callable, Generic, Hashable, IO, Iterator, Mapping,
+                    Optional, TypeVar)
 
 from cai4py.collections import OrderedSet
 

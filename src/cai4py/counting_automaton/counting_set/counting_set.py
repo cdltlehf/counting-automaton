@@ -2,7 +2,7 @@
 
 from copy import copy
 import logging
-from typing import Iterable, Iterator, Optional, TypeVar, IO
+from typing import IO, Iterable, Iterator, Optional, TypeVar
 import warnings
 
 from cai4py.collections import Node
