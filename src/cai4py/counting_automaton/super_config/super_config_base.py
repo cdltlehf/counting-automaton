@@ -49,7 +49,7 @@ class SuperConfigBase(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def get_initial(
-        cls, automaton: PositionCountingAutomaton, log_file: IO | None = None
+        cls, automaton: PositionCountingAutomaton, log_file: IO | None
     ) -> "SuperConfigBase":
         pass
 

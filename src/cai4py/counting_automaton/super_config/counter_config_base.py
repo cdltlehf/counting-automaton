@@ -217,7 +217,7 @@ class CounterConfigBase(
 ):
     """Class for super-configurations using a counting set"""
 
-    _constructor: Callable[[int, Optional[int]], _T]
+    _constructor: Callable[[int, Optional[int], IO], _T]
 
     def __init__(
         self,

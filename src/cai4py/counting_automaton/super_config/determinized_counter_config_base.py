@@ -4,7 +4,7 @@ import abc
 from collections import defaultdict as dd
 from copy import copy
 import logging
-from typing import Callable, Generic, Iterator, Mapping, Optional, TypeVar
+from typing import Callable, Generic, Iterator, Mapping, Optional, TypeVar, IO
 
 from cai4py.collections import OrderedSet
 
@@ -38,18 +38,22 @@ class KeyToCountingSet(
 
     def __init__(
         self,
-        key_constructor: Callable[[int, Optional[int]], StateToCountingSet[_T]],
+        key_constructor: Callable[
+            [int, Optional[int], IO], StateToCountingSet[_T]
+        ],
         value_constructor: Callable[
-            [int, Optional[int]], MultiHeadCountingSetBase[_T]
+            [int, Optional[int], IO], MultiHeadCountingSetBase[_T]
         ],
         low: int,
         high: Optional[int],
+        log_file: IO,
     ) -> None:
-        super().__init__(lambda: value_constructor(low, high))
+        super().__init__(lambda: value_constructor(low, high, log_file))
         self.low = low
         self.high = high
         self._key_constructor = key_constructor
         self._value_constructor = value_constructor
+        self._log_file = log_file
 
     def to_json(self) -> dict[str, list[int]]:
         return {
@@ -67,7 +71,11 @@ class KeyToCountingSet(
         current_state_to_reference_count: dd[State, int],
     ) -> tuple["KeyToCountingSet[_T]", set[State]]:
         next_key_to_counting_set = KeyToCountingSet(
-            self._key_constructor, self._value_constructor, self.low, self.high
+            self._key_constructor,
+            self._value_constructor,
+            self.low,
+            self.high,
+            self._log_file,
         )
 
         new_states: set[State] = set()
@@ -105,7 +113,7 @@ class KeyToCountingSet(
             VERBOSE,
             ComputationStepMark.START_DETERMINIZED_KEY_COMPUTATION.value,
         )
-        new_key = self._key_constructor(self.low, self.high)
+        new_key = self._key_constructor(self.low, self.high, self._log_file)
         for state in new_states:
             removed_next_states.remove(state)
             new_key[state].add_zero()
@@ -189,6 +197,7 @@ class DeterminizedCounterConfigBase(
         counter_to_key_to_counting_set: dict[
             CounterVariable, KeyToCountingSet[_T]
         ],
+        log_file: IO,
     ) -> None:
         super().__init__(automaton)
 
@@ -199,31 +208,36 @@ class DeterminizedCounterConfigBase(
 
         self.states = states
         self._counter_to_key_to_counting_set = counter_to_key_to_counting_set
+        self._log_file = log_file
 
     @staticmethod
     def _key_constructor(
-        low: int, high: Optional[int]
+        low: int, high: Optional[int], log_file: IO
     ) -> StateToCountingSet[_T]:
         raise NotImplementedError()
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int]
+        low: int, high: Optional[int], log_file: IO
     ) -> MultiHeadCountingSetBase[_T]:
         raise NotImplementedError()
 
     @classmethod
     def get_initial(
-        cls, automaton: PositionCountingAutomaton
+        cls, automaton: PositionCountingAutomaton, log_file: IO
     ) -> "DeterminizedCounterConfigBase[_T]":
-        return cls(automaton, OrderedSet([INITIAL_STATE]), {})
+        return cls(automaton, OrderedSet([INITIAL_STATE]), {}, log_file)
 
     def __getitem__(self, counter: CounterVariable) -> KeyToCountingSet[_T]:
         low, high = self.counters[counter]
         return self._counter_to_key_to_counting_set.get(
             counter,
             KeyToCountingSet(
-                self._key_constructor, self._value_constructor, low, high
+                self._key_constructor,
+                self._value_constructor,
+                low,
+                high,
+                self._log_file,
             ),
         )
 
@@ -366,6 +380,7 @@ class DeterminizedCounterConfigBase(
             self.automaton,
             next_states,
             counter_variable_to_next_key_to_counting_set,
+            self._log_file,
         )
         return next_counter_config
 
