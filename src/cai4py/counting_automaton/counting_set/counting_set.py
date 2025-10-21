@@ -70,11 +70,7 @@ class CountingSet(Iterable[int]):
         """Implicitly increment all the values in the counting-set"""
         logger.debug("Increasing counting-set %s", self)
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
-        density = (
-            len(self.list) / (self.high - self.low)
-            if self.high is not None
-            else 0
-        )
+        density = len(self.list) / self.high if self.high is not None else 0
         self._log_op(f"INCREASE\t{self}\t{len(self.list)}\t{density}")
         self.offset += 1
         if self.head is not None and self.high is not None:
@@ -87,15 +83,9 @@ class CountingSet(Iterable[int]):
     def merge(self: Self, other: Self) -> Self:
         """Merge `other` counting-set into `self`"""
         logger.debug("Merging counter-set %s with %s", self, other)
-        density = (
-            len(self.list) / (self.high - self.low)
-            if self.high is not None
-            else 0
-        )
+        density = len(self.list) / self.high if self.high is not None else 0
         other_density = (
-            len(other.list) / (other.high - other.low)
-            if other.high is not None
-            else 0
+            len(other.list) / other.high if other.high is not None else 0
         )
         self._log_op(
             f"MERGE\t{len(self.list)}\t{density}\t{len(other.list)}\t{other_density}"
@@ -187,11 +177,7 @@ class CountingSet(Iterable[int]):
         """
         Create a shallow copy of the counting-set
         """
-        density = (
-            len(self.list) / (self.high - self.low)
-            if self.high is not None
-            else 0
-        )
+        density = len(self.list) / self.high if self.high is not None else 0
         self._log_op(f"CLONE\t{len(self.list)}\t{density}")
         for _ in self:
             logger.log(VERBOSE, ComputationStep.ACCESS_NODE_CLONE.value)
