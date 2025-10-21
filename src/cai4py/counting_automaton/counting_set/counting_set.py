@@ -1,4 +1,4 @@
-"""Counting set"""
+"""Counting-set data structure for counting automata"""
 
 from copy import copy
 import logging
@@ -17,9 +17,10 @@ Self = TypeVar("Self", bound="CountingSet")
 
 
 class CountingSet(Iterable[int]):
-    """Counting set"""
+    """Counting-set data structure for counting automata"""
 
     def __init__(self, low: int, high: Optional[int], csop_log_file) -> None:
+        """Initialize the counting-set"""
         self.low = low
         self.high = high
         self.offset = 1
@@ -29,6 +30,13 @@ class CountingSet(Iterable[int]):
         self._dirty = False
 
     def sanity_check(self) -> None:
+        """
+        Perform a sanity check on the counting-set.
+
+        The head value should be the maximum value in the counting-set.
+
+        Raises: AssertionError: If the sanity check fails.
+        """
         if not __debug__:
             warnings.warn("Sanity checks are disabled", RuntimeWarning)
             return
@@ -42,9 +50,11 @@ class CountingSet(Iterable[int]):
         assert max_value == self.head_value, f"{max_value} != {self.head_value}"
 
     def mark_dirty(self) -> None:
+        # TODO: Comment on what it means to be dirty
         self._dirty = True
 
     def is_empty(self) -> bool:
+        """Check if the counting-set is empty"""
         return self.list.is_empty()
 
     def __iter__(self) -> Iterator[int]:
@@ -60,7 +70,12 @@ class CountingSet(Iterable[int]):
         """Implicitly increment all the values in the counting-set"""
         logger.debug("Increasing counting-set %s", self)
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
-        self._log_op(f"INCREASE\t{self}\t{len(self.list)}")
+        density = (
+            len(self.list) / (self.high - self.low)
+            if self.high is not None
+            else 0
+        )
+        self._log_op(f"INCREASE\t{self}\t{len(self.list)}\t{density}")
         self.offset += 1
         if self.head is not None and self.high is not None:
             if self.head_value > self.high:
@@ -72,7 +87,19 @@ class CountingSet(Iterable[int]):
     def merge(self: Self, other: Self) -> Self:
         """Merge `other` counting-set into `self`"""
         logger.debug("Merging counter-set %s with %s", self, other)
-        self._log_op(f"MERGE\t{len(self.list)}\t{len(other.list)}")
+        density = (
+            len(self.list) / (self.high - self.low)
+            if self.high is not None
+            else 0
+        )
+        other_density = (
+            len(other.list) / (other.high - other.low)
+            if other.high is not None
+            else 0
+        )
+        self._log_op(
+            f"MERGE\t{len(self.list)}\t{density}\t{len(other.list)}\t{other_density}"
+        )
         assert (self.low, self.high) == (other.low, other.high)
         if self.offset < other.offset:
             raise ValueError("Cannot merge with a set that has a higher offset")
@@ -111,11 +138,13 @@ class CountingSet(Iterable[int]):
 
     @property
     def head_value(self) -> int:
+        """Get the head value of the counting-set"""
         if self.head is None:
             return -1
         return self.offset - self.head.value
 
     def check(self) -> bool:
+        """Check if the head value is at least the low value"""
         logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
         self._log_op(f"CHECK\t{len(self.list)}")
         logger.debug(
@@ -155,7 +184,15 @@ class CountingSet(Iterable[int]):
         return self
 
     def __copy__(self: Self) -> Self:
-        self._log_op(f"CLONE\t{len(self.list)}")
+        """
+        Create a shallow copy of the counting-set
+        """
+        density = (
+            len(self.list) / (self.high - self.low)
+            if self.high is not None
+            else 0
+        )
+        self._log_op(f"CLONE\t{len(self.list)}\t{density}")
         for _ in self:
             logger.log(VERBOSE, ComputationStep.ACCESS_NODE_CLONE.value)
         new = self.__class__(self.low, self.high, self.csop_log_file)
@@ -170,12 +207,14 @@ class CountingSet(Iterable[int]):
         return new
 
     def __str__(self) -> str:
+        """String representation of the counting-set"""
         return " -> ".join(map(str, self))
 
     @classmethod
     def from_list(
         cls, l: list[int], low: int, high: Optional[int], log_file: IO
     ) -> "CountingSet":
+        """Create a counting-set from a list of integers"""
         s = cls(low, high, log_file)
         last_n = None
         for n in reversed(l):
