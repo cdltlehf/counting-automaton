@@ -93,19 +93,17 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
 
     def __init__(
         self,
-        constructor: Callable[[int, Optional[int], IO], _T],
+        constructor: Callable[[int, Optional[int]], _T],
         low: int,
         high: Optional[int],
-        log_file: IO,
     ) -> None:
-        super().__init__(lambda: constructor(low, high, log_file))
+        super().__init__(lambda: constructor(low, high))
         self._constructor = constructor
         self.low = low
         self.high = high
 
         self._hash: Optional[int] = None
         self._dirty = False
-        self.log_file = log_file
 
     def to_list(self) -> list[tuple[int, int]]:
         listed = []
@@ -149,7 +147,7 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
             self._dirty = True
 
         next_state_to_counting_set = StateToCountingSet(
-            self._constructor, self.low, self.high, self.log_file
+            self._constructor, self.low, self.high
         )
         removed_next_states: set[State] = set()
         for next_state, r_terms in next_state_to_r_terms.items():
@@ -226,7 +224,6 @@ class CounterConfigBase(
         counter_to_state_to_counting_set: dict[
             CounterVariable, StateToCountingSet[_T]
         ],
-        log_file: IO,
     ):
         super().__init__(automaton)
 
@@ -239,18 +236,17 @@ class CounterConfigBase(
         self._counter_to_state_to_counting_set = (
             counter_to_state_to_counting_set
         )
-        self.log_file = log_file
 
     @classmethod
     def get_initial(
-        cls, automaton: PositionCountingAutomaton, log_file: IO
+        cls, automaton: PositionCountingAutomaton
     ) -> "CounterConfigBase[_T]":
-        return cls(automaton, OrderedSet([INITIAL_STATE]), {}, log_file)
+        return cls(automaton, OrderedSet([INITIAL_STATE]), {})
 
     def __getitem__(self, counter: CounterVariable) -> StateToCountingSet[_T]:
         low, high = self.counters[counter]
         return self._counter_to_state_to_counting_set.get(
-            counter, StateToCountingSet(self._constructor, low, high, self.log_file)
+            counter, StateToCountingSet(self._constructor, low, high)
         )
 
     def __iter__(self) -> Iterator[CounterVariable]:
@@ -372,7 +368,6 @@ class CounterConfigBase(
             self.automaton,
             next_states,
             counter_variable_to_next_state_to_counting_set,
-            self.log_file,
         )
         return next_counter_config
 

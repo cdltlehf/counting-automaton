@@ -18,15 +18,16 @@ class DeterminizedCounterConfig(DeterminizedCounterConfigBase[CountingSet]):
 
     @staticmethod
     def _key_constructor(
-        low: int, high: Optional[int], log_file: IO
+        low: int, high: Optional[int]
     ) -> StateToCountingSet[CountingSet]:
-        return StateToCountingSet(CountingSet, low, high, log_file)
+        return StateToCountingSet(CountingSet, low, high)
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int], log_file: IO
+        low: int,
+        high: Optional[int],
     ) -> MultiHeadCountingSetBase[CountingSet]:
-        return MultiHeadCountingSet(low, high, log_file)
+        return MultiHeadCountingSet(low, high)
 
 
 class DeterminizedBoundedCounterConfig(
@@ -36,15 +37,15 @@ class DeterminizedBoundedCounterConfig(
 
     @staticmethod
     def _key_constructor(
-        low: int, high: Optional[int], log_file: IO
+        low: int, high: Optional[int]
     ) -> StateToCountingSet[BoundedCountingSet]:
-        return StateToCountingSet(BoundedCountingSet, low, high, log_file)
+        return StateToCountingSet(BoundedCountingSet, low, high)
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int], log_file: IO
+        low: int, high: Optional[int]
     ) -> MultiHeadCountingSetBase[BoundedCountingSet]:
-        return MultiHeadBoundedCountingSet(low, high, log_file)
+        return MultiHeadBoundedCountingSet(low, high)
 
 
 class DeterminizedSparseCounterConfig(
@@ -54,12 +55,12 @@ class DeterminizedSparseCounterConfig(
 
     @staticmethod
     def _key_constructor(
-        low: int, high: Optional[int], log_file: IO
+        low: int, high: Optional[int]
     ) -> StateToCountingSet[SparseCountingSet]:
-        return StateToCountingSet(SparseCountingSet, low, high, log_file)
+        return StateToCountingSet(SparseCountingSet, low, high)
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int], log_file: IO
+        low: int, high: Optional[int]
     ) -> MultiHeadCountingSetBase[SparseCountingSet]:
-        return MultiHeadSparseCountingSet(low, high, log_file)
+        return MultiHeadSparseCountingSet(low, high)
