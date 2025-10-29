@@ -162,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--method",
         type=str,
-        required=True,
+        required=False,
         choices=[
             "super_config",
             "bounded_super_config",
@@ -173,6 +173,7 @@ if __name__ == "__main__":
             "determinized_bounded_counter_config",
             "determinized_sparse_counter_config",
         ],
+        default="sparse_counter_config",
     )
     parser.add_argument("--random-string-dir", required=True, type=str)
     parser.add_argument("--regex-file", required=True, type=str)

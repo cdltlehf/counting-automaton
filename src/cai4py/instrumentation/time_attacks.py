@@ -53,13 +53,15 @@ def main(args: argparse.Namespace) -> None:
                     "r",
                     encoding=args.input_encoding,
                 ) as attack_str_file:
-                    attack_str = attack_str_file.read()
+                    try:
+                        attack_str = attack_str_file.read()
+                    except UnicodeDecodeError as e:
+                        print(e)
+                        continue
                     t0 = time.perf_counter()
                     # Step through matching
-                    for _ in sc_class.get_computation(
-                        automaton, attack_str
-                    ):
-                        pass  # do nothing
+                    for _ in sc_class.get_computation(automaton, attack_str):
+                        pass  # Do nothing
                     t1 = time.perf_counter()
                     duration = t1 - t0
                     num_bytes = len(attack_str.encode(args.input_encoding))
@@ -90,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--method",
         type=str,
-        required=True,
+        required=False,
         choices=[
             "super_config",
             "bounded_super_config",
@@ -101,6 +103,7 @@ if __name__ == "__main__":
             "determinized_bounded_counter_config",
             "determinized_sparse_counter_config",
         ],
+        default="sparse_counter_config",
     )
     parser.add_argument("--attack-string-dir", required=True, type=str)
     parser.add_argument("--regex-file", required=True, type=str)
