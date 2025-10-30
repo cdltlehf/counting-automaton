@@ -9,3 +9,5 @@ OP_NAMES = sorted(
         "CHECK",
     ]
 )
+
+THROUGHPUT_THRES = 0.5 * 1e6  # .5 KB / s

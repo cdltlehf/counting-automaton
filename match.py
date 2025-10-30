@@ -58,7 +58,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--method",
         type=str,
-        required=True,
+        required=False,
+        default="sparse_counter_config",
         choices=[
             "super_config",
             "bounded_super_config",

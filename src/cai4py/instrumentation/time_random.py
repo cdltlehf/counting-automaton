@@ -1,5 +1,7 @@
 """Time matching with the position counting automaton and random strings"""
 
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
+
 import argparse
 import logging
 import re
@@ -80,6 +82,7 @@ def main(args: argparse.Namespace) -> None:
             ),
             start=1,
         ):
+            regex = regex[:-1]  # strip newline
             if not Path(
                 f'{args.random_string_dir.replace("random", "attack")}/{i}.txt'
             ):
@@ -101,7 +104,7 @@ def main(args: argparse.Namespace) -> None:
                     with open(
                         f"{args.random_string_dir}/{i}-{j}.txt",
                         "r",
-                        encoding="utf-8",
+                        encoding=args.input_encoding,
                     ) as random_str_file:
                         random_str = random_str_file.read()
 
@@ -113,6 +116,14 @@ def main(args: argparse.Namespace) -> None:
                             ):
                                 pass  # do nothing
                             assert computation is not None
+                            if not computation.is_final():
+                                pass
+                                # print("NOT FINAL")
+                                # print(
+                                #     re.fullmatch(regex, random_str) is not None
+                                # )
+                                # print()
+                                # print(f"'{regex}'", f"'{random_str}'", sep="\n")
                             assert computation.is_final()
                             t1 = time.perf_counter()
                             duration = t1 - t0
@@ -121,7 +132,6 @@ def main(args: argparse.Namespace) -> None:
                         num_bytes = len(random_str.encode("utf-8"))
                         if num_bytes == 0:
                             continue
-                        THROUGHPUT_THRES = 0.5 * 1e6  # .5 KB / s
                         with ThreadPoolExecutor(max_workers=1) as executor:
                             future = executor.submit(
                                 time_matching, automaton, random_str
@@ -184,5 +194,8 @@ if __name__ == "__main__":
         required=True,
         type=str,
         choices=["inner", "outer", "all"],
+    )
+    parser.add_argument(
+        "--input-encoding", required=True, choices=["utf-8", "latin1"]
     )
     main(parser.parse_args())

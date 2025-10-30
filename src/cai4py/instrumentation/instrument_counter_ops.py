@@ -6,6 +6,8 @@ import re
 import signal
 import time
 from typing import Type
+from concurrent.futures import ThreadPoolExecutor
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
 
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
@@ -54,7 +56,7 @@ class VerboseFilter(logging.Filter):
         return record.levelno == VERBOSE
 
 
-# @timeout(seconds=10)
+@timeout(seconds=10)
 def timed_automaton_construction(regex, args):
     return pca.PositionCountingAutomaton.create(
         regex, expansion_type=args.expansion_type
@@ -92,11 +94,11 @@ def time_matching(
         overall_merge_set_sizes.append((size1, density1, size2, density2))
     for size, density in clone_set_sizes:
         overall_clone_set_sizes.append((size, density))
-    if re.fullmatch(regex, random_str) is None:
-        assert not c.is_final()
-        print("WARNING: regex does not match the string")
+
+    if c.is_final():
+        assert re.fullmatch(regex, random_str) is not None
     else:
-        assert c.is_final()
+        assert re.fullmatch(regex, random_str) is None
 
     return duration
 
@@ -128,7 +130,7 @@ def main(args: argparse.Namespace) -> None:
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         for i, regex in enumerate(
             tqdm(
-                regex_file.readlines(),
+                regex_file,
                 total=num_regexes,
                 miniters=1,
                 mininterval=0,
@@ -164,15 +166,19 @@ def main(args: argparse.Namespace) -> None:
 
                         # Run matching with a timeout
                         try:
-                            _ = time_matching(
-                                sc_class,
-                                automaton,
-                                random_str,
-                                op_counts,
-                                overall_merge_set_sizes,
-                                overall_clone_set_sizes,
-                                regex,
-                            )
+                            with ThreadPoolExecutor(max_workers=1) as executor:
+                                future = executor.submit(
+                                    time_matching,
+                                    sc_class,
+                                    automaton,
+                                    random_str,
+                                    op_counts,
+                                    overall_merge_set_sizes,
+                                    overall_clone_set_sizes,
+                                    regex,
+                                )
+                                timeout = num_bytes / THROUGHPUT_THRES + 1
+                                _ = future.result(timeout=timeout)
                         except TimeoutError:
                             print("TIMEOUT")
                             break
@@ -194,7 +200,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--method",
         type=str,
-        required=True,
+        required=False,
+        default="sparse_counter_config",
         choices=[
             "super_config",
             "bounded_super_config",

@@ -13,6 +13,7 @@ import cai4py.counting_automaton.super_config as sc
 from cai4py.counting_automaton.logging import VERBOSE
 from tqdm import tqdm
 from memory_profiler import memory_usage
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ def main(args: argparse.Namespace) -> None:
                     with open(
                         f"{args.random_string_dir}/{i}-{j}.txt",
                         "r",
-                        encoding="utf-8",
+                        encoding=args.input_encoding,
                     ) as random_str_file:
                         random_str = random_str_file.read()
 
@@ -116,7 +117,6 @@ def main(args: argparse.Namespace) -> None:
                         num_bytes = len(random_str.encode("utf-8"))
                         if num_bytes == 0:
                             continue
-                        THROUGHPUT_THRES = 0.5 * 1e6  # .5 KB / s
                         with ThreadPoolExecutor(max_workers=1) as executor:
                             future = executor.submit(
                                 measure_memory_used_during_matching,
@@ -159,5 +159,8 @@ if __name__ == "__main__":
         required=True,
         type=str,
         choices=["inner", "outer", "full"],
+    )
+    parser.add_argument(
+        "--input-encoding", required=True, choices=["utf-8", "latin1"]
     )
     main(parser.parse_args())
