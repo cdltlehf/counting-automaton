@@ -37,7 +37,7 @@ def main(args: argparse.Namespace) -> None:
         timing_log_file.write("Regex ID\tThroughput (KB/sec)\n")
         for i, regex in enumerate(
             tqdm(
-                regex_file.readlines(),
+                regex_file,
                 total=num_regexes,
                 miniters=1,
                 mininterval=0,
