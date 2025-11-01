@@ -2,13 +2,21 @@
 
 import argparse
 import logging
+import re
 from typing import Type
+
+from tqdm import tqdm
+
 from cai4py.counting_automaton.logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
-import time
-import re
-from tqdm import tqdm
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
+from concurrent.futures import ThreadPoolExecutor
+
+from cai4py.instrumentation.utils import (
+    timed_automaton_construction,
+    time_matching,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,31 +52,12 @@ def main(args: argparse.Namespace) -> None:
             ),
             start=1,
         ):
+            regex = regex[:-1]  # strip newline
             try:
-                automaton = pca.PositionCountingAutomaton.create(
+                automaton = timed_automaton_construction(
                     regex, expansion_type=args.expansion_type
                 )
-                with open(
-                    f"{args.attack_string_dir}/{i}.txt",
-                    "r",
-                    encoding=args.input_encoding,
-                ) as attack_str_file:
-                    try:
-                        attack_str = attack_str_file.read()
-                    except UnicodeDecodeError as e:
-                        print(e)
-                        continue
-                    t0 = time.perf_counter()
-                    # Step through matching
-                    for _ in sc_class.get_computation(automaton, attack_str):
-                        pass  # Do nothing
-                    t1 = time.perf_counter()
-                    duration = t1 - t0
-                    num_bytes = len(attack_str.encode(args.input_encoding))
-                    timing_log_file.write(
-                        f"{i}\t{num_bytes / 1000 / duration}\n"
-                    )
-            except FileNotFoundError as e:
+            except TimeoutError as e:
                 print(e)
                 continue
             except NotImplementedError as e:
@@ -78,6 +67,42 @@ def main(args: argparse.Namespace) -> None:
                 print(e)
                 continue
             except ValueError as e:
+                print(e)
+                continue
+            try:
+                with open(
+                    f"{args.attack_string_dir}/{i}.txt",
+                    "r",
+                    encoding=args.input_encoding,
+                ) as attack_str_file:
+                    try:
+                        attack_str = attack_str_file.read()
+                        num_bytes = len(attack_str.encode(args.input_encoding))
+                    except UnicodeDecodeError as e:
+                        print(e)
+                        continue
+                    with ThreadPoolExecutor(max_workers=1) as executor:
+                        future = executor.submit(
+                            time_matching, automaton, attack_str, sc_class
+                        )
+                        try:
+                            secs_per_kb = 1 / THROUGHPUT_THRES
+                            secs_per_b = secs_per_kb / 1000
+                            matching_timeout = secs_per_b * num_bytes + 1
+                            print("matching_timeout: ", matching_timeout)
+                            duration = future.result(timeout=matching_timeout)
+                            assert duration < matching_timeout
+                        except TimeoutError as e:
+                            print(e)
+                            timing_log_file.write(
+                                f"{i}\t{THROUGHPUT_THRES/1e6}\n"
+                            )
+                            break
+                    num_bytes = len(attack_str.encode(args.input_encoding))
+                    timing_log_file.write(
+                        f"{i}\t{num_bytes / 1000 / duration}\n"
+                    )
+            except FileNotFoundError as e:
                 print(e)
                 continue
         timing_log_file.close()

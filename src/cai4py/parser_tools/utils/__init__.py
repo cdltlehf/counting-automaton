@@ -128,7 +128,7 @@ def _expand_all_counters(subpat: SubPattern) -> SubPattern:
             subexpr = _expand_all_counters(subexpr)
 
             if is_counter:
-                expansion : list[tuple] = []
+                expansion: list[tuple] = []
                 for _ in range(lower_b):
                     assert not isinstance(subexpr, list)
                     assert isinstance(subexpr, SubPattern)
@@ -312,7 +312,7 @@ def _expand_outer_counters(subpat: SubPattern) -> tuple[SubPattern, bool]:
             subexpr, subexpr_contains_counter = _expand_outer_counters(subexpr)
 
             if is_counter and subexpr_contains_counter:
-                expansion : list[tuple] = []
+                expansion: list[tuple] = []
                 assert isinstance(subexpr, SubPattern)
                 for i in range(lower_b):
                     expansion.extend(subexpr.data)
@@ -399,3 +399,5 @@ def expand_counters(
             return tree
         case "full":
             return _expand_all_counters(tree)
+        case _:
+            raise RuntimeError(f"Unknown expansion method: {method}")

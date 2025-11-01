@@ -16,30 +16,10 @@ import cai4py.counting_automaton.super_config as sc
 from cai4py.counting_automaton.logging import VERBOSE
 from tqdm import tqdm
 
-
-def timeout(seconds):
-    def decorate(f):
-        def handler(signum, frame):
-            raise TimeoutError()
-
-        def new_f(*args, **kwargs):
-            old = signal.signal(signal.SIGALRM, handler)
-            signal.alarm(seconds)
-            try:
-                result = f(*args, **kwargs)
-            finally:
-                # reinstall the old signal handler
-                signal.signal(signal.SIGALRM, old)
-                # cancel the alarm
-                # this line should be inside the "finally" block (per Sam Kortchmar)
-                signal.alarm(0)
-            return result
-
-        new_f.__name__ = f.__name__
-        return new_f
-
-    return decorate
-
+from cai4py.instrumentation.utils import (
+    time_matching,
+    timed_automaton_construction,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +27,6 @@ logger = logging.getLogger(__name__)
 class VerboseFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         return record.levelno == VERBOSE
-
-
-@timeout(seconds=10)
-def timed_automaton_construction(regex, args):
-    return pca.PositionCountingAutomaton.create(
-        regex, expansion_type=args.expansion_type
-    )
 
 
 def main(args: argparse.Namespace) -> None:
@@ -108,38 +81,18 @@ def main(args: argparse.Namespace) -> None:
                     ) as random_str_file:
                         random_str = random_str_file.read()
 
-                        def time_matching(automaton, random_str):
-                            t0 = time.perf_counter()
-                            # Step through matching
-                            for computation in sc_class.get_computation(
-                                automaton, random_str
-                            ):
-                                pass  # do nothing
-                            assert computation is not None
-                            if not computation.is_final():
-                                pass
-                                # print("NOT FINAL")
-                                # print(
-                                #     re.fullmatch(regex, random_str) is not None
-                                # )
-                                # print()
-                                # print(f"'{regex}'", f"'{random_str}'", sep="\n")
-                            assert computation.is_final()
-                            t1 = time.perf_counter()
-                            duration = t1 - t0
-                            return duration
-
                         num_bytes = len(random_str.encode("utf-8"))
                         if num_bytes == 0:
                             continue
                         with ThreadPoolExecutor(max_workers=1) as executor:
                             future = executor.submit(
-                                time_matching, automaton, random_str
+                                time_matching, automaton, random_str, sc_class
                             )
                             try:
-                                matching_timeout = (
-                                    num_bytes / THROUGHPUT_THRES + 1
-                                )
+                                secs_per_kb = 1 / THROUGHPUT_THRES
+                                secs_per_b = secs_per_kb / 1000
+                                matching_timeout = secs_per_b * num_bytes + 1
+                                print("matching_timeout: ", matching_timeout)
                                 duration = future.result(
                                     timeout=matching_timeout
                                 )

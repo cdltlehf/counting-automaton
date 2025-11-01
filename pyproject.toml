@@ -1,9 +1,10 @@
 [build-system]
-requires = ['setuptools>=45', 'wheel', 'setuptools-scm[toml]>=6.2']
+requires = ['setuptools>=45', 'wheel']
 build-backend = 'setuptools.build_meta'
 
 [project]
-dynamic = ["version", "dependencies"]
+dynamic = ["dependencies"]
+version = "0.0.1"
 name = 'cai4py'                       # short for "counting automaton implementation for python"
 requires-python = '>=3.14'
 

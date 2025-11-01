@@ -33,17 +33,9 @@ def main(args: argparse.Namespace) -> None:
         args.regex, expansion_type=args.expansion_type
     )
     t0 = time.perf_counter()
-    # Step through matching
-    computation = None
-    with open("temp-op-log.txt", "w", encoding="utf-8") as log_file:
-        for c in sc_class.get_computation(automaton, args.input_string):
-            print(c.is_final())
-            print(c)
-            computation = c
-        assert computation is not None
-
+    matcher = sc_class(automaton)
+    is_match = matcher.match(args.input_string)
     t1 = time.perf_counter()
-    is_match = computation.is_final()
     duration = t1 - t0
     num_bytes = len(args.input_string.encode("latin1"))
     print(f"match: {is_match}\nthroughput: {duration * 1000 / num_bytes}\n")
