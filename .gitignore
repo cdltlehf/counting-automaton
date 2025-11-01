@@ -34,3 +34,4 @@ op-counts-per-run-snort3.csv
 op-counts-per-run-polyglot.csv
 
 outputs/
+.bash_history
