@@ -95,6 +95,10 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
             LinkedList.sanity_check(self)
         return node
 
+    def clear(self) -> None:
+        self._head = None
+        self._tail = None
+
     def __str__(self) -> str:
         return " -> ".join(map(lambda node: str(node.value), self))
 

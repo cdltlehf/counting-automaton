@@ -1,13 +1,18 @@
 """Time matching with the position counting automaton and attack strings"""
 
-import sys
 import time
 import argparse
 import logging
 from typing import Type
-from cai4py.counting_automaton.logging import VERBOSE
+from cai4py.counting_automaton._logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
+from cai4py.counting_automaton.position_counting_automaton import (
+    FINAL_STATE,
+    Config,
+    State,
+)
+from cai4py.collections import OrderedSet
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +20,27 @@ logger = logging.getLogger(__name__)
 class VerboseFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         return record.levelno == VERBOSE
+
+
+def match(
+    automaton: pca.PositionCountingAutomaton,
+    w: str,
+) -> bool:
+    configs = OrderedSet([automaton.get_initial_config()])
+    next_configs = OrderedSet()
+    for symbol in w:
+        for c_src in configs:
+            print(c_src)
+            for c_dest in automaton.get_next_configs(c_src, symbol):
+                next_configs.append(c_dest)
+        tmp = configs
+        configs = next_configs
+        tmp.clear()
+        next_configs = tmp
+    for config in configs:
+        if automaton.check_final(config):
+            return True
+    return False
 
 
 def main(args: argparse.Namespace) -> None:
@@ -32,9 +58,10 @@ def main(args: argparse.Namespace) -> None:
     automaton = pca.PositionCountingAutomaton.create(
         args.regex, expansion_type=args.expansion_type
     )
+    print(automaton)
     t0 = time.perf_counter()
-    matcher = sc_class(automaton)
-    is_match = matcher.match(args.input_string)
+
+    is_match = match(automaton, args.input_string)
     t1 = time.perf_counter()
     duration = t1 - t0
     num_bytes = len(args.input_string.encode("latin1"))
