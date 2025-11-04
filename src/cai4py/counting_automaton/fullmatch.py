@@ -1,6 +1,7 @@
 """Time matching with the position counting automaton and attack strings"""
 
 import time
+from functools import lru_cache
 import argparse
 import logging
 from typing import Type
@@ -22,16 +23,27 @@ class VerboseFilter(logging.Filter):
         return record.levelno == VERBOSE
 
 
-def match(
+def fullmatch(
     automaton: pca.PositionCountingAutomaton,
     w: str,
 ) -> bool:
     configs = OrderedSet([automaton.get_initial_config()])
     next_configs = OrderedSet()
     for symbol in w:
+
+        @lru_cache(maxsize=256)
+        def get_next_configs(automaton, configs, symbol):
+            next_configs: OrderedSet[Config] = OrderedSet()
+            for c_src in configs:
+                for c_dest in automaton.get_next_configs(c_src, symbol):
+                    next_configs.append(c_dest)
+            return next_configs
+
+        next_configs = get_next_configs(automaton, configs, symbol)
         for c_src in configs:
             print(c_src)
             for c_dest in automaton.get_next_configs(c_src, symbol):
+                print(c_dest)
                 next_configs.append(c_dest)
         tmp = configs
         configs = next_configs
@@ -61,9 +73,13 @@ def main(args: argparse.Namespace) -> None:
     print(automaton)
     t0 = time.perf_counter()
 
-    is_match = match(automaton, args.input_string)
+    is_match = fullmatch(automaton, args.input_string)
     t1 = time.perf_counter()
     duration = t1 - t0
+    stats = (
+        pca.PositionCountingAutomaton.compute_next_configs.__func__.cache_info()
+    )
+    print("compute_next_configs cache:", stats)
     num_bytes = len(args.input_string.encode("latin1"))
     print(f"match: {is_match}\nthroughput: {duration * 1000 / num_bytes}\n")
 

@@ -1,6 +1,7 @@
 import signal
 import time
 
+from cai4py import fullmatch
 import cai4py.counting_automaton.position_counting_automaton as pca
 
 
@@ -35,19 +36,11 @@ def timed_automaton_construction(regex, expansion_type):
 
 def time_matching(automaton, random_str, sc_class):
     t0 = time.perf_counter()
-    # Step through matching
-    for computation in sc_class.get_computation(automaton, random_str):
-        pass  # do nothing
-    assert computation is not None
-    if not computation.is_final():
-        pass
-        # print("NOT FINAL")
-        # print(
-        #     re.fullmatch(regex, random_str) is not None
-        # )
-        # print()
-        # print(f"'{regex}'", f"'{random_str}'", sep="\n")
-    assert computation.is_final()
+    fullmatch(
+        automaton,
+        random_str,
+        sc_class,
+    )
     t1 = time.perf_counter()
     duration = t1 - t0
     return duration
