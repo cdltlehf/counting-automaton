@@ -21,6 +21,7 @@ from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,u
 from cai4py.parser_tools.parser import SubPattern
 from cai4py.parser_tools.re import _compile
 from cai4py.parser_tools.utils import expand_counters
+from cai4py.cache_utils import make_cached_versions
 
 from .counter_vector import Action
 from .counter_vector import CounterVector
@@ -160,18 +161,8 @@ class PositionCountingAutomaton:
                 return True
         return False
 
-    def get_next_configs(self, config: Config, symbol: str) -> list[Config]:
-        state, _ = config
-        return PositionCountingAutomaton.compute_next_configs(
-            self.follow[state], self.eval_state, config, symbol
-        )
-
-    @classmethod
-    @lru_cache(maxsize=256)
-    def compute_next_configs(
-        cls,
-        transitions,
-        eval_state,
+    def get_next_configs(
+        self,
         config: Config,
         symbol: str,
     ) -> list[Config]:
@@ -185,7 +176,7 @@ class PositionCountingAutomaton:
             return next_configs
 
         # Given a config and symbol, follow the appropriate transitions and determined by the automaton.
-        for guard, action, adjacent_state in transitions:
+        for guard, action, adjacent_state in self.follow[current_state]:
             logger.debug(
                 f"\t\tFollowing an arc... ({current_state},{adjacent_state})"
             )
@@ -199,22 +190,15 @@ class PositionCountingAutomaton:
                 continue
 
             # Check transition symbols match
-            if not eval_state(adjacent_state, symbol):
+            if not self.eval_state(adjacent_state, symbol):
                 logger.debug(f"Symbol {symbol} does not match {adjacent_state}")
                 continue
-            print(f"Symbol {symbol} matches {adjacent_state}")
             next_counter = copy(counter)
             next_counter = action.move_and_apply(next_counter)
 
             logger.debug(f"\t\tArc ({adjacent_state}, {next_counter})")
-            print(next_counter)
             if next_counter or next_counter == {}:
-                next_config = (adjacent_state, next_counter)
-                if next_config not in next_configs:
-                    next_configs.append(next_config)
-                    print("New config found:", next_config)
-                else:
-                    print("Duplicate config found:", next_config)
+                next_configs.append((adjacent_state, next_counter))
 
         logger.debug("\t\tEnd of following!")
         return next_configs

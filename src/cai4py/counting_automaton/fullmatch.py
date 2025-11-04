@@ -1,19 +1,16 @@
 """Time matching with the position counting automaton and attack strings"""
 
-import time
-from functools import lru_cache
 import argparse
 import logging
-from typing import Type
+import time
+from typing import Literal, Type
+
+from cai4py.cache_utils import make_cached_versions
+from cai4py.collections import OrderedSet
 from cai4py.counting_automaton._logging import VERBOSE
+from cai4py.counting_automaton.position_counting_automaton import Config
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
-from cai4py.counting_automaton.position_counting_automaton import (
-    FINAL_STATE,
-    Config,
-    State,
-)
-from cai4py.collections import OrderedSet
 
 logger = logging.getLogger(__name__)
 
@@ -26,33 +23,40 @@ class VerboseFilter(logging.Filter):
 def fullmatch(
     automaton: pca.PositionCountingAutomaton,
     w: str,
-) -> bool:
-    configs = OrderedSet([automaton.get_initial_config()])
-    next_configs = OrderedSet()
-    for symbol in w:
+    cache_type: Literal["lru", "flush_on_full", "none"] = "lru",
+) -> tuple[bool, object]:
+    configs = tuple([automaton.get_initial_config()])
 
-        @lru_cache(maxsize=256)
-        def get_next_configs(automaton, configs, symbol):
-            next_configs: OrderedSet[Config] = OrderedSet()
-            for c_src in configs:
-                for c_dest in automaton.get_next_configs(c_src, symbol):
-                    next_configs.append(c_dest)
-            return next_configs
-
-        next_configs = get_next_configs(automaton, configs, symbol)
+    def get_next_configs(
+        configs: tuple[Config, ...],
+        symbol: str,
+    ) -> tuple[Config, ...]:
+        print(automaton.get_next_configs, cache_type, configs, symbol)
+        next_configs: OrderedSet[Config] = OrderedSet()
         for c_src in configs:
-            print(c_src)
             for c_dest in automaton.get_next_configs(c_src, symbol):
-                print(c_dest)
                 next_configs.append(c_dest)
-        tmp = configs
-        configs = next_configs
-        tmp.clear()
-        next_configs = tmp
+        return tuple(next_configs)
+
+    cached_get_next_configs = make_cached_versions(
+        get_next_configs, maxsize=1024
+    )
+    for symbol in w:
+        logger.debug(f"Processing symbol: {symbol}")
+        logger.debug(f"Current configs: {configs}")
+        configs = cached_get_next_configs[cache_type](
+            configs,
+            symbol,
+        )
+        logger.debug(f"Next configs: {configs}")
+    try:
+        cache_stats = cached_get_next_configs[cache_type].cache_info()
+    except AttributeError:
+        cache_stats = None
     for config in configs:
         if automaton.check_final(config):
-            return True
-    return False
+            return (True, cache_stats)
+    return False, cache_stats
 
 
 def main(args: argparse.Namespace) -> None:
@@ -73,13 +77,12 @@ def main(args: argparse.Namespace) -> None:
     print(automaton)
     t0 = time.perf_counter()
 
-    is_match = fullmatch(automaton, args.input_string)
+    is_match, cache_stats = fullmatch(
+        automaton, args.input_string, args.cache_type
+    )
     t1 = time.perf_counter()
     duration = t1 - t0
-    stats = (
-        pca.PositionCountingAutomaton.compute_next_configs.__func__.cache_info()
-    )
-    print("compute_next_configs cache:", stats)
+    print("cache_stats:", cache_stats)
     num_bytes = len(args.input_string.encode("latin1"))
     print(f"match: {is_match}\nthroughput: {duration * 1000 / num_bytes}\n")
 
@@ -110,5 +113,11 @@ if __name__ == "__main__":
     parser.add_argument("--regex", required=True, type=str)
     parser.add_argument(
         "--expansion-type", required=True, type=str, choices=["inner", "outer"]
+    )
+    parser.add_argument(
+        "--cache-type",
+        type=str,
+        required=True,
+        choices=["lru", "flush_on_full", "none"],
     )
     main(parser.parse_args())
