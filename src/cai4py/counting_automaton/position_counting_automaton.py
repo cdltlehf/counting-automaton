@@ -25,8 +25,8 @@ from cai4py.parser_tools.utils import expand_counters
 from .counter_vector import Action
 from .counter_vector import CounterVector
 from .counter_vector import Guard
-from .logging import ComputationStep
-from .logging import VERBOSE
+from ._logging import ComputationStep
+from ._logging import VERBOSE
 
 logger = logging.getLogger(__name__)
 

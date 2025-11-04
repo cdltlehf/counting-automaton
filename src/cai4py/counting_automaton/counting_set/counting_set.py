@@ -11,8 +11,8 @@ from cai4py.collections import SortedLinkedList
 from ..instrumentation import clone_set_sizes
 from ..instrumentation import merge_set_sizes
 from ..instrumentation import op_name_to_count
-from ..logging import ComputationStep
-from ..logging import VERBOSE
+from .._logging import ComputationStep
+from .._logging import VERBOSE
 
 logger = logging.getLogger(__name__)
 

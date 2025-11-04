@@ -11,8 +11,8 @@ from cai4py.collections import OrderedSet
 from ..counter_vector import CounterOperationComponent
 from ..counter_vector import Guard
 from ..counting_set import CountingSet
-from ..logging import ComputationStepMark
-from ..logging import VERBOSE
+from .._logging import ComputationStepMark
+from .._logging import VERBOSE
 from ..position_counting_automaton import CounterVariable
 from ..position_counting_automaton import FINAL_STATE
 from ..position_counting_automaton import INITIAL_STATE

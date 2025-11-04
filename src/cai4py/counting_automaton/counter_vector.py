@@ -6,8 +6,8 @@ from enum import Enum
 import logging
 from typing import Any, Hashable, Iterable, Mapping, Optional, TypeVar
 
-from .logging import ComputationStep
-from .logging import VERBOSE
+from ._logging import ComputationStep
+from ._logging import VERBOSE
 
 logger = logging.getLogger(__name__)
 
