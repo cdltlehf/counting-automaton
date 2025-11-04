@@ -83,7 +83,10 @@ def main(args: argparse.Namespace) -> None:
                         continue
                     with ThreadPoolExecutor(max_workers=1) as executor:
                         future = executor.submit(
-                            time_matching, automaton, attack_str, sc_class
+                            time_matching,
+                            automaton,
+                            attack_str,
+                            args.cache_type,
                         )
                         try:
                             secs_per_kb = 1 / THROUGHPUT_THRES

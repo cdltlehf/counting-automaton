@@ -44,10 +44,7 @@ def fullmatch(
     for symbol in w:
         logger.debug(f"Processing symbol: {symbol}")
         logger.debug(f"Current configs: {configs}")
-        configs = cached_get_next_configs[cache_type](
-            configs,
-            symbol,
-        )
+        configs = cached_get_next_configs[cache_type](configs, symbol)
         logger.debug(f"Next configs: {configs}")
     try:
         cache_stats = cached_get_next_configs[cache_type].cache_info()

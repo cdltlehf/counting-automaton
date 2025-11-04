@@ -1,7 +1,8 @@
 import signal
+from typing import Literal
 import time
 
-from cai4py import fullmatch
+from cai4py.counting_automaton.fullmatch import fullmatch
 import cai4py.counting_automaton.position_counting_automaton as pca
 
 
@@ -30,16 +31,22 @@ def timeout(seconds):
 
 
 @timeout(seconds=10)
-def timed_automaton_construction(regex, expansion_type):
+def timed_automaton_construction(
+    regex, expansion_type: Literal["full", "inner", "outer"]
+):
     return pca.PositionCountingAutomaton.create(regex, expansion_type)
 
 
-def time_matching(automaton, random_str, sc_class):
+def time_matching(
+    automaton: pca.PositionCountingAutomaton,
+    random_str: str,
+    cache_type: Literal["lru", "flush_on_full", "none"],
+) -> float:
     t0 = time.perf_counter()
     fullmatch(
         automaton,
         random_str,
-        sc_class,
+        cache_type,
     )
     t1 = time.perf_counter()
     duration = t1 - t0

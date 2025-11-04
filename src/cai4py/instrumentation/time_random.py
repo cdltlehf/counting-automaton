@@ -13,7 +13,7 @@ from typing import Type
 
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
-from cai4py.counting_automaton.logging import VERBOSE
+from cai4py.counting_automaton._logging import VERBOSE
 from tqdm import tqdm
 
 from cai4py.instrumentation.utils import (
@@ -48,7 +48,7 @@ def main(args: argparse.Namespace) -> None:
         timing_log_file.write("Regex ID\tMean throughput (KB/sec)\n")
         for i, regex in enumerate(
             tqdm(
-                regex_file.readlines(),
+                regex_file,
                 total=num_regexes,
                 miniters=1,
                 mininterval=0,
@@ -63,7 +63,9 @@ def main(args: argparse.Namespace) -> None:
             total_throughput = 0
             can_write = True
             try:
-                automaton = timed_automaton_construction(regex, args)
+                automaton = timed_automaton_construction(
+                    regex, args.expansion_type
+                )
             except NotImplementedError:
                 continue
             except re.PatternError:
@@ -86,7 +88,10 @@ def main(args: argparse.Namespace) -> None:
                             continue
                         with ThreadPoolExecutor(max_workers=1) as executor:
                             future = executor.submit(
-                                time_matching, automaton, random_str, sc_class
+                                time_matching,
+                                automaton,
+                                random_str,
+                                args.cache_type,
                             )
                             try:
                                 secs_per_kb = 1 / THROUGHPUT_THRES
@@ -146,9 +151,12 @@ if __name__ == "__main__":
         "--expansion-type",
         required=True,
         type=str,
-        choices=["inner", "outer", "all"],
+        choices=["inner", "outer", "full"],
     )
     parser.add_argument(
         "--input-encoding", required=True, choices=["utf-8", "latin1"]
+    )
+    parser.add_argument(
+        "--cache-type", required=True, choices=["lru", "flush_on_full", "none"]
     )
     main(parser.parse_args())
