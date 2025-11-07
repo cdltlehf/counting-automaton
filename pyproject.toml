@@ -6,7 +6,7 @@ build-backend = 'setuptools.build_meta'
 dynamic = ["dependencies"]
 version = "0.0.1"
 name = 'cai4py'                       # short for "counting automaton implementation for python"
-requires-python = '>=3.14'
+requires-python = '>=3.13'
 
 [tool.setuptools.packages.find]
 where = ["src"] # The location of the package(s) to install

@@ -31,5 +31,5 @@ setup(
         "ipykernel",
         "seaborn",
     ],
-    python_requires=">=3.14",
+    python_requires=">=3.13",
 )
