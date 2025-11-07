@@ -1,10 +1,11 @@
 """Counter vector."""
 
 from collections import defaultdict as dd
+from collections.abc import Iterable, Hashable
 from copy import copy
 from enum import Enum
 import logging
-from typing import Any, Hashable, Iterable, Literal, Mapping, Optional, TypeVar
+from typing import Any, Mapping, Optional, TypeVar
 
 from ._logging import ComputationStep
 from ._logging import VERBOSE
