@@ -44,9 +44,12 @@ FINAL_STATE = State(-1)
 GLOBAL_COUNTER = CounterVariable(0)
 
 
-def arc_to_str(arc: Arc) -> str:
+def arc_to_str(
+    arc: Arc, states_to_symbol_preds: dict[State, SymbolPredicate]
+) -> str:
     guard, action, adjacent_state = arc
-    return f"-{{{guard}; {action}}}-> {adjacent_state}"
+    symbol = f"'{states_to_symbol_preds[adjacent_state]}'"
+    return f"-{{ {str(symbol):<4}; {str(guard):<4}; {str(action):<4} }}-> {str(adjacent_state):<4}"
 
 
 def counter_vector_to_json(
@@ -71,6 +74,7 @@ class PositionCountingAutomaton:
         counter_scopes: Optional[dict[CounterVariable, set[State]]] = None,
     ) -> None:
         self.states = states
+        self.states.update({INITIAL_STATE: "", FINAL_STATE: ""})
         self.follow = follow
         self.counters = counters if counters is not None else {}
         if counter_scopes is None:
@@ -144,7 +148,9 @@ class PositionCountingAutomaton:
     def __str__(self) -> str:
 
         follow_string = "\n".join(
-            "\n".join(f"- {state} {arc_to_str(arc)}" for arc in follow)
+            "\n".join(
+                f"- {state} {arc_to_str(arc, self.states)}" for arc in follow
+            )
             for state, follow in self.follow.items()
         )
         return "\n".join(
@@ -300,7 +306,7 @@ class _PositionConstructionCallback:
             y1.follow[final_state].substitute(final_arc, arcs)
 
         for state in y2.states:
-            if state == INITIAL_STATE:
+            if state == INITIAL_STATE or state == FINAL_STATE:
                 continue
             assert state not in y1.follow, str(y1.follow.keys())
             y1.follow[state] = y2.follow[state]
@@ -318,7 +324,9 @@ class _PositionConstructionCallback:
         assert y1.states.keys().isdisjoint(y2.states.keys())
 
         y1.follow[INITIAL_STATE].append_iterable(y2.follow[INITIAL_STATE])
-        for state in y2.states:
+        for state in filter(
+            lambda x: x not in [INITIAL_STATE, FINAL_STATE], y2.states
+        ):
             assert state not in y1.follow
             y1.follow[state] = y2.follow[state]
 

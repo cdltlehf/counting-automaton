@@ -4,7 +4,7 @@ from collections import defaultdict as dd
 from copy import copy
 from enum import Enum
 import logging
-from typing import Any, Hashable, Iterable, Mapping, Optional, TypeVar
+from typing import Any, Hashable, Iterable, Literal, Mapping, Optional, TypeVar
 
 from ._logging import ComputationStep
 from ._logging import VERBOSE
@@ -54,10 +54,13 @@ class CounterVector(dict[T, int], Hashable):
 class CounterPredicate(Hashable):
     """Counter Predicate"""
 
-    class Type(StrEnum):
+    class Type(str, Enum):
         NOT_LESS_THAN = " >= "
         NOT_GREATER_THAN = " <= "
         LESS_THAN = " < "
+
+        def __str__(self) -> str:
+            return self.value
 
     def __init__(self, predicate_type: Type, value: int) -> None:
         self.type = predicate_type
@@ -89,7 +92,7 @@ class CounterPredicate(Hashable):
             raise ValueError(f"Unhandled predicate type: {self.type}")
 
     def __str__(self) -> str:
-        return f"{self.type}{self.value}"
+        return f"{str(self.type)}{self.value}"
 
 
 class Guard(dd[T, list[CounterPredicate]], Hashable):
@@ -142,10 +145,16 @@ class Guard(dd[T, list[CounterPredicate]], Hashable):
         return new
 
     def __str__(self) -> str:
-        return ", ".join(
+        if len(self.items()) == 0:
+            return "True"
+        conditions = ", ".join(
             ", ".join(f"c[{counter}]{predicate}" for predicate in predicates)
             for counter, predicates in self.items()
         )
+        if len(conditions) == 0:
+            return "True"
+        else:
+            return conditions
 
 
 class CounterOperationComponent(StrEnum):
@@ -155,6 +164,9 @@ class CounterOperationComponent(StrEnum):
     ACTIVATE_OR_RESET = " = 1"
     INCREASE = "++"
     INACTIVATE = " = None"
+
+    def __str__(self) -> str:
+        return self.value
 
     def __call__(self, counter_value: Optional[int]) -> Optional[int]:
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
@@ -242,9 +254,13 @@ class Action(dd[T, CounterOperationComponent], Hashable):
         return new
 
     def __str__(self) -> str:
-        return ", ".join(
+        action_str = ", ".join(
             f"c[{counter}]{operation}" for counter, operation in self.items()
         )
+        if action_str == "":
+            return "None"
+        else:
+            return action_str
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Action):
