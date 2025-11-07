@@ -7,7 +7,7 @@ from typing import Type
 
 from tqdm import tqdm
 
-from cai4py.counting_automaton.logging import VERBOSE
+from cai4py.counting_automaton._logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
 from cai4py.instrumentation.constants import THROUGHPUT_THRES

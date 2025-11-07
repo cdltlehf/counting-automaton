@@ -10,9 +10,9 @@ from typing import Any, Callable, Iterable, Optional, Type
 
 import timeout_decorator  # type: ignore
 
-from cai4py.counting_automaton.logging import ComputationStep
-from cai4py.counting_automaton.logging import ComputationStepMark
-from cai4py.counting_automaton.logging import VERBOSE
+from cai4py.counting_automaton._logging import ComputationStep
+from cai4py.counting_automaton._logging import ComputationStepMark
+from cai4py.counting_automaton._logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
 from cai4py.utils import read_test_cases

@@ -18,7 +18,7 @@ from cai4py.counting_automaton.instrumentation import (
     merge_set_sizes,
     op_name_to_count,
 )
-from cai4py.counting_automaton.logging import VERBOSE
+from cai4py.counting_automaton._logging import VERBOSE
 from tqdm import tqdm
 
 from .constants import OP_NAMES
