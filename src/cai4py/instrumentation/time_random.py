@@ -56,23 +56,23 @@ def main(args: argparse.Namespace) -> None:
             start=1,
         ):
             regex = regex[:-1]  # strip newline
-            if not Path(
-                f'{args.random_string_dir.replace("random", "attack")}/{i}.txt'
-            ):
-                continue
             total_throughput = 0
             can_write = True
             try:
                 automaton = timed_automaton_construction(
                     regex, args.expansion_type
                 )
-            except NotImplementedError:
+            except NotImplementedError as e:
+                print(e)
                 continue
-            except re.PatternError:
+            except re.PatternError as e:
+                print(e)
                 continue
-            except ValueError:
+            except ValueError as e:
+                print(e)
                 continue
-            except TimeoutError:
+            except TimeoutError as e:
+                print(e)
                 continue
             for j in range(1, args.num_strings_per_regex + 1):
                 try:
@@ -84,8 +84,6 @@ def main(args: argparse.Namespace) -> None:
                         random_str = random_str_file.read()
 
                         num_bytes = len(random_str.encode("utf-8"))
-                        if num_bytes == 0:
-                            continue
                         with ThreadPoolExecutor(max_workers=1) as executor:
                             future = executor.submit(
                                 time_matching,
@@ -102,16 +100,19 @@ def main(args: argparse.Namespace) -> None:
                                     timeout=matching_timeout
                                 )
                                 assert duration < matching_timeout
-                            except TimeoutError:
-                                print("TIMEOUT")
+                            except TimeoutError as e:
+                                print(e)
                                 timing_log_file.write(
                                     f"{i}\t{THROUGHPUT_THRES/1e6}\n"
                                 )
                                 can_write = False
                                 break
 
-                        total_throughput += num_bytes / 1000 / duration
-                except FileNotFoundError:
+                        total_throughput += (
+                            num_bytes / 1000 / duration
+                        )  # KB/sec
+                except FileNotFoundError as e:
+                    print(e)
                     can_write = False
                     break
             if can_write:
