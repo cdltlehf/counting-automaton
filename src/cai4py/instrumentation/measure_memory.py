@@ -3,14 +3,11 @@
 import argparse
 import logging
 import re
-import time
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from typing import Type
 
-import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
 from cai4py.counting_automaton._logging import VERBOSE
+from cai4py.instrumentation.utils import timed_automaton_construction
 from tqdm import tqdm
 from memory_profiler import memory_usage
 from cai4py.instrumentation.constants import THROUGHPUT_THRES

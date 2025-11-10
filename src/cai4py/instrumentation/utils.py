@@ -4,6 +4,9 @@ import time
 
 from cai4py.counting_automaton.fullmatch import fullmatch
 import cai4py.counting_automaton.position_counting_automaton as pca
+from cai4py.counting_automaton.super_config.super_config_base import (
+    SuperConfigBase,
+)
 
 
 def timeout(seconds):
@@ -38,12 +41,13 @@ def timed_automaton_construction(
 
 
 def time_matching(
+    sc_class: SuperConfigBase,
     automaton: pca.PositionCountingAutomaton,
     random_str: str,
     cache_type: Literal["lru", "flush_on_full", "none"],
 ) -> float:
     t0 = time.perf_counter()
-    fullmatch(automaton, random_str, cache_type)
+    fullmatch(sc_class, automaton, random_str, cache_type)
     t1 = time.perf_counter()
     duration = t1 - t0
     return duration

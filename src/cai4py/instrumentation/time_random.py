@@ -31,7 +31,7 @@ class VerboseFilter(logging.Filter):
 
 def main(args: argparse.Namespace) -> None:
     method: str = args.method
-    sc_class: Type[sc.SuperConfigBase] = {
+    sc_class: sc.SuperConfigBase = {
         "super_config": sc.SuperConfig,
         "bounded_super_config": sc.BoundedSuperConfig,
         "counter_config": sc.CounterConfig,
@@ -87,6 +87,7 @@ def main(args: argparse.Namespace) -> None:
                         with ThreadPoolExecutor(max_workers=1) as executor:
                             future = executor.submit(
                                 time_matching,
+                                sc_class,
                                 automaton,
                                 random_str,
                                 args.cache_type,

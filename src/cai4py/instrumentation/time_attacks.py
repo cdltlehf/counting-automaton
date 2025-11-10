@@ -27,6 +27,17 @@ class VerboseFilter(logging.Filter):
 
 
 def main(args: argparse.Namespace) -> None:
+    method: str = args.method
+    sc_class: sc.SuperConfigBase = {
+        "super_config": sc.SuperConfig,
+        "bounded_super_config": sc.BoundedSuperConfig,
+        "counter_config": sc.CounterConfig,
+        "bounded_counter_config": sc.BoundedCounterConfig,
+        "sparse_counter_config": sc.SparseCounterConfig,
+        "determinized_counter_config": sc.DeterminizedCounterConfig,
+        "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
+        "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
+    }[method]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
@@ -73,6 +84,7 @@ def main(args: argparse.Namespace) -> None:
                     with ThreadPoolExecutor(max_workers=1) as executor:
                         future = executor.submit(
                             time_matching,
+                            sc_class,
                             automaton,
                             attack_str,
                             args.cache_type,
@@ -129,5 +141,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--input-encoding", required=True, choices=["utf-8", "latin1"]
+    )
+    parser.add_argument(
+        "--cache-type", required=True, choices=["lru", "flush_on_full", "none"]
     )
     main(parser.parse_args())

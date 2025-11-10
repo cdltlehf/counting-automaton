@@ -11,6 +11,7 @@ from cai4py.counting_automaton._logging import VERBOSE
 from cai4py.counting_automaton.position_counting_automaton import Config
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
+from cai4py.counting_automaton.super_config import SuperConfigBase
 
 logger = logging.getLogger(__name__)
 
@@ -21,38 +22,36 @@ class VerboseFilter(logging.Filter):
 
 
 def fullmatch(
+    sc_class: SuperConfigBase,
     automaton: pca.PositionCountingAutomaton,
     w: str,
     cache_type: Literal["lru", "flush_on_full", "none"] = "lru",
 ) -> tuple[bool, object]:
-    configs = tuple([automaton.get_initial_config()])
 
-    def get_next_configs(
-        configs: tuple[Config, ...],
+    super_config = sc_class.get_initial(automaton)
+
+    def get_next_super_config(
+        super_config: SuperConfigBase,
         symbol: str,
-    ) -> tuple[Config, ...]:
-        print(automaton.get_next_configs, cache_type, configs, symbol)
-        next_configs: OrderedSet[Config] = OrderedSet()
-        for c_src in configs:
-            for c_dest in automaton.get_next_configs(c_src, symbol):
-                next_configs.append(c_dest)
-        return tuple(next_configs)
+    ) -> SuperConfigBase:
+        return super_config.update(symbol)
 
-    cached_get_next_configs = make_cached_versions(
-        get_next_configs, maxsize=1024
+    cached_get_next_super_config = make_cached_versions(
+        get_next_super_config, maxsize=1024
     )
     for symbol in w:
         logger.debug(f"Processing symbol: {symbol}")
-        logger.debug(f"Current configs: {configs}")
-        configs = cached_get_next_configs[cache_type](configs, symbol)
-        logger.debug(f"Next configs: {configs}")
+        logger.debug(f"Current configs: {super_config}")
+        super_config = cached_get_next_super_config[cache_type](
+            super_config, symbol
+        )
+        logger.debug(f"Next configs: {super_config}")
     try:
-        cache_stats = cached_get_next_configs[cache_type].cache_info()
+        cache_stats = cached_get_next_super_config[cache_type].cache_info()
     except AttributeError:
         cache_stats = None
-    for config in configs:
-        if automaton.check_final(config):
-            return (True, cache_stats)
+    if super_config.is_final():
+        return True, cache_stats
     return False, cache_stats
 
 
@@ -75,7 +74,7 @@ def main(args: argparse.Namespace) -> None:
     t0 = time.perf_counter()
 
     is_match, cache_stats = fullmatch(
-        automaton, args.input_string, args.cache_type
+        sc_class.get_computation, automaton, args.input_string, args.cache_type
     )
     t1 = time.perf_counter()
     duration = t1 - t0

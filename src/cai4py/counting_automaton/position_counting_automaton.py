@@ -292,7 +292,6 @@ class _PositionConstructionCallback:
     def call_catenation(
         self, y1: PositionCountingAutomaton, y2: PositionCountingAutomaton
     ) -> PositionCountingAutomaton:
-        print(y1.states.keys(), y2.states.keys())
         assert set(
             filter(lambda x: x != -1 and x != 0, y1.states.keys())
         ).isdisjoint(y2.states.keys())

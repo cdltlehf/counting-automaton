@@ -13,7 +13,7 @@ import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
 import numpy as np
 import pandas as pd
-from cai4py.counting_automaton.instrumentation import (
+from cai4py.counting_automaton.instrumentation_vars import (
     clone_set_sizes,
     merge_set_sizes,
     op_name_to_count,
