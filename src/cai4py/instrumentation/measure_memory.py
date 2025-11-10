@@ -38,11 +38,6 @@ def main(args: argparse.Namespace) -> None:
             ),
             start=1,
         ):
-            print(regex)
-            if not Path(
-                f'{args.random_string_dir.replace("random", "attack")}/{i}.txt'
-            ):
-                continue
             can_write = True
             try:
                 automaton = timed_automaton_construction(

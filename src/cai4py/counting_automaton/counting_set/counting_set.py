@@ -8,9 +8,9 @@ import warnings
 from cai4py.collections import Node
 from cai4py.collections import SortedLinkedList
 
-from ..instrumentation import clone_set_sizes
-from ..instrumentation import merge_set_sizes
-from ..instrumentation import op_name_to_count
+from ..instrumentation_vars import clone_set_sizes
+from ..instrumentation_vars import merge_set_sizes
+from ..instrumentation_vars import op_name_to_count
 from .._logging import ComputationStep
 from .._logging import VERBOSE
 

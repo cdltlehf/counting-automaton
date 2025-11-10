@@ -292,7 +292,10 @@ class _PositionConstructionCallback:
     def call_catenation(
         self, y1: PositionCountingAutomaton, y2: PositionCountingAutomaton
     ) -> PositionCountingAutomaton:
-        assert y1.states.keys().isdisjoint(y2.states.keys())
+        print(y1.states.keys(), y2.states.keys())
+        assert set(
+            filter(lambda x: x != -1 and x != 0, y1.states.keys())
+        ).isdisjoint(y2.states.keys())
 
         for final_state, final_arc in self.get_final_arcs(y1.follow):
             guard, action, _ = final_arc

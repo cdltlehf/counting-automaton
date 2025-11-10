@@ -27,17 +27,6 @@ class VerboseFilter(logging.Filter):
 
 
 def main(args: argparse.Namespace) -> None:
-    method: str = args.method
-    sc_class: Type[sc.SuperConfigBase] = {
-        "super_config": sc.SuperConfig,
-        "bounded_super_config": sc.BoundedSuperConfig,
-        "counter_config": sc.CounterConfig,
-        "bounded_counter_config": sc.BoundedCounterConfig,
-        "sparse_counter_config": sc.SparseCounterConfig,
-        "determinized_counter_config": sc.DeterminizedCounterConfig,
-        "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
-        "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
-    }[method]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
@@ -88,20 +77,19 @@ def main(args: argparse.Namespace) -> None:
                             attack_str,
                             args.cache_type,
                         )
+                        matching_timeout = (
+                            1 / THROUGHPUT_THRES / 1000 * num_bytes + 1
+                        )
+                        print("matching_timeout: ", matching_timeout)
                         try:
-                            secs_per_kb = 1 / THROUGHPUT_THRES
-                            secs_per_b = secs_per_kb / 1000
-                            matching_timeout = secs_per_b * num_bytes + 1
-                            print("matching_timeout: ", matching_timeout)
                             duration = future.result(timeout=matching_timeout)
-                            assert duration < matching_timeout
                         except TimeoutError as e:
                             print(e)
                             timing_log_file.write(
                                 f"{i}\t{THROUGHPUT_THRES/1e6}\n"
                             )
                             break
-                    num_bytes = len(attack_str.encode(args.input_encoding))
+                        assert duration < matching_timeout
                     timing_log_file.write(
                         f"{i}\t{num_bytes / 1000 / duration}\n"
                     )
