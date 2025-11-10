@@ -82,26 +82,16 @@ def main(args: argparse.Namespace) -> None:
                         print(e)
                         continue
                     with ThreadPoolExecutor(max_workers=1) as executor:
-                        future = executor.submit(
-                            time_matching,
-                            sc_class,
-                            automaton,
-                            attack_str,
-                            args.cache_type,
-                        )
-                        matching_timeout = (
-                            1 / THROUGHPUT_THRES / 1000 * num_bytes + 1
-                        )
-                        print("matching_timeout: ", matching_timeout)
                         try:
-                            duration = future.result(timeout=matching_timeout)
+                            duration = time_matching(
+                                sc_class, automaton, attack_str, args.cache_type
+                            )
                         except TimeoutError as e:
                             print(e)
                             timing_log_file.write(
                                 f"{i}\t{THROUGHPUT_THRES/1e6}\n"
                             )
                             break
-                        assert duration < matching_timeout
                     timing_log_file.write(
                         f"{i}\t{num_bytes / 1000 / duration}\n"
                     )

@@ -5,13 +5,8 @@ from cai4py.instrumentation.constants import THROUGHPUT_THRES
 import argparse
 import logging
 import re
-import signal
-import time
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from typing import Type
 
-import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
 from cai4py.counting_automaton._logging import VERBOSE
 from tqdm import tqdm
@@ -56,6 +51,7 @@ def main(args: argparse.Namespace) -> None:
             start=1,
         ):
             regex = regex[:-1]  # strip newline
+            print(regex)
             total_throughput = 0
             can_write = True
             try:
@@ -84,29 +80,20 @@ def main(args: argparse.Namespace) -> None:
                         random_str = random_str_file.read()
 
                         num_bytes = len(random_str.encode("utf-8"))
-                        with ThreadPoolExecutor(max_workers=1) as executor:
-                            future = executor.submit(
-                                time_matching,
+                        try:
+                            duration = time_matching(
                                 sc_class,
                                 automaton,
                                 random_str,
                                 args.cache_type,
                             )
-                            try:
-                                secs_per_kb = 1 / THROUGHPUT_THRES
-                                secs_per_b = secs_per_kb / 1000
-                                matching_timeout = secs_per_b * num_bytes + 1
-                                duration = future.result(
-                                    timeout=matching_timeout
-                                )
-                                assert duration < matching_timeout
-                            except TimeoutError as e:
-                                print(e)
-                                timing_log_file.write(
-                                    f"{i}\t{THROUGHPUT_THRES/1e6}\n"
-                                )
-                                can_write = False
-                                break
+                        except TimeoutError as e:
+                            print(e)
+                            timing_log_file.write(
+                                f"{i}\t{THROUGHPUT_THRES/1e6}\n"
+                            )
+                            can_write = False
+                            break
 
                         total_throughput += (
                             num_bytes / 1000 / duration

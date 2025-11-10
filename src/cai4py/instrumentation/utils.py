@@ -40,6 +40,7 @@ def timed_automaton_construction(
     return pca.PositionCountingAutomaton.create(regex, expansion_type)
 
 
+@timeout(seconds=1)
 def time_matching(
     sc_class: SuperConfigBase,
     automaton: pca.PositionCountingAutomaton,

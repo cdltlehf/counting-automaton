@@ -10,4 +10,4 @@ OP_NAMES = sorted(
     ]
 )
 
-THROUGHPUT_THRES = 50 * 1e-3  # Kilobytes per second (i.e. 50 B/s)
+THROUGHPUT_THRES = 50 * 1e3  # Kilobytes per second

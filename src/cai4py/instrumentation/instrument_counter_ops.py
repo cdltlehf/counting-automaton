@@ -177,8 +177,10 @@ def main(args: argparse.Namespace) -> None:
                                     overall_clone_set_sizes,
                                     regex,
                                 )
-                                timeout = num_bytes / THROUGHPUT_THRES + 1
-                                _ = future.result(timeout=timeout)
+                                matching_timeout = (
+                                    num_bytes / THROUGHPUT_THRES + 1
+                                )
+                                _ = future.result(matching_timeout)
                         except TimeoutError:
                             print("TIMEOUT")
                             break
