@@ -43,11 +43,7 @@ def time_matching(
     cache_type: Literal["lru", "flush_on_full", "none"],
 ) -> float:
     t0 = time.perf_counter()
-    fullmatch(
-        automaton,
-        random_str,
-        cache_type,
-    )
+    fullmatch(automaton, random_str, cache_type)
     t1 = time.perf_counter()
     duration = t1 - t0
     return duration
