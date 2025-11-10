@@ -96,7 +96,6 @@ def main(args: argparse.Namespace) -> None:
                                 secs_per_kb = 1 / THROUGHPUT_THRES
                                 secs_per_b = secs_per_kb / 1000
                                 matching_timeout = secs_per_b * num_bytes + 1
-                                print("matching_timeout: ", matching_timeout)
                                 duration = future.result(
                                     timeout=matching_timeout
                                 )

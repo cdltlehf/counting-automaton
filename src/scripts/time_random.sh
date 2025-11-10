@@ -1,7 +1,7 @@
 mkdir -p outputs/csa/snort3/inner
 mkdir -p outputs/csa/polyglot/inner
-mkdir -p outputs/dfa/snort3/inner
-mkdir -p outputs/dfa/polyglot/inner
+mkdir -p outputs/csa/snort3/full
+mkdir -p outputs/csa/polyglot/full
 # SNORT3
 # Inner
 python -O -m cai4py.instrumentation.time_random \
