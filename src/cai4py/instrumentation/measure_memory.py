@@ -12,8 +12,9 @@ from tqdm import tqdm
 from cai4py.counting_automaton._logging import VERBOSE
 import cai4py.counting_automaton.super_config as sc
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
-from cai4py.instrumentation.utils import timed_automaton_construction
+from cai4py.instrumentation.utils import run_with_timeout
 from cai4py.counting_automaton.fullmatch import fullmatch
+import cai4py.counting_automaton.position_counting_automaton as pca
 
 logger = logging.getLogger(__name__)
 
@@ -31,17 +32,21 @@ def main(args: argparse.Namespace) -> None:
         mem_usage_log_file.write("Regex ID\tPeak memory usage (MiB)\n")
         for i, regex in enumerate(
             tqdm(
-                regex_file.readlines(),
+                regex_file,
                 total=num_regexes,
                 miniters=1,
                 mininterval=0,
             ),
             start=1,
         ):
+            regex = regex[:-1]  # strip newline
+            print(regex, file=sys.stderr)
             can_write = True
             try:
-                automaton = timed_automaton_construction(
-                    regex, args.expansion_type
+                automaton = run_with_timeout(
+                    func=pca.PositionCountingAutomaton.create,
+                    args=(regex, args.expansion_type),
+                    timeout=10,
                 )
             except TimeoutError as e:
                 print(e, file=sys.stderr)
@@ -64,13 +69,18 @@ def main(args: argparse.Namespace) -> None:
                         encoding=args.input_encoding,
                     ) as random_str_file:
                         random_str = random_str_file.read()
+                        num_bytes = len(random_str.encode("utf-8"))
 
                         def measure_memory_used_during_matching(
                             automaton, random_str, args
                         ):
-
-                            max_mem_usage = memory_usage(
-                                (
+                            max_mem_usage = run_with_timeout(
+                                func=lambda func, args: memory_usage(
+                                    (func, args),  # type: ignore
+                                    max_usage=True,
+                                    retval=False,
+                                ),
+                                args=(
                                     fullmatch,
                                     (
                                         sc.SparseCounterConfig,
@@ -78,35 +88,28 @@ def main(args: argparse.Namespace) -> None:
                                         random_str,
                                         args.cache_type,
                                     ),
-                                ),  # type: ignore
-                                max_usage=True,
+                                ),
+                                timeout=1 / THROUGHPUT_THRES * num_bytes + 3,
                             )
+                            assert isinstance(max_mem_usage, float)
                             return (
                                 max_mem_usage * 1e6
                                 - len(random_str.encode("utf-8"))
                             ) / 1e6
 
-                        num_bytes = len(random_str.encode("utf-8"))
-                        with ThreadPoolExecutor(max_workers=1) as executor:
-                            future = executor.submit(
-                                measure_memory_used_during_matching,
-                                (automaton, random_str, args),  # type: ignore
+                        try:
+                            peak_mem_usage = (
+                                measure_memory_used_during_matching(
+                                    automaton, random_str, args
+                                )
                             )
-                            try:
-                                matching_timeout = (
-                                    num_bytes / THROUGHPUT_THRES + 1
-                                )
-                                peak_mem_usage = future.result(
-                                    timeout=matching_timeout
-                                )
-                                mean_mem_usage += (
-                                    peak_mem_usage / args.num_strings_per_regex
-                                )
-                            except TimeoutError as e:
-                                print(e, file=sys.stderr)
-                                can_write = False
-                                executor.shutdown(wait=False)
-                                break
+                            mean_mem_usage += (
+                                peak_mem_usage / args.num_strings_per_regex
+                            )
+                        except TimeoutError as e:
+                            print(e, file=sys.stderr)
+                            can_write = False
+                            break
 
                 except FileNotFoundError:
                     can_write = False

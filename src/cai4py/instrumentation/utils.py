@@ -1,15 +1,15 @@
-import signal
+import sys
 from typing import Literal
 import time
 import multiprocessing
-from multiprocessing.queues import Empty
+from multiprocessing.queues import Empty  # type: ignore
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
 
 from cai4py.counting_automaton.fullmatch import fullmatch
 import cai4py.counting_automaton.position_counting_automaton as pca
 from cai4py.counting_automaton.super_config.super_config_base import (
     SuperConfigBase,
 )
-import pickle
 
 
 def run_with_timeout(func, args=(), timeout=None):
@@ -30,14 +30,12 @@ def run_with_timeout(func, args=(), timeout=None):
     def target_func(args: tuple, out: multiprocessing.Queue):
         try:
             result = func(*args)
-            print(pickle.dumps(result))
-            print(result)
-            print("Putting result in queue")
             out.put(result)
-            print("Result put in queue")
         except TimeoutError as e:
+            print(e, file=sys.stderr)
             out.put(e)
         except Exception as e:
+            print(e, file=sys.stderr)
             out.put(e)
 
     q = multiprocessing.Queue()
@@ -55,12 +53,16 @@ def run_with_timeout(func, args=(), timeout=None):
     try:
         result = q.get(timeout=1)
         if isinstance(result, Exception):
-            raise result  # Re-raise the exception
+            raise result from result  # Re-raise the exception
         elif isinstance(result, pca.PositionCountingAutomaton):
             print("Received automaton")
         return result
     except Empty:
         return None
+
+
+def get_matching_timeout(num_bytes: int) -> float:
+    return num_bytes / THROUGHPUT_THRES + 1
 
 
 def time_matching(

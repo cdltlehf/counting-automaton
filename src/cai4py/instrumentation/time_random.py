@@ -14,6 +14,7 @@ import cai4py.counting_automaton.position_counting_automaton as pca
 from tqdm import tqdm
 
 from cai4py.instrumentation.utils import (
+    get_matching_timeout,
     run_with_timeout,
     time_matching,
 )
@@ -60,8 +61,9 @@ def main(args: argparse.Namespace) -> None:
                 automaton = run_with_timeout(
                     func=pca.PositionCountingAutomaton.create,
                     args=(regex, args.expansion_type),
-                    timeout=5,
+                    timeout=10,
                 )
+                assert isinstance(automaton, pca.PositionCountingAutomaton)
                 if automaton is None:
                     raise RuntimeError("Automaton is None")
             except NotImplementedError as e:
@@ -87,9 +89,7 @@ def main(args: argparse.Namespace) -> None:
 
                         num_bytes = len(random_str.encode("utf-8"))
                         try:
-                            matching_timeout = (
-                                1 / THROUGHPUT_THRES * num_bytes + 1
-                            )
+                            matching_timeout = get_matching_timeout(num_bytes)
                             print(matching_timeout)
                             duration = run_with_timeout(
                                 func=time_matching,
@@ -101,6 +101,7 @@ def main(args: argparse.Namespace) -> None:
                                 ),
                                 timeout=matching_timeout,
                             )
+                            assert isinstance(duration, float)
                         except TimeoutError as e:
                             print(e)
                             timing_log_file.write(

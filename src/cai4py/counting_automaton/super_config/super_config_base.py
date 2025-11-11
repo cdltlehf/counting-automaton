@@ -64,3 +64,11 @@ class SuperConfigBase(abc.ABC):
 
     def __str__(self) -> str:
         return dumps(self.to_json())
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SuperConfigBase):
+            return False
+        return str(self) == str(other)

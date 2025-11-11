@@ -15,7 +15,7 @@ from cai4py.instrumentation.constants import THROUGHPUT_THRES
 from concurrent.futures import ThreadPoolExecutor
 
 from cai4py.instrumentation.utils import (
-    timed_automaton_construction,
+    run_with_timeout,
     time_matching,
 )
 
@@ -55,9 +55,12 @@ def main(args: argparse.Namespace) -> None:
         ):
             regex = regex[:-1]  # strip newline
             try:
-                automaton = timed_automaton_construction(
-                    regex, expansion_type=args.expansion_type
+                automaton = run_with_timeout(
+                    func=pca.PositionCountingAutomaton.create,
+                    args=(regex, args.expansion_type),
+                    timeout=10,
                 )
+                assert isinstance(automaton, pca.PositionCountingAutomaton)
             except TimeoutError as e:
                 print(e, file=sys.stderr)
                 continue
