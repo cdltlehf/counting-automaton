@@ -18,7 +18,7 @@ def is_nullable(tree: SubPattern) -> bool:
         raise ValueError("Pattern has extended features")
 
     def f(
-        x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[bool]
+        x: Optional[tuple[_NamedIntConstant, Any]], ys: Iterable[bool]
     ) -> bool:
         if x is None:
             return all(ys)
@@ -42,7 +42,7 @@ def is_nullable(tree: SubPattern) -> bool:
 
 def is_problematic(tree: SubPattern) -> bool:
     def f(
-        x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[bool]
+        x: Optional[tuple[_NamedIntConstant, Any]], ys: Iterable[bool]
     ) -> bool:
         if x is None:
             return any(ys)
@@ -88,7 +88,7 @@ def is_finite_pattern(tree: SubPattern) -> bool:
 
 
 def counting_height(tree: SubPattern) -> int:
-    def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[int]) -> int:
+    def f(x: Optional[tuple[_NamedIntConstant, Any]], ys: Iterable[int]) -> int:
         if x is None:
             return max(ys, default=0)
         opcode, _ = x

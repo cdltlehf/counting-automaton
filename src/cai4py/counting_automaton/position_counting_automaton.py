@@ -5,19 +5,32 @@ from functools import lru_cache, reduce
 from json import dumps
 import logging
 from typing import Any, Iterable, Literal, NewType, Optional
+from cai4py.parser_tools.constants import _NamedIntConstant
 
 from cai4py.collections import OrderedSet
 from cai4py.parser_tools import fold
 from cai4py.parser_tools import MAX_PLUS
 from cai4py.parser_tools import MAX_QUESTION
-from cai4py.parser_tools import MAX_REPEAT
+from cai4py.parser_tools import MAX_REPEAT  # type: ignore
 from cai4py.parser_tools import MAX_STAR
 from cai4py.parser_tools import MIN_PLUS
 from cai4py.parser_tools import MIN_QUESTION
-from cai4py.parser_tools import MIN_REPEAT
+from cai4py.parser_tools import MIN_REPEAT  # type: ignore
 from cai4py.parser_tools import MIN_STAR
+from cai4py.parser_tools.constants import AT  # type: ignore
+from cai4py.parser_tools.constants import ATOMIC_GROUP  # type: ignore
+from cai4py.parser_tools.constants import ANY  # type: ignore
+from cai4py.parser_tools.constants import BRANCH  # type: ignore
+from cai4py.parser_tools.constants import IN  # type: ignore
+from cai4py.parser_tools.constants import LITERAL  # type: ignore
+from cai4py.parser_tools.constants import NOT_LITERAL  # type: ignore
+from cai4py.parser_tools.constants import POSSESSIVE_PLUS
+from cai4py.parser_tools.constants import POSSESSIVE_QUESTION
+from cai4py.parser_tools.constants import POSSESSIVE_STAR
+from cai4py.parser_tools.constants import POSSESSIVE_REPEAT  # type: ignore
+from cai4py.parser_tools.constants import SUBPATTERN  # type: ignore
+from cai4py.parser_tools.constants import MAXREPEAT
 from cai4py.parser_tools import parse
-from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from cai4py.parser_tools.parser import SubPattern
 from cai4py.parser_tools.re import _compile
 from cai4py.parser_tools.utils import expand_counters
@@ -119,7 +132,7 @@ class PositionCountingAutomaton:
         callback_object = _PositionConstructionCallback()
 
         def callback(
-            x: Optional[tuple[NamedIntConstant, Any]],
+            x: Optional[tuple[_NamedIntConstant, Any]],
             ys: Iterable[PositionCountingAutomaton],
         ) -> PositionCountingAutomaton:
             automaton = callback_object(x, ys)
@@ -512,7 +525,7 @@ class _PositionConstructionCallback:
 
     def __call__(
         self,
-        x: Optional[tuple[NamedIntConstant, Any]],
+        x: Optional[tuple[_NamedIntConstant, Any]],
         ys: Iterable[PositionCountingAutomaton],
     ) -> PositionCountingAutomaton:
 

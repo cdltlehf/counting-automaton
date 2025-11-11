@@ -70,7 +70,7 @@ def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
 
 
 def fold(
-    f: Callable[[Optional[tuple[NamedIntConstant, Any]], Iterable[T]], T],
+    f: Callable[[Optional[tuple[_NamedIntConstant, Any]], Iterable[T]], T],
     tree: SubPattern,
 ) -> T:
     """TODO: document"""
@@ -87,7 +87,7 @@ def fold(
     return f(None, _fold(tree))
 
 
-def dfs(tree: SubPattern) -> Iterable[tuple[NamedIntConstant, Any]]:
+def dfs(tree: SubPattern) -> Iterable[tuple[_NamedIntConstant, Any]]:
     return fold(
         lambda x, ys: chain([] if x is None else [x], chain.from_iterable(ys)),
         tree,
@@ -112,7 +112,7 @@ def in_to_string(xs: list[Any]) -> str:
     return "".join(result)
 
 
-def category_to_string(category: NamedIntConstant) -> str:
+def category_to_string(category: _NamedIntConstant) -> str:
     try:
         return {
             CATEGORY_WORD: "\\w",
@@ -129,7 +129,7 @@ def category_to_string(category: NamedIntConstant) -> str:
 
 
 def repeat_to_string(
-    opcode: NamedIntConstant,
+    opcode: _NamedIntConstant,
     operand: Any,
     ys: Iterable[str],
 ) -> str:
@@ -148,7 +148,7 @@ def repeat_to_string(
 
 
 def subpattern_to_string(
-    opcode: NamedIntConstant, operand: Any, ys: Iterable[str]
+    opcode: _NamedIntConstant, operand: Any, ys: Iterable[str]
 ) -> str:
     if opcode is SUBPATTERN:
         _, add_flags, del_flags = operand
@@ -168,7 +168,7 @@ def subpattern_to_string(
         return f"(?{lookbehind_ch}{assert_ch}{''.join(ys)})"
 
 
-def at_to_string(at: NamedIntConstant) -> str:
+def at_to_string(at: _NamedIntConstant) -> str:
     try:
         return {
             AT_BEGINNING: "^",
@@ -183,7 +183,7 @@ def at_to_string(at: NamedIntConstant) -> str:
 
 
 def to_string_f(
-    x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]
+    x: Optional[tuple[_NamedIntConstant, Any]], ys: Iterable[str]
 ) -> str:
     if x is None:
         return "".join(ys)
@@ -262,7 +262,7 @@ def normalize(tree: SubPattern) -> SubPattern:
        the maximum bound of re2 is 1,000.
     """
 
-    def f(x: Optional[tuple[NamedIntConstant, Any]], ys: Iterable[str]) -> str:
+    def f(x: Optional[tuple[_NamedIntConstant, Any]], ys: Iterable[str]) -> str:
         if x is None:
             return "".join(ys)
         opcode, operand = x

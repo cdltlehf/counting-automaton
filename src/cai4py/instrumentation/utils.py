@@ -1,4 +1,5 @@
 import sys
+import traceback
 from typing import Literal
 import time
 import multiprocessing
@@ -36,6 +37,7 @@ def run_with_timeout(func, args=(), timeout=None):
             out.put(e)
         except Exception as e:
             print(e, file=sys.stderr)
+            traceback.print_exc()
             out.put(e)
 
     q = multiprocessing.Queue()

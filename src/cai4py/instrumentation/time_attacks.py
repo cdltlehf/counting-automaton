@@ -61,6 +61,9 @@ def main(args: argparse.Namespace) -> None:
                     timeout=10,
                 )
                 assert isinstance(automaton, pca.PositionCountingAutomaton)
+                if automaton is None:
+                    print(regex)
+                    raise RuntimeError("Automaton creation failed")
             except TimeoutError as e:
                 print(e, file=sys.stderr)
                 continue

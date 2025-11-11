@@ -1,6 +1,6 @@
 # type: ignore
 """Constants used by the re module."""
-from re._constants import _NamedIntConstant as NamedIntConstant  # type: ignore
+from re._constants import _NamedIntConstant  # type: ignore
 from re._constants import ANY
 from re._constants import ASSERT
 from re._constants import ASSERT_NOT
@@ -48,16 +48,18 @@ from re._constants import SRE_FLAG_VERBOSE
 from re._constants import SUBPATTERN
 from re._constants import SUCCESS
 
-MAX_QUESTION = NamedIntConstant(len(OPCODES) + 4, "MAX_QUESTION")
-MIN_QUESTION = NamedIntConstant(len(OPCODES) + 5, "MIN_QUESTION")
-MAX_STAR = NamedIntConstant(len(OPCODES) + 6, "MAX_STAR")
-MIN_STAR = NamedIntConstant(len(OPCODES) + 7, "MIN_STAR")
-MAX_PLUS = NamedIntConstant(len(OPCODES) + 8, "MAX_PLUS")
-MIN_PLUS = NamedIntConstant(len(OPCODES) + 9, "MIN_PLUS")
+MAX_QUESTION = _NamedIntConstant(len(OPCODES) + 4, "MAX_QUESTION")
+MIN_QUESTION = _NamedIntConstant(len(OPCODES) + 5, "MIN_QUESTION")
+MAX_STAR = _NamedIntConstant(len(OPCODES) + 6, "MAX_STAR")
+MIN_STAR = _NamedIntConstant(len(OPCODES) + 7, "MIN_STAR")
+MAX_PLUS = _NamedIntConstant(len(OPCODES) + 8, "MAX_PLUS")
+MIN_PLUS = _NamedIntConstant(len(OPCODES) + 9, "MIN_PLUS")
 
-POSSESSIVE_QUESTION = NamedIntConstant(len(OPCODES) + 10, "POSSESSIVE_QUESTION")
-POSSESSIVE_STAR = NamedIntConstant(len(OPCODES) + 11, "POSSESSIVE_STAR")
-POSSESSIVE_PLUS = NamedIntConstant(len(OPCODES) + 12, "POSSESSIVE_PLUS")
+POSSESSIVE_QUESTION = _NamedIntConstant(
+    len(OPCODES) + 10, "POSSESSIVE_QUESTION"
+)
+POSSESSIVE_STAR = _NamedIntConstant(len(OPCODES) + 11, "POSSESSIVE_STAR")
+POSSESSIVE_PLUS = _NamedIntConstant(len(OPCODES) + 12, "POSSESSIVE_PLUS")
 
 __all__ = [
     "ANY",
@@ -93,7 +95,7 @@ __all__ = [
     "MIN_REPEAT",
     "NEGATE",
     "NOT_LITERAL",
-    "NamedIntConstant",
+    "_NamedIntConstant",
     "POSSESSIVE_REPEAT",
     "RANGE",
     "SRE_FLAG_ASCII",
@@ -122,7 +124,7 @@ __all__ = [
 # Monkey-patch _NamedIntConstant to make it pickleable
 def _named_int_constant_reduce(self):
     """Custom pickle support for _NamedIntConstant."""
-    return (NamedIntConstant, (int(self), str(self)))
+    return (_NamedIntConstant, (int(self), str(self)))
 
 
-NamedIntConstant.__reduce__ = _named_int_constant_reduce  # type: ignore
+_NamedIntConstant.__reduce__ = _named_int_constant_reduce  # type: ignore
