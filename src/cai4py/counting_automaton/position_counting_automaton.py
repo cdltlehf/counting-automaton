@@ -31,7 +31,10 @@ logger = logging.getLogger(__name__)
 
 State = NewType("State", int)
 CounterVariable = NewType("CounterVariable", int)
-SymbolPredicate = Any
+
+# SymbolPredicate is either a string (for literal characters) or a SubPattern (for character classes)
+SymbolPredicate = str | SubPattern
+
 Arc = tuple[Guard[CounterVariable], Action[CounterVariable], State]
 Follow = dict[State, OrderedSet[Arc]]
 Config = tuple[State, CounterVector[CounterVariable]]
@@ -198,6 +201,50 @@ class PositionCountingAutomaton:
         logger.debug("Backtrack matching")
         initial_config = self.get_initial_config()
         return self.backtrack(w, initial_config, 0)
+
+    def __getstate__(self):
+        return (
+            self.states,
+            self.follow,
+            self.counters,
+            self.counter_scopes,
+            self._state_scopes,
+        )
+
+    def __setstate__(self, state):
+        (
+            self.states,
+            self.follow,
+            self.counters,
+            self.counter_scopes,
+            self._state_scopes,
+        ) = state
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PositionCountingAutomaton):
+            return False
+
+        # Compare states - need special handling for SubPattern objects
+        if set(self.states.keys()) != set(other.states.keys()):
+            return False
+        for key in self.states:
+            val1, val2 = self.states[key], other.states[key]
+            if isinstance(val1, str) and isinstance(val2, str):
+                if val1 != val2:
+                    return False
+            elif isinstance(val1, SubPattern) and isinstance(val2, SubPattern):
+                if val1.data != val2.data:
+                    return False
+            else:
+                if val1 != val2:
+                    return False
+
+        return (
+            self.follow == other.follow
+            and self.counters == other.counters
+            and self.counter_scopes == other.counter_scopes
+            and self._state_scopes == other._state_scopes
+        )
 
 
 class _PositionConstructionCallback:

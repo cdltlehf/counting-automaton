@@ -14,3 +14,9 @@ class Node(Generic[T]):
         self.next = None
         self.prev = None
         self.value = value
+
+    def __getstate__(self):
+        return (self.next, self.prev, self.value)
+
+    def __setstate__(self, state):
+        self.next, self.prev, self.value = state

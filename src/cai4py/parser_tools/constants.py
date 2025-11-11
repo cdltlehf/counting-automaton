@@ -117,3 +117,12 @@ __all__ = [
     "POSSESSIVE_PLUS",
     "error",
 ]
+
+
+# Monkey-patch _NamedIntConstant to make it pickleable
+def _named_int_constant_reduce(self):
+    """Custom pickle support for _NamedIntConstant."""
+    return (NamedIntConstant, (int(self), str(self)))
+
+
+NamedIntConstant.__reduce__ = _named_int_constant_reduce  # type: ignore

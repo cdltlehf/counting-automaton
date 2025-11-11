@@ -142,3 +142,17 @@ class OrderedSet(Generic[T]):
 
     def __str__(self) -> str:
         return f"OrderedSet({', '.join(map(str, self))})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, OrderedSet):
+            return False
+        # Compare both length and elements in order
+        if len(self) != len(other):
+            return False
+        return all(a == b for a, b in zip(self, other))
+
+    def __getstate__(self):
+        return (self.list, self.node)
+
+    def __setstate__(self, state):
+        self.list, self.node = state

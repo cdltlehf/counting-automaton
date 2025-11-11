@@ -126,3 +126,9 @@ class LinkedList(Generic[T], Iterable[Node[T]]):
         if __debug__:
             self.sanity_check()
         return new_node
+
+    def __getstate__(self):
+        return (self._head, self._tail)
+
+    def __setstate__(self, state):
+        self._head, self._tail = state

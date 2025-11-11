@@ -1,5 +1,6 @@
 """Unit tests for position_counter_automaton.py"""
 
+import pickle
 import logging
 import random
 import re
@@ -8,7 +9,6 @@ import unittest
 import warnings
 
 from timeout_decorator import timeout  # type: ignore
-from timeout_decorator.timeout_decorator import TimeoutError  # type: ignore
 
 import cai4py.counting_automaton.position_counting_automaton as pca
 from cai4py.utils import load_test_cases
@@ -24,6 +24,23 @@ class TestPositionCountingAutomaton(unittest.TestCase):
         dataset_path = "data/patterns/all_regexes.txt"
         self.test_cases = load_test_cases(dataset_path)
         self.timeout = 1
+
+    def test_pickle(self) -> None:
+        from pickle import dumps as pickle_dumps
+
+        for pattern, _ in self.test_cases:
+            try:
+                automaton = pca.PositionCountingAutomaton.create(pattern)
+                pickle.dumps(list(automaton.states.keys()))
+                vals = list(automaton.states.values())
+                print(vals)
+                pickle.dumps(vals)
+                serialized = pickle_dumps(automaton)
+                deserialized = pickle.loads(serialized)
+                self.assertEqual(automaton, deserialized)
+            except ValueError as ve:
+                print(ve)
+                continue
 
     def test_match(self) -> None:
         def modify_text(text: str) -> str:

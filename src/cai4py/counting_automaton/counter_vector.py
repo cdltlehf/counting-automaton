@@ -78,6 +78,11 @@ class CounterPredicate(Hashable):
     def __hash__(self) -> int:
         return hash((self.type, self.value))
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, CounterPredicate):
+            return False
+        return self.type == other.type and self.value == other.value
+
     def __call__(self, counter_value: int) -> bool:
         if self.type is CounterPredicate.Type.NOT_LESS_THAN:
             return counter_value >= self.value
@@ -145,6 +150,22 @@ class Guard(dd[T, list[CounterPredicate]], Hashable):
         return ", ".join(
             ", ".join(f"c[{counter}]{predicate}" for predicate in predicates)
             for counter, predicates in self.items()
+        )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Guard):
+            return NotImplemented
+        # Compare only the dict contents, not the default_factory
+        return dict(self) == dict(other)
+
+    def __reduce__(self):
+        # Custom pickle support - return constructor and args
+        return (
+            self.__class__,
+            (dict(self),),  # Pass the dict as the 'guard' parameter
+            None,
+            None,
+            None,
         )
 
 
@@ -249,4 +270,16 @@ class Action(dd[T, CounterOperationComponent], Hashable):
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Action):
             return NotImplemented
-        return hash(self) == hash(other)
+        # Compare only the dict contents, not the default_factory
+        return dict(self) == dict(other)
+
+    def __reduce__(self):
+        # Custom pickle support - return constructor and args
+        # We return the class, a tuple of args for __init__, and the state dict
+        return (
+            self.__class__,
+            (dict(self),),  # Pass the dict as the 'action' parameter
+            None,
+            None,
+            None,
+        )
