@@ -5,7 +5,6 @@ from functools import reduce
 from json import dumps
 import logging
 from typing import Any, Iterable, Literal, NewType, Optional
-from cai4py.parser_tools.constants import _NamedIntConstant
 
 from cai4py.collections import OrderedSet
 from cai4py.parser_tools import fold
@@ -17,27 +16,30 @@ from cai4py.parser_tools import MIN_PLUS
 from cai4py.parser_tools import MIN_QUESTION
 from cai4py.parser_tools import MIN_REPEAT  # type: ignore
 from cai4py.parser_tools import MIN_STAR
-from cai4py.parser_tools.constants import ATOMIC_GROUP  # type: ignore
+from cai4py.parser_tools import parse
+from cai4py.parser_tools.constants import _NamedIntConstant
 from cai4py.parser_tools.constants import ANY  # type: ignore
+from cai4py.parser_tools.constants import AT  # type: ignore
+from cai4py.parser_tools.constants import ATOMIC_GROUP  # type: ignore
+from cai4py.parser_tools.constants import BRANCH  # type: ignore
 from cai4py.parser_tools.constants import IN  # type: ignore
 from cai4py.parser_tools.constants import LITERAL  # type: ignore
+from cai4py.parser_tools.constants import MAXREPEAT
 from cai4py.parser_tools.constants import NOT_LITERAL  # type: ignore
 from cai4py.parser_tools.constants import POSSESSIVE_PLUS
 from cai4py.parser_tools.constants import POSSESSIVE_QUESTION
-from cai4py.parser_tools.constants import POSSESSIVE_STAR
 from cai4py.parser_tools.constants import POSSESSIVE_REPEAT  # type: ignore
+from cai4py.parser_tools.constants import POSSESSIVE_STAR
 from cai4py.parser_tools.constants import SUBPATTERN  # type: ignore
-from cai4py.parser_tools.constants import MAXREPEAT
-from cai4py.parser_tools import parse
 from cai4py.parser_tools.parser import SubPattern
 from cai4py.parser_tools.re import _compile
 from cai4py.parser_tools.utils import expand_counters
 
+from ._logging import ComputationStep
+from ._logging import VERBOSE
 from .counter_vector import Action
 from .counter_vector import CounterVector
 from .counter_vector import Guard
-from ._logging import ComputationStep
-from ._logging import VERBOSE
 
 logger = logging.getLogger(__name__)
 
