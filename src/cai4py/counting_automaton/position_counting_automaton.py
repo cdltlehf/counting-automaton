@@ -1,7 +1,7 @@
 """Position counting automaton."""
 
 from copy import copy
-from functools import lru_cache, reduce
+from functools import reduce
 from json import dumps
 import logging
 from typing import Any, Iterable, Literal, NewType, Optional
@@ -17,10 +17,8 @@ from cai4py.parser_tools import MIN_PLUS
 from cai4py.parser_tools import MIN_QUESTION
 from cai4py.parser_tools import MIN_REPEAT  # type: ignore
 from cai4py.parser_tools import MIN_STAR
-from cai4py.parser_tools.constants import AT  # type: ignore
 from cai4py.parser_tools.constants import ATOMIC_GROUP  # type: ignore
 from cai4py.parser_tools.constants import ANY  # type: ignore
-from cai4py.parser_tools.constants import BRANCH  # type: ignore
 from cai4py.parser_tools.constants import IN  # type: ignore
 from cai4py.parser_tools.constants import LITERAL  # type: ignore
 from cai4py.parser_tools.constants import NOT_LITERAL  # type: ignore
@@ -34,7 +32,6 @@ from cai4py.parser_tools import parse
 from cai4py.parser_tools.parser import SubPattern
 from cai4py.parser_tools.re import _compile
 from cai4py.parser_tools.utils import expand_counters
-from cai4py.cache_utils import make_cached_versions
 
 from .counter_vector import Action
 from .counter_vector import CounterVector
@@ -152,6 +149,9 @@ class PositionCountingAutomaton:
     def eval_state(self, state: State, symbol: str) -> bool:
         assert len(symbol) == 1
         logger.log(VERBOSE, ComputationStep.EVAL_SYMBOL.value)
+        logger.debug("Evaluating state: %s with symbol: %s", state, symbol)
+        logger.debug("State type: %s", type(self.states[state]))
+        logger.debug("State value: %s", self.states[state])
         if isinstance(self.states[state], str):
             return bool(self.states[state] == symbol)
         elif isinstance(self.states[state], SubPattern):
@@ -200,7 +200,7 @@ class PositionCountingAutomaton:
         # Given a config and symbol, follow the appropriate transitions and determined by the automaton.
         for guard, action, adjacent_state in self.follow[current_state]:
             logger.debug(
-                f"\t\tFollowing an arc... ({current_state},{adjacent_state})"
+                "\t\tFollowing an arc... (%s,%s)", current_state, adjacent_state
             )
             if adjacent_state is FINAL_STATE:
                 logger.debug("Skipping final state")
@@ -208,17 +208,19 @@ class PositionCountingAutomaton:
 
             # Counter does not adhere to guard
             if not guard(counter):
-                logger.debug(f"Guard {guard}({counter}) is not satisfied")
+                logger.debug("Guard %s(%s) is not satisfied", guard, counter)
                 continue
 
             # Check transition symbols match
             if not self.eval_state(adjacent_state, symbol):
-                logger.debug(f"Symbol {symbol} does not match {adjacent_state}")
+                logger.debug(
+                    "Symbol %s does not match %s", symbol, adjacent_state
+                )
                 continue
             next_counter = copy(counter)
             next_counter = action.move_and_apply(next_counter)
 
-            logger.debug(f"\t\tArc ({adjacent_state}, {next_counter})")
+            logger.debug("\t\tArc (%s, %s)", adjacent_state, next_counter)
             if next_counter or next_counter == {}:
                 next_configs.append((adjacent_state, next_counter))
 
@@ -336,6 +338,9 @@ class _PositionConstructionCallback:
         _, operand = x
         self.state += 1
 
+        if isinstance(operand, _NamedIntConstant):
+            operand = str(operand)  # Convert _NamedIntConstant to str
+
         follow: Follow = {}
         follow.setdefault(
             INITIAL_STATE,
@@ -402,6 +407,7 @@ class _PositionConstructionCallback:
     def call_star(
         self, y: PositionCountingAutomaton, lazy: bool
     ) -> PositionCountingAutomaton:
+        logger.debug("Handling MAX_STAR opcode with lazy=%s", lazy)
         y = self.call_plus(y, lazy)
         y = self.call_question(y, lazy)
         return y
@@ -533,6 +539,9 @@ class _PositionConstructionCallback:
             return reduce(self.call_catenation, ys, self.call_empty())
 
         opcode, operand = x
+
+        logger.debug("Processing opcode: %s", opcode)
+
         if opcode in {LITERAL, ANY, NOT_LITERAL, IN}:
             return self.call_predicate(x)
         elif opcode is AT:

@@ -7,14 +7,20 @@ from re import escape
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Optional, TypeVar
 import warnings
+import logging
 
 from .constants import *
 from .parser import parse, State, SubPattern  # type: ignore
+from cai4py.parser_tools.constants import (
+    _NamedIntConstant,
+)  # Import `_NamedIntConstant`
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
+
+logger = logging.getLogger(__name__)  # Define logger for debugging
 
 
 def get_operand_and_children(node: SubPattern) -> tuple[Any, list[Any]]:
@@ -78,6 +84,7 @@ def fold(
     def _fold(tree: SubPattern) -> Iterable[T]:
         for node in tree:
             opcode, _ = node
+            logger.debug("Folding opcode: %s", opcode)
             operand, children = get_operand_and_children(node)
             yield f(
                 (opcode, operand),

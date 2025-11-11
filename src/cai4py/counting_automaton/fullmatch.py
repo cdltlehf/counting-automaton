@@ -22,13 +22,12 @@ class VerboseFilter(logging.Filter):
 
 
 def fullmatch(
-    sc_class: SuperConfigBase,
+    sc_class: Type[SuperConfigBase],  # Adjusted to accept a class type
     automaton: pca.PositionCountingAutomaton,
     w: str,
     cache_type: Literal["lru", "flush_on_full", "none"] = "lru",
 ) -> tuple[bool, object]:
-
-    super_config = sc_class.get_initial(automaton)
+    super_config = sc_class.get_initial(automaton)  # Use class method directly
 
     def get_next_super_config(
         super_config: SuperConfigBase,
@@ -40,12 +39,12 @@ def fullmatch(
         get_next_super_config, maxsize=1024
     )
     for symbol in w:
-        logger.debug(f"Processing symbol: {symbol}")
-        logger.debug(f"Current configs: {super_config}")
+        logger.debug("Processing symbol: %s", symbol)
+        logger.debug("Current configs: %s", super_config)
         super_config = cached_get_next_super_config[cache_type](
             super_config, symbol
         )
-        logger.debug(f"Next configs: {super_config}")
+        logger.debug("Next configs: %s", super_config)
     try:
         cache_stats = cached_get_next_super_config[cache_type].cache_info()
     except AttributeError:
@@ -74,7 +73,7 @@ def main(args: argparse.Namespace) -> None:
     t0 = time.perf_counter()
 
     is_match, cache_stats = fullmatch(
-        sc_class.get_computation, automaton, args.input_string, args.cache_type
+        sc_class, automaton, args.input_string, args.cache_type
     )
     t1 = time.perf_counter()
     duration = t1 - t0
