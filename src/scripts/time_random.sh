@@ -1,5 +1,7 @@
 mkdir -p outputs/csa/snort3/inner
 mkdir -p outputs/csa/polyglot/inner
+mkdir -p outputs/csa/snort3/outer
+mkdir -p outputs/csa/polyglot/outer
 mkdir -p outputs/csa/snort3/full
 mkdir -p outputs/csa/polyglot/full
 # SNORT3

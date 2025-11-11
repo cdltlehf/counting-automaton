@@ -1,16 +1,19 @@
 """Time matching with the position counting automaton and random strings"""
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor
+import sys
 
-import cai4py.counting_automaton.super_config as sc
-from cai4py.counting_automaton._logging import VERBOSE
-from cai4py.instrumentation.utils import timed_automaton_construction
-from tqdm import tqdm
 from memory_profiler import memory_usage
+from tqdm import tqdm
+
+from cai4py.counting_automaton._logging import VERBOSE
+import cai4py.counting_automaton.super_config as sc
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
+from cai4py.instrumentation.utils import timed_automaton_construction
+from cai4py.counting_automaton.fullmatch import fullmatch
 
 logger = logging.getLogger(__name__)
 
@@ -40,14 +43,17 @@ def main(args: argparse.Namespace) -> None:
                 automaton = timed_automaton_construction(
                     regex, args.expansion_type
                 )
-            except TimeoutError:
-                print("TimeoutError")
+            except TimeoutError as e:
+                print(e, file=sys.stderr)
                 continue
-            except NotImplementedError:
+            except NotImplementedError as e:
+                print(e, file=sys.stderr)
                 continue
-            except re.PatternError:
+            except re.PatternError as e:
+                print(e, file=sys.stderr)
                 continue
-            except ValueError:
+            except ValueError as e:
+                print(e, file=sys.stderr)
                 continue
             mean_mem_usage = 0
             for j in range(1, args.num_strings_per_regex + 1):
@@ -60,15 +66,20 @@ def main(args: argparse.Namespace) -> None:
                         random_str = random_str_file.read()
 
                         def measure_memory_used_during_matching(
-                            automaton, random_str
+                            automaton, random_str, args
                         ):
-                            # Step through matching
-                            def match():
-                                matcher = sc.SuperConfig(automaton)
-                                matcher.match(random_str)
 
                             max_mem_usage = memory_usage(
-                                (match,), max_usage=True
+                                (
+                                    fullmatch,
+                                    (
+                                        sc.SparseCounterConfig,
+                                        automaton,
+                                        random_str,
+                                        args.cache_type,
+                                    ),
+                                ),  # type: ignore
+                                max_usage=True,
                             )
                             return (
                                 max_mem_usage * 1e6
@@ -76,22 +87,23 @@ def main(args: argparse.Namespace) -> None:
                             ) / 1e6
 
                         num_bytes = len(random_str.encode("utf-8"))
-                        if num_bytes == 0:
-                            continue
                         with ThreadPoolExecutor(max_workers=1) as executor:
                             future = executor.submit(
                                 measure_memory_used_during_matching,
-                                automaton,
-                                random_str,
+                                (automaton, random_str, args),  # type: ignore
                             )
                             try:
-                                timeout = num_bytes / THROUGHPUT_THRES + 1
-                                peak_mem_usage = future.result(timeout=timeout)
+                                matching_timeout = (
+                                    num_bytes / THROUGHPUT_THRES + 1
+                                )
+                                peak_mem_usage = future.result(
+                                    timeout=matching_timeout
+                                )
                                 mean_mem_usage += (
                                     peak_mem_usage / args.num_strings_per_regex
                                 )
-                            except TimeoutError:
-                                print("TIMEOUT")
+                            except TimeoutError as e:
+                                print(e, file=sys.stderr)
                                 can_write = False
                                 executor.shutdown(wait=False)
                                 break
@@ -123,5 +135,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--input-encoding", required=True, choices=["utf-8", "latin1"]
+    )
+    parser.add_argument(
+        "--cache-type",
+        required=False,
+        type=str,
+        choices=["none", "lru", "flush_on_full"],
+        default="none",
     )
     main(parser.parse_args())

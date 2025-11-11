@@ -1,46 +1,68 @@
 import signal
 from typing import Literal
 import time
+import multiprocessing
+from multiprocessing.queues import Empty
 
 from cai4py.counting_automaton.fullmatch import fullmatch
 import cai4py.counting_automaton.position_counting_automaton as pca
 from cai4py.counting_automaton.super_config.super_config_base import (
     SuperConfigBase,
 )
+import pickle
 
 
-def timeout(seconds):
-    def decorate(f):
-        def handler(signum, frame):
-            raise TimeoutError()
+def run_with_timeout(func, args=(), timeout=None):
+    """Run a function with the given arguments in a separate process with a timeout.
+    If the function does not complete within the timeout, terminate the process.
+    Raises TimeoutError if the function times out.
+    Raises RuntimeError if the function terminates with an error.
 
-        def new_f(*args, **kwargs):
-            old = signal.signal(signal.SIGALRM, handler)
-            signal.alarm(seconds)
-            try:
-                result = f(*args, **kwargs)
-            finally:
-                # reinstall the old signal handler
-                signal.signal(signal.SIGALRM, old)
-                # cancel the alarm
-                # this line should be inside the "finally" block (per Sam Kortchmar)
-                signal.alarm(0)
-            return result
+    Args:
+        func: The function to run.
+        args: The arguments to pass to the function.
+        timeout: The timeout in seconds.
 
-        new_f.__name__ = f.__name__
-        return new_f
+    Returns:
+        The return value of the function.
+    """
 
-    return decorate
+    def target_func(args: tuple, out: multiprocessing.Queue):
+        try:
+            result = func(*args)
+            print(pickle.dumps(result))
+            print(result)
+            print("Putting result in queue")
+            out.put(result)
+            print("Result put in queue")
+        except TimeoutError as e:
+            out.put(e)
+        except Exception as e:
+            out.put(e)
+
+    q = multiprocessing.Queue()
+    proc = multiprocessing.Process(target=target_func, args=(args, q))
+    proc.start()
+    proc.join(timeout=timeout)
+    if proc.is_alive():
+        proc.terminate()
+        proc.join()
+        raise TimeoutError("Function timed out and was terminated")
+    if proc.exitcode != 0:
+        print(args)
+        print(proc.exitcode)
+        raise RuntimeError("Function terminated with an error")
+    try:
+        result = q.get(timeout=1)
+        if isinstance(result, Exception):
+            raise result  # Re-raise the exception
+        elif isinstance(result, pca.PositionCountingAutomaton):
+            print("Received automaton")
+        return result
+    except Empty:
+        return None
 
 
-@timeout(seconds=10)
-def timed_automaton_construction(
-    regex, expansion_type: Literal["full", "inner", "outer"]
-):
-    return pca.PositionCountingAutomaton.create(regex, expansion_type)
-
-
-@timeout(seconds=1)
 def time_matching(
     sc_class: SuperConfigBase,
     automaton: pca.PositionCountingAutomaton,

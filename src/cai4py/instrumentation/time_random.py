@@ -1,5 +1,6 @@
 """Time matching with the position counting automaton and random strings"""
 
+import sys
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
 
 import argparse
@@ -9,11 +10,12 @@ from concurrent.futures import ThreadPoolExecutor
 
 import cai4py.counting_automaton.super_config as sc
 from cai4py.counting_automaton._logging import VERBOSE
+import cai4py.counting_automaton.position_counting_automaton as pca
 from tqdm import tqdm
 
 from cai4py.instrumentation.utils import (
+    run_with_timeout,
     time_matching,
-    timed_automaton_construction,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,20 +57,24 @@ def main(args: argparse.Namespace) -> None:
             total_throughput = 0
             can_write = True
             try:
-                automaton = timed_automaton_construction(
-                    regex, args.expansion_type
+                automaton = run_with_timeout(
+                    func=pca.PositionCountingAutomaton.create,
+                    args=(regex, args.expansion_type),
+                    timeout=5,
                 )
+                if automaton is None:
+                    raise RuntimeError("Automaton is None")
             except NotImplementedError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
             except re.PatternError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
             except ValueError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
             except TimeoutError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
             for j in range(1, args.num_strings_per_regex + 1):
                 try:
@@ -81,11 +87,19 @@ def main(args: argparse.Namespace) -> None:
 
                         num_bytes = len(random_str.encode("utf-8"))
                         try:
-                            duration = time_matching(
-                                sc_class,
-                                automaton,
-                                random_str,
-                                args.cache_type,
+                            matching_timeout = (
+                                1 / THROUGHPUT_THRES * num_bytes + 1
+                            )
+                            print(matching_timeout)
+                            duration = run_with_timeout(
+                                func=time_matching,
+                                args=(
+                                    sc_class,
+                                    automaton,
+                                    random_str,
+                                    args.cache_type,
+                                ),
+                                timeout=matching_timeout,
                             )
                         except TimeoutError as e:
                             print(e)

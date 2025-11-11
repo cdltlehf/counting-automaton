@@ -4,6 +4,7 @@ import argparse
 import logging
 import re
 from typing import Type
+import sys
 
 from tqdm import tqdm
 
@@ -58,16 +59,16 @@ def main(args: argparse.Namespace) -> None:
                     regex, expansion_type=args.expansion_type
                 )
             except TimeoutError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
             except NotImplementedError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
             except re.PatternError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
             except ValueError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
             try:
                 with open(
@@ -79,7 +80,7 @@ def main(args: argparse.Namespace) -> None:
                         attack_str = attack_str_file.read()
                         num_bytes = len(attack_str.encode(args.input_encoding))
                     except UnicodeDecodeError as e:
-                        print(e)
+                        print(e, file=sys.stderr)
                         continue
                     with ThreadPoolExecutor(max_workers=1) as executor:
                         try:
@@ -87,7 +88,7 @@ def main(args: argparse.Namespace) -> None:
                                 sc_class, automaton, attack_str, args.cache_type
                             )
                         except TimeoutError as e:
-                            print(e)
+                            print(e, file=sys.stderr)
                             timing_log_file.write(
                                 f"{i}\t{THROUGHPUT_THRES/1e6}\n"
                             )
@@ -96,7 +97,7 @@ def main(args: argparse.Namespace) -> None:
                         f"{i}\t{num_bytes / 1000 / duration}\n"
                     )
             except FileNotFoundError as e:
-                print(e)
+                print(e, file=sys.stderr)
                 continue
         timing_log_file.close()
 
