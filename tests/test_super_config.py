@@ -16,7 +16,7 @@ class TestSuperConfig(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None  # pylint: disable=invalid-name
-        dataset_path = "data/test-cases/examples.tsv"
+        dataset_path = "../data/test-cases/example.txt"
         self.test_cases = load_test_cases(dataset_path)
         self.timeout = 1
 

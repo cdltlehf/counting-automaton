@@ -1,6 +1,6 @@
 """Determinized Counter Config"""
 
-from typing import Optional
+from typing import Optional, IO
 
 from ..counting_set import BoundedCountingSet
 from ..counting_set import CountingSet
@@ -24,7 +24,8 @@ class DeterminizedCounterConfig(DeterminizedCounterConfigBase[CountingSet]):
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int]
+        low: int,
+        high: Optional[int],
     ) -> MultiHeadCountingSetBase[CountingSet]:
         return MultiHeadCountingSet(low, high)
 

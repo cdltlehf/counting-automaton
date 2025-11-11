@@ -5,7 +5,8 @@ from collections import defaultdict as dd
 from copy import copy
 import logging
 # fmt: off
-from typing import Callable, Generic, Hashable, Iterator, Mapping, Optional, TypeVar
+from typing import (Callable, Generic, Hashable, IO, Iterator, Mapping,
+                    Optional, TypeVar)
 
 from cai4py.collections import OrderedSet
 
@@ -214,7 +215,7 @@ class CounterConfigBase(
 ):
     """Class for super-configurations using a counting set"""
 
-    _constructor: Callable[[int, Optional[int]], _T]
+    _constructor: Callable[[int, Optional[int], IO], _T]
 
     def __init__(
         self,

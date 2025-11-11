@@ -35,7 +35,9 @@ class SuperConfigBase(abc.ABC):
 
     @classmethod
     def get_computation(
-        cls, automaton: PositionCountingAutomaton, w: str
+        cls,
+        automaton: PositionCountingAutomaton,
+        w: str,
     ) -> Iterator["SuperConfigBase"]:
         super_config = cls.get_initial(automaton)
         yield super_config

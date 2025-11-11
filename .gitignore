@@ -22,3 +22,16 @@ htmlcov
 .coverage
 sparse_counter_config_attack_durations.tsv
 sparse_counter_config_random_durations.tsv
+
+csa-op-logs-snort3
+csa-op-logs-polyglot
+clone-sizes-polyglot.npy
+merge-sizes-polyglot.npy
+clone-sizes-snort3.npy
+merge-sizes-snort3.npy
+polyglot-op-counts-per-run.csv
+op-counts-per-run-snort3.csv
+op-counts-per-run-polyglot.csv
+
+outputs/
+.bash_history

@@ -1,10 +1,10 @@
 """Position counting automaton."""
 
 from copy import copy
-from functools import reduce
+from functools import lru_cache, reduce
 from json import dumps
 import logging
-from typing import Any, Iterable, NewType, Optional
+from typing import Any, Iterable, Literal, NewType, Optional
 
 from cai4py.collections import OrderedSet
 from cai4py.parser_tools import fold
@@ -18,14 +18,16 @@ from cai4py.parser_tools import MIN_REPEAT
 from cai4py.parser_tools import MIN_STAR
 from cai4py.parser_tools import parse
 from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
+from cai4py.parser_tools.parser import SubPattern
 from cai4py.parser_tools.re import _compile
-from cai4py.parser_tools.re import SubPattern
+from cai4py.parser_tools.utils import expand_counters
+from cai4py.cache_utils import make_cached_versions
 
 from .counter_vector import Action
 from .counter_vector import CounterVector
 from .counter_vector import Guard
-from .logging import ComputationStep
-from .logging import VERBOSE
+from ._logging import ComputationStep
+from ._logging import VERBOSE
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +47,12 @@ FINAL_STATE = State(-1)
 GLOBAL_COUNTER = CounterVariable(0)
 
 
-def arc_to_str(arc: Arc) -> str:
+def arc_to_str(
+    arc: Arc, states_to_symbol_preds: dict[State, SymbolPredicate]
+) -> str:
     guard, action, adjacent_state = arc
-    return f"-{{{guard}; {action}}}-> {adjacent_state}"
+    symbol = f"'{states_to_symbol_preds[adjacent_state]}'"
+    return f"-{{ {str(symbol):<4}; {str(guard):<4}; {str(action):<4} }}-> {str(adjacent_state):<4}"
 
 
 def counter_vector_to_json(
@@ -72,6 +77,7 @@ class PositionCountingAutomaton:
         counter_scopes: Optional[dict[CounterVariable, set[State]]] = None,
     ) -> None:
         self.states = states
+        self.states.update({INITIAL_STATE: "", FINAL_STATE: ""})
         self.follow = follow
         self.counters = counters if counters is not None else {}
         if counter_scopes is None:
@@ -91,9 +97,24 @@ class PositionCountingAutomaton:
         return self._state_scopes
 
     @classmethod
-    def create(cls, pattern: str) -> "PositionCountingAutomaton":
-        """TODO: document"""
+    def create(
+        cls,
+        pattern: str,
+        expansion_type: Literal["inner", "outer", "full"] = "inner",
+    ) -> "PositionCountingAutomaton":
+        """
+        Create a position counting automaton from a regex pattern.
+        Args:
+            pattern: A regex pattern.
+            expansion_type: Type of counter expansion.
+                "inner": Expand only inner counters.
+                "outer": Expand only outer counters.
+                "full": Expand all counters.
+        Returns:
+            A position counting automaton.
+        """
         tree = parse(pattern)
+        tree = expand_counters(tree, expansion_type)
         logger.debug(tree)
         callback_object = _PositionConstructionCallback()
 
@@ -125,12 +146,14 @@ class PositionCountingAutomaton:
             return (
                 compiled.fullmatch(symbol) is not None
             )  # NOTE: this is only used to check for character class matches.
-        assert False, type(self.states[state])
+        raise RuntimeError(f"Unhandled state type: {type(self.states[state])}")
 
     def __str__(self) -> str:
 
         follow_string = "\n".join(
-            "\n".join(f"- {state} {arc_to_str(arc)}" for arc in follow)
+            "\n".join(
+                f"- {state} {arc_to_str(arc, self.states)}" for arc in follow
+            )
             for state, follow in self.follow.items()
         )
         return "\n".join(
@@ -147,26 +170,46 @@ class PositionCountingAutomaton:
                 return True
         return False
 
-    def get_next_configs(self, config: Config, symbol: str) -> list[Config]:
-        current_state, counter_vector = config
+    def get_next_configs(
+        self,
+        config: Config,
+        symbol: str,
+    ) -> list[Config]:
+        """
+        Create list of configs.
+        """
+        current_state, counter = config
         next_configs: list[Config] = []
 
         if current_state == FINAL_STATE:
             return next_configs
 
+        # Given a config and symbol, follow the appropriate transitions and determined by the automaton.
         for guard, action, adjacent_state in self.follow[current_state]:
+            logger.debug(
+                f"\t\tFollowing an arc... ({current_state},{adjacent_state})"
+            )
             if adjacent_state is FINAL_STATE:
+                logger.debug("Skipping final state")
                 continue
 
-            if not guard(counter_vector):
+            # Counter does not adhere to guard
+            if not guard(counter):
+                logger.debug(f"Guard {guard}({counter}) is not satisfied")
                 continue
 
+            # Check transition symbols match
             if not self.eval_state(adjacent_state, symbol):
+                logger.debug(f"Symbol {symbol} does not match {adjacent_state}")
                 continue
+            next_counter = copy(counter)
+            next_counter = action.move_and_apply(next_counter)
 
-            next_counter_vector = copy(counter_vector)
-            action.move_and_apply(next_counter_vector)
-            next_configs.append((adjacent_state, next_counter_vector))
+            logger.debug(f"\t\tArc ({adjacent_state}, {next_counter})")
+            if next_counter or next_counter == {}:
+                next_configs.append((adjacent_state, next_counter))
+
+        logger.debug("\t\tEnd of following!")
         return next_configs
 
     def check_final(self, config: Config) -> bool:
@@ -296,7 +339,9 @@ class _PositionConstructionCallback:
     def call_catenation(
         self, y1: PositionCountingAutomaton, y2: PositionCountingAutomaton
     ) -> PositionCountingAutomaton:
-        assert y1.states.keys().isdisjoint(y2.states.keys())
+        assert set(
+            filter(lambda x: x != -1 and x != 0, y1.states.keys())
+        ).isdisjoint(y2.states.keys())
 
         for final_state, final_arc in self.get_final_arcs(y1.follow):
             guard, action, _ = final_arc
@@ -310,7 +355,7 @@ class _PositionConstructionCallback:
             y1.follow[final_state].substitute(final_arc, arcs)
 
         for state in y2.states:
-            if state == INITIAL_STATE:
+            if state == INITIAL_STATE or state == FINAL_STATE:
                 continue
             assert state not in y1.follow, str(y1.follow.keys())
             y1.follow[state] = y2.follow[state]
@@ -328,7 +373,9 @@ class _PositionConstructionCallback:
         assert y1.states.keys().isdisjoint(y2.states.keys())
 
         y1.follow[INITIAL_STATE].append_iterable(y2.follow[INITIAL_STATE])
-        for state in y2.states:
+        for state in filter(
+            lambda x: x not in [INITIAL_STATE, FINAL_STATE], y2.states
+        ):
             assert state not in y1.follow
             y1.follow[state] = y2.follow[state]
 
@@ -479,7 +526,7 @@ class _PositionConstructionCallback:
             return self.call_at(x)
         elif opcode == BRANCH:
             return reduce(self.call_union, ys)
-        elif opcode in {MIN_REPEAT, MAX_REPEAT}:
+        elif opcode in {MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT}:
             y = next(iter(ys))
             lazy = opcode == MIN_REPEAT
 
@@ -488,15 +535,16 @@ class _PositionConstructionCallback:
                 return self.call_repeat(y, m, None, lazy)
             else:
                 return self.call_repeat(y, m, n, lazy)
-        elif opcode is MAX_STAR:
+        elif opcode is MAX_STAR or opcode is POSSESSIVE_STAR:
             return self.call_star(next(iter(ys)), False)
         elif opcode is MIN_STAR:
             return self.call_star(next(iter(ys)), True)
-        elif opcode is MAX_PLUS:
+
+        elif opcode is MAX_PLUS or opcode is POSSESSIVE_PLUS:
             return self.call_plus(next(iter(ys)), False)
         elif opcode is MIN_PLUS:
             return self.call_plus(next(iter(ys)), True)
-        elif opcode is MAX_QUESTION:
+        elif opcode is MAX_QUESTION or opcode is POSSESSIVE_QUESTION:
             return self.call_question(next(iter(ys)), False)
         elif opcode is MIN_QUESTION:
             return self.call_question(next(iter(ys)), True)

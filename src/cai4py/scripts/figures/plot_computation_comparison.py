@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
-from cai4py.counting_automaton.logging import ComputationStep
+from cai4py.counting_automaton._logging import ComputationStep
 from cai4py.parser_tools.constants import MAXREPEAT
 from cai4py.utils import escape
 from cai4py.utils.analysis import OutputDict

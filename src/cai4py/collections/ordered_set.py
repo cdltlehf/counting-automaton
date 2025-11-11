@@ -127,6 +127,11 @@ class OrderedSet(Generic[T]):
         node = self.node.pop(value)
         self.list.remove(node)
 
+    def clear(self) -> None:
+        """Time complexity: O(1)"""
+        self.list.clear()
+        self.node = {}
+
     def __len__(self) -> int:
         """Time complexity: O(1)"""
         return len(self.node)

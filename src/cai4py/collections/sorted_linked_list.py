@@ -8,8 +8,8 @@ from .node import Node
 
 
 class Comparable(Protocol):
-    def __lt__(self, other: Any) -> bool:
-        pass
+    def __lt__(self, other: Any, /) -> bool:
+        raise NotImplementedError
 
 
 T = TypeVar("T", bound=Comparable)
