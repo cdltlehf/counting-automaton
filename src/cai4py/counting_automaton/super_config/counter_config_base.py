@@ -253,7 +253,7 @@ class CounterConfigBase(
         return iter(self._counter_to_state_to_counting_set)
 
     def __len__(self) -> int:
-        raise NotImplementedError()
+        return len(self._counter_to_state_to_counting_set)
 
     def to_json(self) -> dict[str, dict[str, list[int]]]:
         jsonified: dict[str, dict[str, list[int]]] = {}
