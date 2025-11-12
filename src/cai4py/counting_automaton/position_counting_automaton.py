@@ -390,7 +390,12 @@ class _PositionConstructionCallback:
     def call_union(
         self, y1: PositionCountingAutomaton, y2: PositionCountingAutomaton
     ) -> PositionCountingAutomaton:
-        assert y1.states.keys().isdisjoint(y2.states.keys())
+        assert set(
+            filter(
+                lambda x: x != INITIAL_STATE and x != FINAL_STATE,
+                y1.states.keys(),
+            )
+        ).isdisjoint(y2.states.keys())
 
         y1.follow[INITIAL_STATE].append_iterable(y2.follow[INITIAL_STATE])
         for state in filter(

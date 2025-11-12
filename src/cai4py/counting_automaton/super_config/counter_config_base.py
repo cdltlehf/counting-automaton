@@ -105,6 +105,22 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
         self._hash: Optional[int] = None
         self._dirty = False
 
+    def __getstate__(self):
+        """Custom pickle support - capture state without lambda"""
+        state = self.__dict__.copy()
+        # Store the actual items instead of relying on the defaultdict
+        state["_items"] = dict(self)
+        return state
+
+    def __setstate__(self, state):
+        """Custom unpickle support - restore state and recreate lambda"""
+        items = state.pop("_items", {})
+        self.__dict__.update(state)
+        # Reinitialize the defaultdict with the lambda
+        dd.__init__(self, lambda: self._constructor(self.low, self.high))
+        # Restore the items
+        self.update(items)
+
     def to_list(self) -> list[tuple[int, int]]:
         listed = []
         for state, counting_set in self.items():

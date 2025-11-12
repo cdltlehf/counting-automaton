@@ -3,6 +3,7 @@
 import abc
 from collections import defaultdict as dd
 from json import dumps
+import pickle
 from typing import Any, Iterator
 
 from cai4py.collections import OrderedSet
@@ -66,9 +67,17 @@ class SuperConfigBase(abc.ABC):
         return dumps(self.to_json())
 
     def __hash__(self) -> int:
-        return hash(str(self))
+        raise NotImplementedError("This class is mutable and cannot be hashed.")
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SuperConfigBase):
             return False
         return str(self) == str(other)
+
+    def __getstate__(self) -> dict:
+        """Get the state for pickling."""
+        return self.__dict__
+
+    def __setstate__(self, state: dict) -> None:
+        """Set the state from pickling."""
+        self.__dict__.update(state)

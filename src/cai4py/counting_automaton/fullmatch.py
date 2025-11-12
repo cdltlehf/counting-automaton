@@ -1,5 +1,6 @@
 """Time matching with the position counting automaton and attack strings"""
 
+import pickle
 import argparse
 import logging
 import time
@@ -30,21 +31,26 @@ def fullmatch(
     super_config = sc_class.get_initial(automaton)  # Use class method directly
 
     def get_next_super_config(
-        super_config: SuperConfigBase,
+        pickled_super_config: bytes,
         symbol: str,
     ) -> SuperConfigBase:
+        # Retrieve the super_config from cache
+        super_config = pickle.loads(pickled_super_config)
+        print("Current super_config:", str(super_config))
         return super_config.update(symbol)
 
     cached_get_next_super_config = make_cached_versions(
         get_next_super_config, maxsize=1024
     )
+    pickled_super_config = pickle.dumps(super_config)
     for symbol in w:
         logger.debug("Processing symbol: %s", symbol)
         logger.debug("Current configs: %s", super_config)
         super_config = cached_get_next_super_config[cache_type](
-            super_config, symbol
+            pickled_super_config, symbol
         )
         logger.debug("Next configs: %s", super_config)
+        pickled_super_config = pickle.dumps(super_config)
     try:
         cache_stats = cached_get_next_super_config[cache_type].cache_info()
     except AttributeError:
