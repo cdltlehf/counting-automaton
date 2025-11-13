@@ -19,6 +19,15 @@ logger = logging.getLogger(__name__)
 Self = TypeVar("Self", bound="CountingSet")
 
 
+def _greater_than(x: int, y: int) -> bool:
+    """Top-level key function used by CountingSet SortedLinkedList.
+
+    Placed at module-level so it can be pickled.
+    It preserves the original behaviour of lambda x,y: y < x.
+    """
+    return x > y
+
+
 class CountingSet(Iterable[int]):
     """Counting-set data structure for counting automata"""
 
@@ -27,7 +36,7 @@ class CountingSet(Iterable[int]):
         self.low = low
         self.high = high
         self.offset = 1
-        self.list: SortedLinkedList[int] = SortedLinkedList(lambda x, y: y < x)
+        self.list: SortedLinkedList[int] = SortedLinkedList(_greater_than)
         self.head: Optional[Node[int]] = None
         self._dirty = False
 

@@ -25,6 +25,25 @@ class SortedLinkedList(LinkedList[T]):
         super().__init__()
         self.key = key
 
+    def __getstate__(self):
+        """Return state for pickling (include key)."""
+        # LinkedList.__getstate__ returns (head, tail)
+        head_tail = super().__getstate__()
+        return head_tail + (self.key,)
+
+    def __setstate__(self, state):
+        """Restore state from pickling (restore key as well)."""
+        # state is (head, tail, key)
+        try:
+            head, tail, key = state
+        except ValueError:
+            # backward compatibility: older pickles may only have (head, tail)
+            head, tail = state
+            key = lambda a, b: a < b
+        # reuse LinkedList.__setstate__ to set head/tail
+        super().__setstate__((head, tail))
+        self.key = key
+
     def merge(
         self,
         other: "LinkedList[T]",

@@ -54,6 +54,7 @@ def main(args: argparse.Namespace) -> None:
             start=1,
         ):
             regex = regex[:-1]  # strip newline
+            print(f"Processing regex {i}: {regex}")
             try:
                 automaton = run_with_timeout(
                     func=pca.PositionCountingAutomaton.create,

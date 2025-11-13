@@ -121,10 +121,15 @@ __all__ = [
 ]
 
 
+def _get_global_named_int_constant(name: str) -> _NamedIntConstant:
+    return globals().get(name)
+
+
 # Monkey-patch _NamedIntConstant to make it pickleable
 def _named_int_constant_reduce(self):
     """Custom pickle support for _NamedIntConstant."""
-    return (_NamedIntConstant, (int(self), str(self)))
+
+    return (_get_global_named_int_constant, (str(self),))
 
 
 _NamedIntConstant.__reduce__ = _named_int_constant_reduce  # type: ignore
