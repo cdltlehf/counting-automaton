@@ -3,7 +3,8 @@ import traceback
 from typing import Literal
 import time
 import multiprocessing
-from multiprocessing.queues import Empty  # type: ignore
+from multiprocessing.queues import Empty
+from venv import logger  # type: ignore
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
 
 from cai4py.counting_automaton.fullmatch import fullmatch
@@ -56,8 +57,6 @@ def run_with_timeout(func, args=(), timeout=None):
         result = q.get(timeout=1)
         if isinstance(result, Exception):
             raise result from result  # Re-raise the exception
-        elif isinstance(result, pca.PositionCountingAutomaton):
-            print("Received automaton")
         return result
     except Empty:
         return None
