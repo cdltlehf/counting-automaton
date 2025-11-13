@@ -1,51 +1,27 @@
 """Count the operations performed during matching and track the sizes and densities of counting-sets during merges and clones."""
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import re
-import signal
-import time
+import sys
 from typing import Type
-from concurrent.futures import ThreadPoolExecutor
-from cai4py.instrumentation.constants import THROUGHPUT_THRES
 
-import cai4py.counting_automaton.position_counting_automaton as pca
-import cai4py.counting_automaton.super_config as sc
+from cai4py.counting_automaton.fullmatch import fullmatch
 import numpy as np
 import pandas as pd
-from cai4py.counting_automaton.instrumentation_vars import (
-    clone_set_sizes,
-    merge_set_sizes,
-    op_name_to_count,
-)
-from cai4py.counting_automaton._logging import VERBOSE
 from tqdm import tqdm
 
+from cai4py.counting_automaton._logging import VERBOSE
+from cai4py.counting_automaton.instrumentation_vars import clone_set_sizes
+from cai4py.counting_automaton.instrumentation_vars import merge_set_sizes
+from cai4py.counting_automaton.instrumentation_vars import op_name_to_count
+from cai4py.instrumentation.utils import run_with_timeout
+import cai4py.counting_automaton.position_counting_automaton as pca
+import cai4py.counting_automaton.super_config as sc
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
+
 from .constants import OP_NAMES
-
-
-def timeout(seconds):
-    def decorate(f):
-        def handler(signum, frame):
-            raise TimeoutError()
-
-        def new_f(*args, **kwargs):
-            old = signal.signal(signal.SIGALRM, handler)
-            signal.alarm(seconds)
-            try:
-                result = f(*args, **kwargs)
-            finally:
-                # reinstall the old signal handler
-                signal.signal(signal.SIGALRM, old)
-                # cancel the alarm
-                # this line should be inside the "finally" block (per Sam Kortchmar)
-                signal.alarm(0)
-            return result
-
-        new_f.__name__ = f.__name__
-        return new_f
-
-    return decorate
 
 
 logger = logging.getLogger(__name__)
@@ -56,32 +32,15 @@ class VerboseFilter(logging.Filter):
         return record.levelno == VERBOSE
 
 
-@timeout(seconds=10)
-def timed_automaton_construction(regex, args):
-    return pca.PositionCountingAutomaton.create(
-        regex, expansion_type=args.expansion_type
-    )
-
-
-def time_matching(
+def instrument_matching(
     sc_class,
     automaton: pca.PositionCountingAutomaton,
     random_str: str,
     op_counts: list[dict[str, int]],
     overall_merge_set_sizes: list[tuple[int, float, int, float]],
     overall_clone_set_sizes: list[tuple[int, float]],
-    regex,
 ):
-    t0 = time.perf_counter()
-    # Step through matching
-    c = None
-    for c in sc_class.get_computation(automaton, random_str):
-        pass  # do nothing
-    assert c is not None
-
-    t1 = time.perf_counter()
-    duration = t1 - t0
-
+    fullmatch(sc_class, automaton, random_str, "none")
     # Save the operation count in the list for this run
     op_counts.append(op_name_to_count.copy())
     # Save the merge and clone set sizes
@@ -94,13 +53,6 @@ def time_matching(
         overall_merge_set_sizes.append((size1, density1, size2, density2))
     for size, density in clone_set_sizes:
         overall_clone_set_sizes.append((size, density))
-
-    if c.is_final():
-        assert re.fullmatch(regex, random_str) is not None
-    else:
-        assert re.fullmatch(regex, random_str) is None
-
-    return duration
 
 
 def reset_instrumentation_variables():
@@ -140,7 +92,12 @@ def main(args: argparse.Namespace) -> None:
             regex = regex[:-1]  # Remove newline
 
             try:
-                automaton = timed_automaton_construction(regex, args)
+                automaton = run_with_timeout(
+                    pca.PositionCountingAutomaton.create,
+                    args=(regex, args.expansion_type),
+                    timeout=10,
+                )
+                assert isinstance(automaton, pca.PositionCountingAutomaton)
             except NotImplementedError:
                 continue
             except re.PatternError:
@@ -168,21 +125,20 @@ def main(args: argparse.Namespace) -> None:
                         try:
                             with ThreadPoolExecutor(max_workers=1) as executor:
                                 future = executor.submit(
-                                    time_matching,
+                                    instrument_matching,
                                     sc_class,
                                     automaton,
                                     random_str,
                                     op_counts,
                                     overall_merge_set_sizes,
                                     overall_clone_set_sizes,
-                                    regex,
                                 )
                                 matching_timeout = (
                                     num_bytes / THROUGHPUT_THRES + 1
                                 )
                                 _ = future.result(matching_timeout)
-                        except TimeoutError:
-                            print("TIMEOUT")
+                        except TimeoutError as e:
+                            print(e, file=sys.stderr)
                             break
                 except FileNotFoundError:
                     break
