@@ -36,7 +36,7 @@ def fullmatch(
     ) -> SuperConfigBase:
         # Retrieve the super_config from cache
         super_config = pickle.loads(pickled_super_config)
-        print("Current super_config:", str(super_config))
+        logger.debug("Current super_config: %s", str(super_config))
         return super_config.update(symbol)
 
     cached_get_next_super_config = make_cached_versions(
