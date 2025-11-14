@@ -64,7 +64,7 @@ def main(args: argparse.Namespace) -> None:
             for j in range(1, args.num_strings_per_regex + 1):
                 try:
                     with open(
-                        f"{args.random_string_dir}/{i}-{j}.txt",
+                        f"{args.random_string_dir}/{i}/{j}.txt",
                         "r",
                         encoding=args.input_encoding,
                     ) as random_str_file:

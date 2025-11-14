@@ -81,7 +81,7 @@ def main(args: argparse.Namespace) -> None:
             for j in range(1, args.num_strings_per_regex + 1):
                 try:
                     with open(
-                        f"{args.random_string_dir}/{i}-{j}.txt",
+                        f"{args.random_string_dir}/{i}/{j}.txt",
                         "r",
                         encoding=args.input_encoding,
                     ) as random_str_file:
@@ -90,7 +90,6 @@ def main(args: argparse.Namespace) -> None:
                         num_bytes = len(random_str.encode("utf-8"))
                         try:
                             matching_timeout = get_matching_timeout(num_bytes)
-                            print(matching_timeout)
                             duration = run_with_timeout(
                                 func=time_matching,
                                 args=(
