@@ -40,9 +40,20 @@ def main(args: argparse.Namespace) -> None:
     }[method]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
+
+    # Open cache history file if sampling is enabled
+    cache_history_file = None
+    if args.sample_interval > 0 and args.cache_history_log_file:
+        cache_history_file = open(
+            args.cache_history_log_file, "w", encoding="utf-8"
+        )
+        cache_history_file.write(
+            "Regex ID\tString ID\tPosition\tHits\tMisses\tMaxsize\tCurrsize\n"
+        )
+
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         timing_log_file = open(args.timing_log_file, "w", encoding="utf-8")
-        timing_log_file.write("Regex ID\tMean throughput (KB/sec)\n")
+        timing_log_file.write("Regex ID\tString ID\tThroughput (KB/sec)\n")
         for i, regex in enumerate(
             tqdm(
                 regex_file,
@@ -54,8 +65,6 @@ def main(args: argparse.Namespace) -> None:
         ):
             regex = regex[:-1]  # strip newline
             print(regex)
-            total_throughput = 0
-            can_write = True
             try:
                 automaton = run_with_timeout(
                     func=pca.PositionCountingAutomaton.create,
@@ -85,41 +94,74 @@ def main(args: argparse.Namespace) -> None:
                         encoding=args.input_encoding,
                     ) as random_str_file:
                         random_str = random_str_file.read()
-
                         num_bytes = len(random_str.encode("utf-8"))
+                        matching_timeout = get_matching_timeout(num_bytes)
+                        sample_interval = getattr(args, "sample_interval", 0)
                         try:
-                            matching_timeout = get_matching_timeout(num_bytes)
-                            duration = run_with_timeout(
+                            result = run_with_timeout(
                                 func=time_matching,
                                 args=(
                                     sc_class,
                                     automaton,
                                     random_str,
                                     args.cache_type,
+                                    sample_interval,
                                 ),
                                 timeout=matching_timeout,
                             )
-                            assert isinstance(duration, float)
+                            if result is None:
+                                raise TimeoutError("Matching returned None (process failed to return result)")
                         except TimeoutError as e:
-                            print(e)
+                            print(e, file=sys.stderr)
                             timing_log_file.write(
-                                f"{i}\t{THROUGHPUT_THRES/1e6}\n"
+                                f"{i}\t{j}\t{THROUGHPUT_THRES/1e6}\tNone\tNone\n"
                             )
-                            can_write = False
                             break
+                        assert isinstance(result, tuple) and len(result) == 2
+                        duration, cache_history = result
+                        # Extract hits/misses if available
+                        hits = ""
+                        misses = ""
+                        if cache_history is not None:
+                            try:
+                                hits = cache_history.hits
+                                misses = cache_history.misses
 
-                        total_throughput += (
-                            num_bytes / 1000 / duration
-                        )  # KB/sec
+                            except Exception:
+                                try:
+                                    hits = cache_history[0]
+                                    misses = cache_history[1]
+                                except Exception:
+                                    hits = ""
+                                    misses = ""
+                        assert isinstance(duration, (int, float))
+                        duration_f = float(duration)
+                        if duration_f <= 0:
+                            throughput = THROUGHPUT_THRES / 1e6
+                        else:
+                            throughput = num_bytes / 1000 / duration_f
+
+                        timing_log_file.write(
+                            f"{i}\t{j}\t{throughput}\t{hits}\t{misses}\n"
+                        )
+
+                        # Write cache history if enabled
+                        if cache_history_file and cache_history:
+                            for position, stats in cache_history:
+                                try:
+                                    cache_history_file.write(
+                                        f"{i}\t{j}\t{position}\t{stats.hits}\t{stats.misses}\t{stats.maxsize}\t{stats.currsize}\n"
+                                    )
+                                except AttributeError:
+                                    # Handle cases where stats might not have expected attributes
+                                    pass
+
                 except FileNotFoundError as e:
-                    print(e)
-                    can_write = False
+                    print(e, file=sys.stderr)
                     break
-            if can_write:
-                timing_log_file.write(
-                    f"{i}\t{total_throughput / args.num_strings_per_regex}\n"
-                )
         timing_log_file.close()
+        if cache_history_file:
+            cache_history_file.close()
 
 
 if __name__ == "__main__":
@@ -159,5 +201,17 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--cache-type", required=True, choices=["lru", "flush_on_full", "none"]
+    )
+    parser.add_argument(
+        "--sample-interval",
+        type=int,
+        default=0,
+        help="Sample cache stats every N characters (0 = no sampling)",
+    )
+    parser.add_argument(
+        "--cache-history-log-file",
+        type=str,
+        default=None,
+        help="Output file for cache utilization history (only used if --sample-interval > 0)",
     )
     main(parser.parse_args())

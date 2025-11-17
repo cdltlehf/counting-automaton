@@ -71,9 +71,15 @@ def time_matching(
     automaton: pca.PositionCountingAutomaton,
     random_str: str,
     cache_type: Literal["lru", "flush_on_full", "none"],
-) -> float:
+    sample_interval: int = 0,
+) -> tuple[float, list]:
     t0 = time.perf_counter()
-    fullmatch(sc_class, automaton, random_str, cache_type)
+    # `fullmatch` returns a tuple (is_match, cache_stats, cache_history).
+    # Capture cache statistics and history so callers can observe hits/misses
+    # and utilization over time when a cache is used.
+    _, cache_history = fullmatch(
+        sc_class, automaton, random_str, cache_type, sample_interval
+    )
     t1 = time.perf_counter()
     duration = t1 - t0
-    return duration
+    return duration, cache_history

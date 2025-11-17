@@ -1,8 +1,9 @@
 """Time matching with the position counting automaton and attack strings"""
 
-import pickle
 import argparse
 import logging
+import pickle
+import sys
 import time
 from typing import Literal, Type
 
@@ -11,8 +12,8 @@ from cai4py.collections import OrderedSet
 from cai4py.counting_automaton._logging import VERBOSE
 from cai4py.counting_automaton.position_counting_automaton import Config
 import cai4py.counting_automaton.position_counting_automaton as pca
-import cai4py.counting_automaton.super_config as sc
 from cai4py.counting_automaton.super_config import SuperConfigBase
+import cai4py.counting_automaton.super_config as sc
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,8 @@ def fullmatch(
     automaton: pca.PositionCountingAutomaton,
     w: str,
     cache_type: Literal["lru", "flush_on_full", "none"] = "lru",
-) -> tuple[bool, object]:
+    sample_interval: int = 0,  # if > 0, sample cache stats every N characters
+) -> tuple[bool, list]:
     super_config = sc_class.get_initial(automaton)  # Use class method directly
 
     def get_next_super_config(
@@ -43,7 +45,8 @@ def fullmatch(
         get_next_super_config, maxsize=1024
     )
     pickled_super_config = pickle.dumps(super_config)
-    for symbol in w:
+    cache_history = []
+    for i, symbol in enumerate(w):
         logger.debug("Processing symbol: %s", symbol)
         logger.debug("Current configs: %s", super_config)
         super_config = cached_get_next_super_config[cache_type](
@@ -51,13 +54,19 @@ def fullmatch(
         )
         logger.debug("Next configs: %s", super_config)
         pickled_super_config = pickle.dumps(super_config)
-    try:
-        cache_stats = cached_get_next_super_config[cache_type].cache_info()
-    except AttributeError:
-        cache_stats = None
+        # Sample cache stats at specified intervals
+        if sample_interval > 0 and (i + 1) % sample_interval == 0:
+            try:
+                cache_info = cached_get_next_super_config[
+                    cache_type
+                ].cache_info()
+                cache_history.append((i + 1, cache_info))
+            except AttributeError as e:
+                print(e, file=sys.stderr)
+                pass
     if super_config.is_final():
-        return True, cache_stats
-    return False, cache_stats
+        return True, cache_history
+    return False, cache_history
 
 
 def main(args: argparse.Namespace) -> None:
@@ -78,12 +87,14 @@ def main(args: argparse.Namespace) -> None:
     print(automaton)
     t0 = time.perf_counter()
 
-    is_match, cache_stats = fullmatch(
+    is_match, cache_history = fullmatch(
         sc_class, automaton, args.input_string, args.cache_type
     )
     t1 = time.perf_counter()
     duration = t1 - t0
-    print("cache_stats:", cache_stats)
+    print("cache_info:", cache_info)
+    if cache_history:
+        print("cache_history samples:", len(cache_history))
     num_bytes = len(args.input_string.encode("latin1"))
     print(f"match: {is_match}\nthroughput: {duration * 1000 / num_bytes}\n")
 

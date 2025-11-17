@@ -91,8 +91,11 @@ def main(args: argparse.Namespace) -> None:
                         continue
                     with ThreadPoolExecutor(max_workers=1) as executor:
                         try:
-                            duration = time_matching(
-                                sc_class, automaton, attack_str, args.cache_type
+                            duration, _cache_history = time_matching(
+                                sc_class,
+                                automaton,
+                                attack_str,
+                                args.cache_type,
                             )
                         except TimeoutError as e:
                             print(e, file=sys.stderr)
