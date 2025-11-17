@@ -30,7 +30,9 @@ def main(args: argparse.Namespace) -> None:
         num_regexes = len(regex_file.readlines())
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         mem_usage_log_file = open(args.log_file, "w", encoding="utf-8")
-        mem_usage_log_file.write("Regex ID\tPeak memory usage (MiB)\n")
+        mem_usage_log_file.write(
+            "Regex ID\tString ID\tPeak memory usage (MiB)\n"
+        )
         for i, regex in enumerate(
             tqdm(
                 regex_file,
@@ -42,7 +44,6 @@ def main(args: argparse.Namespace) -> None:
         ):
             regex = regex[:-1]  # strip newline
             print(regex, file=sys.stderr)
-            can_write = True
             try:
                 automaton = run_with_timeout(
                     func=pca.PositionCountingAutomaton.create,
@@ -61,7 +62,6 @@ def main(args: argparse.Namespace) -> None:
             except ValueError as e:
                 print(e, file=sys.stderr)
                 continue
-            mem_usage = []
             for j in range(1, args.num_strings_per_regex + 1):
                 try:
                     with open(
@@ -104,16 +104,15 @@ def main(args: argparse.Namespace) -> None:
                                     automaton, random_str, args
                                 )
                             )
-                            mem_usage.append(peak_mem_usage)
+                            mem_usage_log_file.write(
+                                f"{i}\t{j}\t{peak_mem_usage}\n"
+                            )
                         except TimeoutError as e:
                             print(e, file=sys.stderr)
                             break
 
                 except FileNotFoundError:
                     break
-            if len(mem_usage) > 0:
-                mem_usage_log_file.write(f"{i}\t{np.mean(mem_usage)}\n")
-
         mem_usage_log_file.close()
 
 
