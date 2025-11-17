@@ -6,7 +6,6 @@ from cai4py.instrumentation.constants import THROUGHPUT_THRES
 import argparse
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor
 
 import cai4py.counting_automaton.super_config as sc
 from cai4py.counting_automaton._logging import VERBOSE
