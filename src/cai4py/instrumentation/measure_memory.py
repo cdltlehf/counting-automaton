@@ -1,5 +1,6 @@
 """Time matching with the position counting automaton and random strings"""
 
+import numpy as np
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import logging
@@ -60,7 +61,7 @@ def main(args: argparse.Namespace) -> None:
             except ValueError as e:
                 print(e, file=sys.stderr)
                 continue
-            mean_mem_usage = 0
+            mem_usage = []
             for j in range(1, args.num_strings_per_regex + 1):
                 try:
                     with open(
@@ -74,7 +75,7 @@ def main(args: argparse.Namespace) -> None:
                         def measure_memory_used_during_matching(
                             automaton, random_str, args
                         ):
-                            max_mem_usage = run_with_timeout(
+                            peak_mem_usage = run_with_timeout(
                                 func=lambda func, args: memory_usage(
                                     (func, args),  # type: ignore
                                     max_usage=True,
@@ -91,9 +92,9 @@ def main(args: argparse.Namespace) -> None:
                                 ),
                                 timeout=1 / THROUGHPUT_THRES * num_bytes + 3,
                             )
-                            assert isinstance(max_mem_usage, float)
+                            assert isinstance(peak_mem_usage, float)
                             return (
-                                max_mem_usage * 1e6
+                                peak_mem_usage * 1e6
                                 - len(random_str.encode("utf-8"))
                             ) / 1e6
 
@@ -103,19 +104,15 @@ def main(args: argparse.Namespace) -> None:
                                     automaton, random_str, args
                                 )
                             )
-                            mean_mem_usage += (
-                                peak_mem_usage / args.num_strings_per_regex
-                            )
+                            mem_usage.append(peak_mem_usage)
                         except TimeoutError as e:
                             print(e, file=sys.stderr)
-                            can_write = False
                             break
 
                 except FileNotFoundError:
-                    can_write = False
                     break
-            if can_write:
-                mem_usage_log_file.write(f"{i}\t{mean_mem_usage}\n")
+            if len(mem_usage) > 0:
+                mem_usage_log_file.write(f"{i}\t{np.mean(mem_usage)}\n")
 
         mem_usage_log_file.close()
 
