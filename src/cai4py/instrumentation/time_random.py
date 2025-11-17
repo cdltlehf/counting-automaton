@@ -109,31 +109,22 @@ def main(args: argparse.Namespace) -> None:
                                 ),
                                 timeout=matching_timeout,
                             )
-                            if result is None:
-                                raise TimeoutError("Matching returned None (process failed to return result)")
                         except TimeoutError as e:
                             print(e, file=sys.stderr)
                             timing_log_file.write(
-                                f"{i}\t{j}\t{THROUGHPUT_THRES/1e6}\tNone\tNone\n"
+                                f"{i}\t{j}\t{THROUGHPUT_THRES/1e6}\n"
                             )
                             break
+                        except RuntimeError as e:
+                            print(e, file=sys.stderr)
+                            timing_log_file.write(
+                                f"{i}\t{j}\t{THROUGHPUT_THRES/1e6}\n"
+                            )
+                            break
+                        if result is None:
+                            continue
                         assert isinstance(result, tuple) and len(result) == 2
                         duration, cache_history = result
-                        # Extract hits/misses if available
-                        hits = ""
-                        misses = ""
-                        if cache_history is not None:
-                            try:
-                                hits = cache_history.hits
-                                misses = cache_history.misses
-
-                            except Exception:
-                                try:
-                                    hits = cache_history[0]
-                                    misses = cache_history[1]
-                                except Exception:
-                                    hits = ""
-                                    misses = ""
                         assert isinstance(duration, (int, float))
                         duration_f = float(duration)
                         if duration_f <= 0:
@@ -141,9 +132,7 @@ def main(args: argparse.Namespace) -> None:
                         else:
                             throughput = num_bytes / 1000 / duration_f
 
-                        timing_log_file.write(
-                            f"{i}\t{j}\t{throughput}\t{hits}\t{misses}\n"
-                        )
+                        timing_log_file.write(f"{i}\t{j}\t{throughput}\n")
 
                         # Write cache history if enabled
                         if cache_history_file and cache_history:
