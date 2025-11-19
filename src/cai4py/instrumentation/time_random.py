@@ -123,11 +123,11 @@ def main(args: argparse.Namespace) -> None:
                         assert isinstance(result, tuple) and len(result) == 2
                         duration, cache_history = result
                         assert isinstance(duration, (int, float))
-                        duration_f = float(duration)
-                        if duration_f <= 0:
+                        duration = float(duration)
+                        if duration <= 0:
                             throughput = THROUGHPUT_THRES / 1e6
                         else:
-                            throughput = num_bytes / 1000 / duration_f
+                            throughput = num_bytes / 1000 / duration
 
                         timing_log_file.write(f"{i}\t{j}\t{throughput}\n")
 

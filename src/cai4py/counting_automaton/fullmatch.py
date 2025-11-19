@@ -8,9 +8,7 @@ import time
 from typing import Literal, Type
 
 from cai4py.cache_utils import make_cached_versions
-from cai4py.collections import OrderedSet
 from cai4py.counting_automaton._logging import VERBOSE
-from cai4py.counting_automaton.position_counting_automaton import Config
 import cai4py.counting_automaton.position_counting_automaton as pca
 from cai4py.counting_automaton.super_config import SuperConfigBase
 import cai4py.counting_automaton.super_config as sc
@@ -32,14 +30,23 @@ def fullmatch(
 ) -> tuple[bool, list]:
     super_config = sc_class.get_initial(automaton)  # Use class method directly
 
+    # Fast path: when caching is disabled, avoid pickling/unpickling entirely.
+    # This removes large per-character overhead and mirrors the BVA matcher flow.
+    if cache_type == "none":
+        cache_history: list = []
+        for _symbol in w:
+            super_config = super_config.update(_symbol)
+        return super_config.is_final(), cache_history
+
+    # Cached path: use lightweight wrappers with explicit cache policies.
     def get_next_super_config(
         pickled_super_config: bytes,
         symbol: str,
-    ) -> SuperConfigBase:
+    ) -> bytes:
         # Retrieve the super_config from cache
-        super_config = pickle.loads(pickled_super_config)
-        logger.debug("Current super_config: %s", str(super_config))
-        return super_config.update(symbol)
+        super_config_local = pickle.loads(pickled_super_config)
+        logger.debug("Current super_config: %s", str(super_config_local))
+        return pickle.dumps(super_config_local.update(symbol))
 
     cached_get_next_super_config = make_cached_versions(
         get_next_super_config, maxsize=1024
@@ -49,11 +56,11 @@ def fullmatch(
     for i, symbol in enumerate(w):
         logger.debug("Processing symbol: %s", symbol)
         logger.debug("Current configs: %s", super_config)
-        super_config = cached_get_next_super_config[cache_type](
+
+        pickled_super_config = cached_get_next_super_config[cache_type](
             pickled_super_config, symbol
         )
-        logger.debug("Next configs: %s", super_config)
-        pickled_super_config = pickle.dumps(super_config)
+        logger.debug("Next configs: %s", pickled_super_config)
         # Sample cache stats at specified intervals
         if sample_interval > 0 and (i + 1) % sample_interval == 0:
             try:
@@ -63,7 +70,6 @@ def fullmatch(
                 cache_history.append((i + 1, cache_info))
             except AttributeError as e:
                 print(e, file=sys.stderr)
-                pass
     if super_config.is_final():
         return True, cache_history
     return False, cache_history
@@ -92,7 +98,6 @@ def main(args: argparse.Namespace) -> None:
     )
     t1 = time.perf_counter()
     duration = t1 - t0
-    print("cache_info:", cache_info)
     if cache_history:
         print("cache_history samples:", len(cache_history))
     num_bytes = len(args.input_string.encode("latin1"))
