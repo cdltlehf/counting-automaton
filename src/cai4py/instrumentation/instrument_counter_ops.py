@@ -1,7 +1,6 @@
 """Count the operations performed during matching and track the sizes and densities of counting-sets during merges and clones."""
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import logging
 import re
 import sys
@@ -20,11 +19,16 @@ from cai4py.instrumentation.utils import run_with_timeout
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
+from collections import namedtuple
 
 from .constants import OP_NAMES
 
 
 logger = logging.getLogger(__name__)
+
+# Define namedtuples for merge and clone set sizes
+MergeSetSize = namedtuple("MergeSetSize", "size1 density1 size2 density2")
+CloneSetSize = namedtuple("CloneSetSize", "size density")
 
 
 class VerboseFilter(logging.Filter):
@@ -50,9 +54,11 @@ def instrument_matching(
         size2,
         density2,
     ) in merge_set_sizes:
-        overall_merge_set_sizes.append((size1, density1, size2, density2))
+        overall_merge_set_sizes.append(
+            MergeSetSize(size1, density1, size2, density2)
+        )
     for size, density in clone_set_sizes:
-        overall_clone_set_sizes.append((size, density))
+        overall_clone_set_sizes.append(CloneSetSize(size, density))
 
 
 def reset_instrumentation_variables():
@@ -90,57 +96,63 @@ def main(args: argparse.Namespace) -> None:
             start=1,
         ):
             regex = regex[:-1]  # Remove newline
-
+            print(f"Processing regex {i}: {regex}")
             try:
                 automaton = run_with_timeout(
-                    pca.PositionCountingAutomaton.create,
+                    func=pca.PositionCountingAutomaton.create,
                     args=(regex, args.expansion_type),
                     timeout=10,
                 )
                 assert isinstance(automaton, pca.PositionCountingAutomaton)
-            except NotImplementedError:
+                if automaton is None:
+                    raise RuntimeError("Automaton creation failed")
+            except TimeoutError as e:
+                print(e, file=sys.stderr)
                 continue
-            except re.PatternError:
+            except NotImplementedError as e:
+                print(e, file=sys.stderr)
                 continue
-            except ValueError:
+            except re.PatternError as e:
+                print(e, file=sys.stderr)
                 continue
-            except TimeoutError:
+            except ValueError as e:
+                print(e, file=sys.stderr)
                 continue
 
             for j in range(1, args.num_strings_per_regex + 1):
                 try:
                     with open(
-                        f"{args.random_string_dir}/{i}-{j}.txt",
+                        f"{args.random_string_dir}/{i}/{j}.txt",
                         "r",
                         encoding="utf-8",
                     ) as random_str_file:
                         # Initialize instrumentation variables
                         reset_instrumentation_variables()
                         random_str = random_str_file.read()
+                except FileNotFoundError as e:
+                    print(e, file=sys.stderr)
+                    continue
 
-                        num_bytes = len(random_str.encode("utf-8"))
-                        assert num_bytes >= 0
+                num_bytes = len(random_str.encode("utf-8"))
+                assert num_bytes >= 0
 
-                        # Run matching with a timeout
-                        try:
-                            with ThreadPoolExecutor(max_workers=1) as executor:
-                                future = executor.submit(
-                                    instrument_matching,
-                                    sc_class,
-                                    automaton,
-                                    random_str,
-                                    op_counts,
-                                    overall_merge_set_sizes,
-                                    overall_clone_set_sizes,
-                                )
-                                matching_timeout = (
-                                    num_bytes / THROUGHPUT_THRES + 1
-                                )
-                                _ = future.result(matching_timeout)
-                        except TimeoutError as e:
-                            print(e, file=sys.stderr)
-                            break
-                except FileNotFoundError:
+                # Run matching with a timeout
+                matching_timeout = num_bytes / THROUGHPUT_THRES + 1
+                try:
+                    run_with_timeout(
+                        instrument_matching,
+                        args=(
+                            sc_class,
+                            automaton,
+                            random_str,
+                            op_counts,
+                            overall_merge_set_sizes,
+                            overall_clone_set_sizes,
+                        ),
+                        timeout=matching_timeout,
+                    )
+                except TimeoutError as e:
+                    print(e, file=sys.stderr)
                     break
         pd.DataFrame(data=op_counts, columns=OP_NAMES).to_csv(
             args.op_counts_output, index=False

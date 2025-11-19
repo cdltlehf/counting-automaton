@@ -7,7 +7,7 @@ mkdir -p outputs/csa/polyglot/outer
 python -O -m cai4py.instrumentation.time_attacks \
 	--attack-string-dir generated/counters/snort3-attack-strings \
 	--regex-file snort3/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/snort3/inner-attack-throughputs.tsv \
+	--timing-log-file outputs/csa/snort3/inner/attack-throughputs.tsv \
 	--expansion-type inner \
 	--input-encoding "latin1" \
 	--cache-type "none"

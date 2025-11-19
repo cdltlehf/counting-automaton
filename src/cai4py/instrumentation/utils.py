@@ -28,6 +28,12 @@ def run_with_timeout(func, args=(), timeout=None):
         The return value of the function.
     """
 
+    print(
+        f"\rRunning function '{func.__name__}' with timeout {timeout:.9f} seconds.",
+        end="",
+        flush=True,
+    )
+
     def target_func(args: tuple, out: multiprocessing.Queue):
         try:
             result = func(*args)
