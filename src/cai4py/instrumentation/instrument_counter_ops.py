@@ -48,6 +48,12 @@ def instrument_matching(
 ):
     fullmatch(sc_class, automaton, random_str, "none")
     # Save the operation count in the list for this run
+    assert len(op_name_to_count) == len(
+        OP_NAMES
+    ), "Operation count dictionary has unexpected number of entries"
+    assert all(
+        isinstance(v, int) for v in op_name_to_count.values()
+    ), "All operation counts should be integers"
     op_counts.append(op_name_to_count.copy())
     # Save the merge and clone set sizes
     for (
@@ -56,12 +62,22 @@ def instrument_matching(
         size2,
         density2,
     ) in merge_set_sizes:
+        assert size1 >= 0
+        assert size2 >= 0
+        assert 0.0 <= density1 <= 1.0
+        assert 0.0 <= density2 <= 1.0
         overall_merge_set_sizes.append(
             MergeSetSize(size1, density1, size2, density2)
         )
     for size, density in clone_set_sizes:
+        assert size >= 0
+        assert 0.0 <= density <= 1.0
         overall_clone_set_sizes.append(CloneSetSize(size, density))
-    return op_counts, overall_merge_set_sizes, overall_clone_set_sizes
+    return (
+        op_counts,
+        overall_merge_set_sizes,
+        overall_clone_set_sizes,
+    )
 
 
 def reset_instrumentation_variables():

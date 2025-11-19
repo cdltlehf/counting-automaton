@@ -1,7 +1,7 @@
 # python
 from functools import lru_cache, wraps
 from collections import OrderedDict
-from typing import Callable, Any, Dict, Tuple
+from typing import Callable, Any, Tuple
 from collections import namedtuple
 
 CacheInfo = namedtuple("CacheInfo", ["hits", "misses", "maxsize", "currsize"])
