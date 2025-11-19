@@ -1,28 +1,30 @@
-"""Count the operations performed during matching and track the sizes and densities of counting-sets during merges and clones."""
+"""
+Count the operations performed during matching and track the sizes
+and densities counting-sets during merges and clones.
+"""
 
 import argparse
+from collections import namedtuple
 import logging
 import re
 import sys
 from typing import Type
 
-from cai4py.counting_automaton.fullmatch import fullmatch
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
 from cai4py.counting_automaton._logging import VERBOSE
+from cai4py.counting_automaton.fullmatch import fullmatch
 from cai4py.counting_automaton.instrumentation_vars import clone_set_sizes
 from cai4py.counting_automaton.instrumentation_vars import merge_set_sizes
 from cai4py.counting_automaton.instrumentation_vars import op_name_to_count
-from cai4py.instrumentation.utils import run_with_timeout
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
-from cai4py.instrumentation.constants import THROUGHPUT_THRES
-from collections import namedtuple
+from cai4py.instrumentation.utils import get_matching_timeout
+from cai4py.instrumentation.utils import run_with_timeout
 
 from .constants import OP_NAMES
-
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +61,7 @@ def instrument_matching(
         )
     for size, density in clone_set_sizes:
         overall_clone_set_sizes.append(CloneSetSize(size, density))
+    return op_counts, overall_merge_set_sizes, overall_clone_set_sizes
 
 
 def reset_instrumentation_variables():
@@ -137,9 +140,13 @@ def main(args: argparse.Namespace) -> None:
                 assert num_bytes >= 0
 
                 # Run matching with a timeout
-                matching_timeout = num_bytes / THROUGHPUT_THRES + 1
+                matching_timeout = get_matching_timeout(num_bytes)
                 try:
-                    run_with_timeout(
+                    (
+                        op_counts,
+                        overall_merge_set_sizes,
+                        overall_clone_set_sizes,
+                    ) = run_with_timeout(
                         instrument_matching,
                         args=(
                             sc_class,
@@ -150,7 +157,7 @@ def main(args: argparse.Namespace) -> None:
                             overall_clone_set_sizes,
                         ),
                         timeout=matching_timeout,
-                    )
+                    )  # type: ignore
                 except TimeoutError as e:
                     print(e, file=sys.stderr)
                     break

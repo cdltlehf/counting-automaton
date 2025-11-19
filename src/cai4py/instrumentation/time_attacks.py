@@ -11,8 +11,6 @@ from tqdm import tqdm
 from cai4py.counting_automaton._logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
-from cai4py.instrumentation.constants import THROUGHPUT_THRES
-from concurrent.futures import ThreadPoolExecutor
 
 from cai4py.instrumentation.utils import (
     run_with_timeout,
@@ -29,7 +27,7 @@ class VerboseFilter(logging.Filter):
 
 def main(args: argparse.Namespace) -> None:
     method: str = args.method
-    sc_class: sc.SuperConfigBase = {
+    sc_class: Type[sc.SuperConfigBase] = {
         "super_config": sc.SuperConfig,
         "bounded_super_config": sc.BoundedSuperConfig,
         "counter_config": sc.CounterConfig,
@@ -88,20 +86,12 @@ def main(args: argparse.Namespace) -> None:
                     except UnicodeDecodeError as e:
                         print(e, file=sys.stderr)
                         continue
-                    with ThreadPoolExecutor(max_workers=1) as executor:
-                        try:
-                            duration, _cache_history = time_matching(
-                                sc_class,
-                                automaton,
-                                attack_str,
-                                args.cache_type,
-                            )
-                        except TimeoutError as e:
-                            print(e, file=sys.stderr)
-                            timing_log_file.write(
-                                f"{i}\t{THROUGHPUT_THRES/1e6}\n"
-                            )
-                            break
+                    duration, _ = time_matching(
+                        sc_class,
+                        automaton,
+                        attack_str,
+                        args.cache_type,
+                    )
                     timing_log_file.write(
                         f"{i}\t{num_bytes / 1000 / duration}\n"
                     )

@@ -1,22 +1,19 @@
 """Time matching with the position counting automaton and random strings"""
 
-import sys
-from cai4py.instrumentation.constants import THROUGHPUT_THRES
-
 import argparse
 import logging
 import re
+import sys
 
-import cai4py.counting_automaton.super_config as sc
-from cai4py.counting_automaton._logging import VERBOSE
-import cai4py.counting_automaton.position_counting_automaton as pca
 from tqdm import tqdm
 
-from cai4py.instrumentation.utils import (
-    get_matching_timeout,
-    run_with_timeout,
-    time_matching,
-)
+from cai4py.counting_automaton._logging import VERBOSE
+import cai4py.counting_automaton.position_counting_automaton as pca
+import cai4py.counting_automaton.super_config as sc
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
+from cai4py.instrumentation.utils import get_matching_timeout
+from cai4py.instrumentation.utils import run_with_timeout
+from cai4py.instrumentation.utils import time_matching
 
 logger = logging.getLogger(__name__)
 

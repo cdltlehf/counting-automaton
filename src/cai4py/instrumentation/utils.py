@@ -1,20 +1,21 @@
-import sys
-import traceback
-from typing import Literal
-import time
 import multiprocessing
 from multiprocessing.queues import Empty  # type: ignore
-from cai4py.instrumentation.constants import THROUGHPUT_THRES
+import sys
+import time
+import traceback
+from typing import Literal
 
 from cai4py.counting_automaton.fullmatch import fullmatch
 import cai4py.counting_automaton.position_counting_automaton as pca
 from cai4py.counting_automaton.super_config.super_config_base import (
     SuperConfigBase,
 )
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
 
 
 def run_with_timeout(func, args=(), timeout=None):
-    """Run a function with the given arguments in a separate process with a timeout.
+    """
+    Run a function with the given arguments in a separate process with a timeout.
     If the function does not complete within the timeout, terminate the process.
     Raises TimeoutError if the function times out.
     Raises RuntimeError if the function terminates with an error.
@@ -41,7 +42,7 @@ def run_with_timeout(func, args=(), timeout=None):
         except TimeoutError as e:
             print(e, file=sys.stderr)
             out.put(e)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             print(e, file=sys.stderr)
             traceback.print_exc()
             out.put(e)
