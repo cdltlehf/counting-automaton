@@ -152,7 +152,10 @@ class PositionCountingAutomaton:
     def __str__(self) -> str:
 
         follow_string = "\n".join(
-            "\n".join(f"- {state} {arc_to_str(arc)}" for arc in follow)
+            "\n".join(
+                f"- {state} {arc_to_str(arc, states_to_symbol_preds=self.states)}"
+                for arc in follow
+            )
             for state, follow in self.follow.items()
         )
         return "\n".join(

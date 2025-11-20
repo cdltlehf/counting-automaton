@@ -22,18 +22,17 @@ class StrEnum(str, Enum):
     pass
 
 
-T = TypeVar("T", bound=Hashable)
+class CounterMap(dict[CounterVariable, int], Hashable):
 
-
-class CounterMap(dict[T, int], Hashable):
-
-    def __init__(self, variables: Iterable[T]) -> None:
+    def __init__(self, variables: Iterable[CounterVariable]) -> None:
         """Initialize a counter map."""
         self.variables = variables
-        self._index: dict[T, int] = {c: i for i, c in enumerate(variables)}
+        self._index: dict[CounterVariable, int] = {
+            c: i for i, c in enumerate(variables)
+        }
 
     @property
-    def index(self) -> dict[T, int]:
+    def index(self) -> dict[CounterVariable, int]:
         return self._index
 
     def to_list(self) -> list[Optional[int]]:
@@ -42,7 +41,7 @@ class CounterMap(dict[T, int], Hashable):
     def to_tuple(self) -> tuple[Optional[int], ...]:
         return tuple(self.to_list())
 
-    def __setitem__(self, key: T, value: int) -> None:
+    def __setitem__(self, key: CounterVariable, value: int) -> None:
         if key not in self.index:
             raise ValueError(f"Invalid counter variable: {key}")
         super().__setitem__(key, value)
@@ -106,12 +105,14 @@ class CounterPredicate(Hashable):
         return f"{self.type}{self.value}"
 
 
-class Guard(dd[T, list[CounterPredicate]], Hashable):
+class Guard(dd[CounterVariable, list[CounterPredicate]], Hashable):
     """Guard"""
 
     def __init__(
         self,
-        guard: Optional[Mapping[T, list[CounterPredicate]]] = None,
+        guard: Optional[
+            Mapping[CounterVariable, list[CounterPredicate]]
+        ] = None,
     ) -> None:
         super().__init__(list)
         if guard is not None:
@@ -120,15 +121,21 @@ class Guard(dd[T, list[CounterPredicate]], Hashable):
     # All the counter guards that can be applied.
 
     @classmethod
-    def less_than(cls, counter_variable: T, value: int) -> "Guard[T]":
+    def less_than(
+        cls, counter_variable: CounterVariable, value: int
+    ) -> "Guard":
         return cls({counter_variable: [CounterPredicate.less_than(value)]})
 
     @classmethod
-    def not_less_than(cls, counter_variable: T, value: int) -> "Guard[T]":
+    def not_less_than(
+        cls, counter_variable: CounterVariable, value: int
+    ) -> "Guard":
         return cls({counter_variable: [CounterPredicate.not_less_than(value)]})
 
     @classmethod
-    def not_greater_than(cls, counter_variable: T, value: int) -> "Guard[T]":
+    def not_greater_than(
+        cls, counter_variable: CounterVariable, value: int
+    ) -> "Guard":
         return cls(
             {counter_variable: [CounterPredicate.not_greater_than(value)]}
         )
@@ -155,15 +162,15 @@ class Guard(dd[T, list[CounterPredicate]], Hashable):
                     return False
         return True
 
-    def __copy__(self) -> "Guard[T]":
+    def __copy__(self) -> "Guard":
         return Guard(self)
 
-    def __iadd__(self, other: "Guard[T]") -> "Guard[T]":
+    def __iadd__(self, other: "Guard") -> "Guard":
         for variable in other:
             self[variable] += other[variable]
         return self
 
-    def __add__(self, other: "Guard[T]") -> "Guard[T]":
+    def __add__(self, other: "Guard") -> "Guard":
         new = copy(self)
         new += other
         return new
@@ -230,8 +237,8 @@ class CounterOperationComponent:
         return cls(CounterOperationComponent.Type.INACTIVATE, None)
 
     def __call__(
-        self, counter: Optional[CounterBase], counter_type: CounterType
-    ) -> Optional[CounterBase]:
+        self, counter: CounterBase, counter_type: CounterType
+    ) -> CounterBase | None:
         logger.log(VERBOSE, ComputationStep.APPLY_OPERATION.value)
 
         if self.type is CounterOperationComponent.Type.NO_OPERATION:
@@ -280,25 +287,30 @@ def _default_action_factory():
     return CounterOperationComponent.no_operation()
 
 
-class Action(dd[T, CounterOperationComponent], Hashable):
+class Action(dd[CounterVariable, CounterOperationComponent], Hashable):
     """Action"""
 
     def __init__(
         self,
-        action: Optional[Mapping[T, CounterOperationComponent]] = None,
+        action: Optional[
+            Mapping[CounterVariable, CounterOperationComponent]
+        ] = None,
     ) -> None:
         super().__init__(_default_action_factory)
         if action is not None:
             self.update(action)
 
     @classmethod
-    def increase(cls, counter_variable: T) -> "Action[T]":
+    def increase(cls, counter_variable: CounterVariable) -> "Action":
         return cls({counter_variable: CounterOperationComponent.increase()})
 
     @classmethod
     def activate(
-        cls, counter_variable: T, lower_bound: int, upper_bound: Optional[int]
-    ) -> "Action[T]":
+        cls,
+        counter_variable: CounterVariable,
+        lower_bound: int,
+        upper_bound: Optional[int],
+    ) -> "Action":
         if upper_bound is None:
             upper_bound = -1
 
@@ -311,18 +323,25 @@ class Action(dd[T, CounterOperationComponent], Hashable):
         )
 
     @classmethod
-    def inactivate(cls, counter_variable: T) -> "Action[T]":
+    def inactivate(cls, counter_variable: CounterVariable) -> "Action":
         return cls({counter_variable: CounterOperationComponent.inactivate()})
 
+    def __call__(
+        self,
+        counters: dict[CounterVariable, CounterBase],
+        counter_type: CounterType,
+    ) -> dict[CounterVariable, CounterBase]:
+        return self.move_and_apply(copy(counters), counter_type)
+
     def move_and_apply(
-        self, counter: CounterBase | None, counter_type: CounterType
-    ) -> CounterBase | None:
-        if counter is None:
-            return None
+        self,
+        counters: dict[CounterVariable, CounterBase],
+        counter_type: CounterType,
+    ) -> dict[CounterVariable, CounterBase]:
         # Loop over keys of default dict
 
         looped = False
-        new_counter = None
+        new_counters: dict[CounterVariable, CounterBase] = {}
         for variable in self:
             looped = True
 
@@ -332,14 +351,21 @@ class Action(dd[T, CounterOperationComponent], Hashable):
                 self[variable].lower_bound,
                 self[variable].upper_bound,
             )
-            new_counter = self[variable](counter, counter_type)
+            action = self[variable]
+            counter = counters[variable]
+            new_counter = action(counter, counter_type)
+            if new_counter is not None:
+                new_counters[variable] = new_counter
+            else:
+                # The counter has been inactivated
+                pass
 
         # Need to check if the loop ever activated.
         if not looped:
-            return counter
+            return counters
         else:
-            assert new_counter is not None
-            return new_counter
+            assert new_counters is not None
+            return new_counters
 
     def __hash__(self) -> int:  # type: ignore
         return hash(
@@ -356,22 +382,15 @@ class Action(dd[T, CounterOperationComponent], Hashable):
             )
         )
 
-    def __call__(
-        self,
-        counter: CounterBase,
-        counter_type: CounterType = CounterType.BIT_VECTOR,
-    ) -> CounterBase | None:
-        return self.move_and_apply(copy(counter), counter_type)
-
-    def __copy__(self) -> "Action[T]":
+    def __copy__(self) -> "Action":
         return Action(self)
 
-    def __iadd__(self, other: "Action[T]") -> "Action[T]":
+    def __iadd__(self, other: "Action") -> "Action":
         for variable in other:
             self[variable] *= other[variable]
         return self
 
-    def __add__(self, other: "Action[T]") -> "Action[T]":
+    def __add__(self, other: "Action") -> "Action":
         new = copy(self)
         new += other
         return new
