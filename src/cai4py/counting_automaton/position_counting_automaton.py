@@ -271,35 +271,6 @@ class PositionCountingAutomaton:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, PositionCountingAutomaton):
             return False
-        return (
-            self.states == other.states
-            and self.follow == other.follow
-            and self.counters == other.counters
-            and self.counter_scopes == other.counter_scopes
-            and self._state_scopes == other._state_scopes
-        )
-
-    def __getstate__(self):
-        return (
-            self.states,
-            self.follow,
-            self.counters,
-            self.counter_scopes,
-            self._state_scopes,
-        )
-
-    def __setstate__(self, state):
-        (
-            self.states,
-            self.follow,
-            self.counters,
-            self.counter_scopes,
-            self._state_scopes,
-        ) = state
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, PositionCountingAutomaton):
-            return False
 
         # Compare states - need special handling for SubPattern objects
         if set(self.states.keys()) != set(other.states.keys()):
@@ -322,6 +293,24 @@ class PositionCountingAutomaton:
             and self.counter_scopes == other.counter_scopes
             and self._state_scopes == other._state_scopes
         )
+
+    def __getstate__(self):
+        return (
+            self.states,
+            self.follow,
+            self.counters,
+            self.counter_scopes,
+            self._state_scopes,
+        )
+
+    def __setstate__(self, state):
+        (
+            self.states,
+            self.follow,
+            self.counters,
+            self.counter_scopes,
+            self._state_scopes,
+        ) = state
 
 
 class _PositionConstructionCallback:
@@ -372,7 +361,9 @@ class _PositionConstructionCallback:
         )
         return PositionCountingAutomaton({State(self.state): operand}, follow)
 
-    def call_at(self, x: tuple[str, Any]) -> PositionCountingAutomaton:
+    def call_at(
+        self, x: tuple[str, Any] | tuple[NamedIntConstant, Any]
+    ) -> PositionCountingAutomaton:
         raise NotImplementedError("Anchor is not supported")
 
     def call_catenation(
