@@ -9,5 +9,4 @@ OP_NAMES = sorted(
         "CHECK",
     ]
 )
-
 THROUGHPUT_THRES = 50 * 1e3  # Kilobytes per second

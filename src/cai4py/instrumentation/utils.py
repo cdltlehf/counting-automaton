@@ -1,21 +1,24 @@
+import sys
+import traceback
+import time
 import multiprocessing
 from multiprocessing.queues import Empty  # type: ignore
-import sys
-import time
-import traceback
-from typing import Literal
-
-from cai4py.counting_automaton.fullmatch import fullmatch
-import cai4py.counting_automaton.position_counting_automaton as pca
-from cai4py.counting_automaton.super_config.super_config_base import (
-    SuperConfigBase,
-)
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
+from cai4py.counting_automaton.position_counting_automaton import (
+    PositionCountingAutomaton,
+)
+from cai4py.counting_automaton.fullmatch import fullmatch
+from cai4py.custom_counters.counter_type import CounterType
+
+
+class NoMatchError(Exception):
+    """Raised when no match is found during matching."""
+
+    pass
 
 
 def run_with_timeout(func, args=(), timeout=None):
-    """
-    Run a function with the given arguments in a separate process with a timeout.
+    """Run a function with the given arguments in a separate process with a timeout.
     If the function does not complete within the timeout, terminate the process.
     Raises TimeoutError if the function times out.
     Raises RuntimeError if the function terminates with an error.
@@ -42,7 +45,7 @@ def run_with_timeout(func, args=(), timeout=None):
         except TimeoutError as e:
             print(e, file=sys.stderr)
             out.put(e)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             print(e, file=sys.stderr)
             traceback.print_exc()
             out.put(e)
@@ -74,18 +77,20 @@ def get_matching_timeout(num_bytes: int) -> float:
 
 def time_matching(
     sc_class: type[SuperConfigBase],
-    automaton: pca.PositionCountingAutomaton,
+    automaton: PositionCountingAutomaton,
     random_str: str,
-    cache_type: Literal["lru", "flush_on_full", "none"],
-    sample_interval: int = 0,
+    cache_type: Literlal["lru", "flush_on_full", "none"]
+    counter_type: CounterType,
 ) -> tuple[float, list]:
     t0 = time.perf_counter()
-    # `fullmatch` returns a tuple (is_match, cache_stats, cache_history).
-    # Capture cache statistics and history so callers can observe hits/misses
-    # and utilization over time when a cache is used.
-    _, cache_history = fullmatch(
-        sc_class, automaton, random_str, cache_type, sample_interval
+    match_found, cache_history = fullmatch(
+        automaton,
+        random_str,
+        counter_type,
     )
+    if not match_found:
+        # Raise runtime error because all inputs should match (there are some edge cases where Xeger generates non-matching strings)
+        raise NoMatchError("String did not match the automaton")
     t1 = time.perf_counter()
     duration = t1 - t0
     return duration, cache_history

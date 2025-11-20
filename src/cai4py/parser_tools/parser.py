@@ -1,9 +1,11 @@
-# pylint: disable=W,C,R
 # type: ignore
+# pylint: disable=unused-wildcard-import
+# pylint: disable=wildcard-import
+# pylint: disable=W,C,R
 
 """Modified version of the sre_parse module from the Python standard library."""
-import re._parser
-from .constants import *  # pylint: disable=wildcard-import,unused-wildcard-import
+
+from .constants import *
 
 SPECIAL_CHARS = ".\\[{()*+?^$|"
 REPEAT_CHARS = "*+?{"
@@ -109,6 +111,17 @@ class State:
                     "cannot refer to group defined in the same "
                     "lookbehind subpattern"
                 )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, State):
+            return False
+        return (
+            self.flags == other.flags
+            and self.groupdict == other.groupdict
+            and self.groupwidths == other.groupwidths
+            and self.lookbehindgroups == other.lookbehindgroups
+            and self.grouprefpos == other.grouprefpos
+        )
 
 
 class SubPattern:
@@ -237,6 +250,11 @@ class SubPattern:
                 break
         self.width = min(lo, MAXWIDTH), min(hi, MAXWIDTH)
         return self.width
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SubPattern):
+            return False
+        return self.state == other.state and self.data == other.data
 
 
 class Tokenizer:
@@ -576,6 +594,7 @@ def _parse(source, state, verbose, nested, first=False):
     while True:
 
         this = source.next
+
         if this is None:
             break  # end of pattern
         if this in "|)":
@@ -605,8 +624,8 @@ def _parse(source, state, verbose, nested, first=False):
             # character set
             set = []
             setappend = set.append
-            # if sourcematch(":"):
-            # pass # handle character classes
+            ##          if sourcematch(":"):
+            ##              pass # handle character classes
             if source.next == "[":
                 import warnings
 
@@ -726,6 +745,7 @@ def _parse(source, state, verbose, nested, first=False):
             elif this == "+":
                 is_plus = True
             elif this == "{":
+
                 if source.next == "}":
                     subpatternappend((LITERAL, _ord(this)))
                     continue
@@ -734,11 +754,13 @@ def _parse(source, state, verbose, nested, first=False):
                 lo = hi = ""
                 while source.next in DIGITS:
                     lo += sourceget()
+
                 if sourcematch(","):
                     while source.next in DIGITS:
                         hi += sourceget()
                 else:
                     hi = lo
+
                 if not sourcematch("}"):
                     subpatternappend((LITERAL, _ord(this)))
                     source.seek(here)
@@ -761,9 +783,11 @@ def _parse(source, state, verbose, nested, first=False):
                             "min repeat greater than max repeat",
                             source.tell() - here,
                         )
+
             else:
                 # raise AssertionError("unsupported quantifier %r" % (char,))
                 raise AssertionError("unsupported quantifier %r" % (this,))
+
             # figure out which item to repeat
             if subpattern:
                 item = subpattern[-1:]
@@ -1125,6 +1149,7 @@ def parse(str, flags=0, state=None):
     state.str = str
 
     p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)
+
     p.state.flags = fix_flags(str, p.state.flags)
 
     if source.next is not None:

@@ -1,26 +1,21 @@
 """SuperConfigBase"""
 
 import abc
-from collections import defaultdict as dd
 from json import dumps
-import pickle
 from typing import Any, Iterator
 
-from cai4py.collections import OrderedSet
-
-from ..counter_vector import CounterVector
-from ..position_counting_automaton import CounterVariable
 from ..position_counting_automaton import PositionCountingAutomaton
-from ..position_counting_automaton import State
-
-ConfigDictType = dd[State, OrderedSet[CounterVector[CounterVariable]]]
+from cai4py.custom_counters.counter_type import CounterType
 
 
 class SuperConfigBase(abc.ABC):
     """Abstract class for super-configurations"""
 
-    def __init__(self, automaton: PositionCountingAutomaton):
+    def __init__(
+        self, automaton: PositionCountingAutomaton, counter_type: CounterType
+    ):
         self.automaton = automaton
+        self.counter_type = counter_type
 
     @abc.abstractmethod
     def to_json(self) -> Any:
@@ -36,9 +31,7 @@ class SuperConfigBase(abc.ABC):
 
     @classmethod
     def get_computation(
-        cls,
-        automaton: PositionCountingAutomaton,
-        w: str,
+        cls, automaton: PositionCountingAutomaton, w: str
     ) -> Iterator["SuperConfigBase"]:
         super_config = cls.get_initial(automaton)
         yield super_config

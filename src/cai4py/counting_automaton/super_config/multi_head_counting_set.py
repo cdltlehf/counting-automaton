@@ -2,10 +2,10 @@
 
 import abc
 import logging
-from typing import Callable, Generic, Iterable, Optional, TypeVar, IO
+from typing import Callable, Generic, Iterable, Optional, TypeVar
 import warnings
 
-from cai4py.collections import Node
+from cai4py.more_collections import Node
 
 from ..counting_set import BoundedCountingSet
 from ..counting_set import CountingSet
@@ -89,6 +89,9 @@ class MultiHeadCountingSetBase(abc.ABC, Generic[_T_co]):
 
     def check(self, delta: int) -> bool:
         return self.head_value(delta) >= self.counting_set.low
+
+    def is_empty(self) -> bool:
+        return self.counting_set.is_empty()
 
     def values(self, delta: int) -> Iterable[int]:
         for value in self.counting_set:

@@ -6,6 +6,7 @@ import abc
 
 
 class CounterBase(abc.ABC):
+    """Abstract base class for custom counters."""
 
     @abc.abstractmethod
     def __init__(self, lower_bound: int, upper_bound: int):

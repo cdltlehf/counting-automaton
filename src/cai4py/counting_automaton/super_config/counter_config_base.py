@@ -5,13 +5,12 @@ from collections import defaultdict as dd
 from copy import copy
 import logging
 # fmt: off
-from typing import (Callable, Generic, Hashable, IO, Iterator, Mapping,
-                    Optional, TypeVar)
+from typing import Callable, Generic, Hashable, Iterator, Mapping, Optional, TypeVar
 
-from cai4py.collections import OrderedSet
+from cai4py.more_collections import OrderedSet
 
-from ..counter_vector import CounterOperationComponent
-from ..counter_vector import Guard
+from ..counter_map import CounterOperationComponent
+from ..counter_map import Guard
 from ..counting_set import CountingSet
 from ..position_counting_automaton import CounterVariable
 from ..position_counting_automaton import FINAL_STATE
@@ -19,6 +18,7 @@ from ..position_counting_automaton import INITIAL_STATE
 from ..position_counting_automaton import PositionCountingAutomaton
 from ..position_counting_automaton import State
 from .super_config_base import SuperConfigBase
+from ...custom_counters.counter_type import CounterType
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +225,7 @@ class CounterConfigBase(
 ):
     """Class for super-configurations using a counting set"""
 
-    _constructor: Callable[[int, Optional[int], IO], _T]
+    _constructor: Callable[[int, Optional[int]], _T]
 
     def __init__(
         self,
@@ -234,8 +234,9 @@ class CounterConfigBase(
         counter_to_state_to_counting_set: dict[
             CounterVariable, StateToCountingSet[_T]
         ],
+        counter_type: CounterType,
     ):
-        super().__init__(automaton)
+        super().__init__(automaton, counter_type)
 
         self.counter_scopes = automaton.counter_scopes
         self.state_scopes = automaton.state_scopes

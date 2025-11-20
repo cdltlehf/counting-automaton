@@ -1,18 +1,15 @@
-"""Counting-set data structure for counting automata"""
+"""Counting set"""
 
 from copy import copy
 import logging
 from typing import Iterable, Iterator, Optional, TypeVar
 import warnings
 
-from cai4py.collections import Node
-from cai4py.collections import SortedLinkedList
+from cai4py.custom_counters.counter_base import CounterBase
+from cai4py.more_collections import Node, SortedLinkedList
 
-from ..instrumentation_vars import clone_set_sizes
-from ..instrumentation_vars import merge_set_sizes
-from ..instrumentation_vars import op_name_to_count
-from .._logging import ComputationStep
-from .._logging import VERBOSE
+from ..computation_logging import ComputationStep
+from ..computation_logging import VERBOSE
 
 logger = logging.getLogger(__name__)
 
