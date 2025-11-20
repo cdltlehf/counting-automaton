@@ -1,5 +1,6 @@
 """Time matching with the position counting automaton and attack strings"""
 
+import time
 import argparse
 import logging
 import pickle
@@ -10,6 +11,9 @@ from typing import Literal, Type
 from cai4py.cache_utils import make_cached_versions
 from cai4py.counting_automaton._logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
+from cai4py.counting_automaton.super_config.super_config import SuperConfig
+from cai4py.custom_counters.counter_type import CounterType
+from cai4py.more_collections import OrderedSet
 from cai4py.counting_automaton.super_config import SuperConfigBase
 import cai4py.counting_automaton.super_config as sc
 
@@ -136,5 +140,12 @@ if __name__ == "__main__":
         type=str,
         required=True,
         choices=["lru", "flush_on_full", "none"],
+    )
+    parser.add_argument(
+        "--counter-type",
+        type=str,
+        required=False,
+        default="sparse-counting-set",
+        choices=["bit-vector", "sparse-counting-set"],
     )
     main(parser.parse_args())
