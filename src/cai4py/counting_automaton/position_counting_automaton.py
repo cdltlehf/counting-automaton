@@ -1,46 +1,55 @@
 """Position counting automaton."""
 
-import re._parser
-from copy import copy, deepcopy
+from copy import copy
+from copy import deepcopy
 from functools import reduce
+import re._parser
 from typing import Any, Iterable, Literal, NewType, Optional
 
-from cai4py.counting_automaton.super_config.super_config import SuperConfig
+from cai4py.custom_counters.counter_action import Action
 from cai4py.custom_counters.counter_base import CounterBase
+from cai4py.custom_counters.counter_base import CounterVariable
+from cai4py.custom_counters.counter_guard import Guard
 from cai4py.custom_counters.counter_type import CounterType
 from cai4py.more_collections import OrderedSet
+from cai4py.parser_tools import fold
+from cai4py.parser_tools import MAX_PLUS
+from cai4py.parser_tools import MAX_QUESTION
 from cai4py.parser_tools import (
-    MAX_PLUS,
-    MAX_QUESTION,
-    MAX_REPEAT,  # pyright: ignore[reportAttributeAccessIssue]
-    MAX_STAR,
-    MIN_PLUS,
-    MIN_QUESTION,
-    MIN_REPEAT,  # pyright: ignore[reportAttributeAccessIssue]
-    MIN_STAR,
-    fold,
-    parse,
-)
+    MAX_REPEAT,
+)  # pyright: ignore[reportAttributeAccessIssue]
+from cai4py.parser_tools import MAX_STAR
+from cai4py.parser_tools import MIN_PLUS
+from cai4py.parser_tools import MIN_QUESTION
+from cai4py.parser_tools import (
+    MIN_REPEAT,
+)  # pyright: ignore[reportAttributeAccessIssue]
+from cai4py.parser_tools import MIN_STAR
+from cai4py.parser_tools import parse
 from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import # pyright: ignore[reportWildcardImportFromLibrary]
+from cai4py.parser_tools.constants import NamedIntConstant
 from cai4py.parser_tools.parser import SubPattern
 from cai4py.parser_tools.re import (
-    _compile,  # pyright: ignore[reportAttributeAccessIssue]
-)
+    _compile,
+)  # pyright: ignore[reportAttributeAccessIssue]
 from cai4py.parser_tools.utils import expand_counters
-from cai4py.parser_tools.constants import (
-    NamedIntConstant,
-)
-from cai4py.counting_automaton.types import CounterVariable, State
 
+from ..custom_counters.counter_action import Action
+from ..custom_counters.counter_guard import Guard
 from ..utils.util_logging import setup_debugger
-from .counter_map import Action, Guard
-from .computation_logging import VERBOSE, ComputationStep
+from .computation_logging import ComputationStep
+from .computation_logging import VERBOSE
 
 logger = setup_debugger(__name__)
 
 
 Range = tuple[int, Optional[int]]
 
+SymbolPredicate = Any
+State = NewType("State", int)
+Arc = tuple[Guard, Action, State]
+Config = tuple[State, dict[CounterVariable, CounterBase]]
+Follow = dict[State, OrderedSet[Arc]]
 INITIAL_STATE = State(0)
 FINAL_STATE = State(-1)
 GLOBAL_COUNTER = CounterVariable(0)
@@ -233,15 +242,6 @@ class PositionCountingAutomaton:
         initial_counting_state = {}
         initial_config = (INITIAL_STATE, initial_counting_state)
         return initial_config
-
-    def get_initial_super_config(
-        self, counter_type: CounterType
-    ) -> SuperConfig:
-        initial_super_config = SuperConfig(
-            automaton=self,
-            counter_type=counter_type,
-        )
-        return initial_super_config
 
     def backtrack(
         self,

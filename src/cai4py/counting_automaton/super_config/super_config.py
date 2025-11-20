@@ -3,29 +3,30 @@
 from collections import defaultdict
 from typing import Collection, Iterator, Optional
 
+from cai4py.counting_automaton.super_config.super_config_base import (
+    SuperConfigBase,
+)
+from cai4py.counting_automaton.position_counting_automaton import (
+    Config,
+    CounterVariable,
+)
 from cai4py.custom_counters.bit_vector import BitVector
 from cai4py.custom_counters.counter_base import CounterBase
 from cai4py.custom_counters.counter_type import CounterType
 from cai4py.custom_counters.counting_set import CountingSet
 from cai4py.custom_counters.naive_counter import NaiveCounter
-
-from ...utils.util_logging import setup_debugger
-
-logger = setup_debugger(__name__)
-
 from cai4py.more_collections import OrderedSet
 
-from ..counter_map import CounterMap
-from ..position_counting_automaton import Config
+from ...custom_counters.counter_map import CounterMap
+from ...utils.util_logging import setup_debugger
 from ..position_counting_automaton import CounterVariable
 from ..position_counting_automaton import FINAL_STATE
 from ..position_counting_automaton import PositionCountingAutomaton
 from ..position_counting_automaton import State
-from cai4py.counting_automaton.super_config.super_config_base import (
-    SuperConfigBase,
-)
 
-ConfigDictType = defaultdict[State, OrderedSet[CounterMap[CounterVariable]]]
+logger = setup_debugger(__name__)
+
+ConfigDictType = defaultdict[State, OrderedSet[CounterMap]]
 
 
 class SuperConfig(SuperConfigBase, Collection[Config]):

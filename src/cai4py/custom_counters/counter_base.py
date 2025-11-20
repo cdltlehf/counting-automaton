@@ -3,6 +3,9 @@ Abstract base class to create an interface for the custom counters.
 """
 
 import abc
+from typing import NewType
+
+CounterVariable = NewType("CounterVariable", int)
 
 
 class CounterBase(abc.ABC):

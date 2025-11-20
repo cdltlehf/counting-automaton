@@ -4,6 +4,9 @@ import time
 import multiprocessing
 from multiprocessing.queues import Empty
 from typing import Literal  # type: ignore
+from cai4py.counting_automaton.super_config.super_config_base import (
+    SuperConfigBase,
+)
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
 from cai4py.counting_automaton.position_counting_automaton import (
     PositionCountingAutomaton,

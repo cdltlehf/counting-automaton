@@ -5,8 +5,14 @@ import logging
 from typing import Iterable, Iterator, Optional, TypeVar
 import warnings
 
-from cai4py.custom_counters.counter_base import CounterBase
 from cai4py.more_collections import Node, SortedLinkedList
+
+# import op_name_to_count and merge_set_sizes, clone_set_sizes from computation_logging
+from ..instrumentation_vars import (
+    op_name_to_count,
+    merge_set_sizes,
+    clone_set_sizes,
+)
 
 from ..computation_logging import ComputationStep
 from ..computation_logging import VERBOSE

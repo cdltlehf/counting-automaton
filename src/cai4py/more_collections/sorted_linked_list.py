@@ -15,7 +15,7 @@ class Comparable(Protocol):
 T = TypeVar("T", bound=Comparable)
 
 
-class SortedLinkedList(LinkedList[T]):
+class SortedLinkedList[T](LinkedList[T]):
     """Sorted Doubly linked list"""
 
     def __init__(

@@ -8,11 +8,13 @@ from typing import Callable, Generic, Iterator, Mapping, Optional, TypeVar
 
 from cai4py.more_collections import OrderedSet
 
-from ..counter_map import CounterOperationComponent
-from ..counter_map import Guard
-from ..counting_set import CountingSet
+from ...custom_counters.counter_guard import Guard
+from ...custom_counters.counter_operation_component import (
+    CounterOperationComponent,
+)
 from ..computation_logging import ComputationStepMark
 from ..computation_logging import VERBOSE
+from ..counting_set import CountingSet
 from ..position_counting_automaton import CounterVariable
 from ..position_counting_automaton import FINAL_STATE
 from ..position_counting_automaton import INITIAL_STATE
