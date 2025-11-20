@@ -7,6 +7,7 @@ import re
 import string
 import unittest
 import warnings
+from pathlib import Path
 
 from timeout_decorator import timeout  # type: ignore
 
@@ -18,11 +19,13 @@ class TestPositionCountingAutomaton(unittest.TestCase):
     """Unit tests for position_counter_automaton.py"""
 
     def setUp(self) -> None:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.INFO)
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None  # pylint: disable=invalid-name
-        dataset_path = "../data/filtered/all_regexes.txt"
-        self.test_cases = load_test_cases(dataset_path)
+        test_dir = Path(__file__).parent
+        dataset_path = test_dir / "regexes.txt"
+        with open(str(dataset_path), "r", encoding="utf-8") as f:
+            self.test_cases = [line[:-1] for line in f.readlines()]
         self.timeout = 1
 
     def test_pickle(self) -> None:
@@ -33,7 +36,6 @@ class TestPositionCountingAutomaton(unittest.TestCase):
                 automaton = pca.PositionCountingAutomaton.create(pattern)
                 pickle.dumps(list(automaton.states.keys()))
                 vals = list(automaton.states.values())
-                print(vals)
                 pickle.dumps(vals)
                 serialized = pickle_dumps(automaton)
                 deserialized = pickle.loads(serialized)
@@ -54,6 +56,7 @@ class TestPositionCountingAutomaton(unittest.TestCase):
             try:
                 compiled = re.compile(pattern)
             except re.error as re_error:
+                assert isinstance(re_error.pos, int)
                 logging.warning(
                     # print the error message,
                     # then print the pattern (with the location of the error coloured red)
