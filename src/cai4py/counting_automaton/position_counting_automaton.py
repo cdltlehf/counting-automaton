@@ -16,22 +16,22 @@ from cai4py.parser_tools import fold
 from cai4py.parser_tools import MAX_PLUS
 from cai4py.parser_tools import MAX_QUESTION
 from cai4py.parser_tools import (
-    MAX_REPEAT,
-)  # pyright: ignore[reportAttributeAccessIssue]
+    MAX_REPEAT,  # pyright: ignore[reportAttributeAccessIssue]
+)
 from cai4py.parser_tools import MAX_STAR
 from cai4py.parser_tools import MIN_PLUS
 from cai4py.parser_tools import MIN_QUESTION
 from cai4py.parser_tools import (
-    MIN_REPEAT,
-)  # pyright: ignore[reportAttributeAccessIssue]
+    MIN_REPEAT,  # pyright: ignore[reportAttributeAccessIssue]
+)
 from cai4py.parser_tools import MIN_STAR
 from cai4py.parser_tools import parse
 from cai4py.parser_tools.constants import *  # pylint: disable=wildcard-import,unused-wildcard-import # pyright: ignore[reportWildcardImportFromLibrary]
 from cai4py.parser_tools.constants import NamedIntConstant
 from cai4py.parser_tools.parser import SubPattern
 from cai4py.parser_tools.re import (
-    _compile,
-)  # pyright: ignore[reportAttributeAccessIssue]
+    _compile,  # pyright: ignore[reportAttributeAccessIssue]
+)
 from cai4py.parser_tools.utils import expand_counters
 
 from ..custom_counters.counter_action import Action
@@ -210,13 +210,13 @@ class PositionCountingAutomaton:
 
             next_counters = deepcopy(counters)
             next_counters = action.move_and_apply(next_counters, counter_type)
-            assert next_counters is None or isinstance(
-                next_counters, CounterBase
-            )
+            assert next_counters is None or isinstance(next_counters, dict)
 
             logger.debug("\t\tArc (%s, %s)", adjacent_state, next_counters)
-            if next_counters is None or next_counters == {}:
-                next_config = (adjacent_state, next_counters)
+            if next_counters == {}:
+                next_config: tuple[
+                    State, dict[CounterVariable, CounterBase]
+                ] = (adjacent_state, next_counters)
                 if __debug__ and next_config in next_configs:
                     logger.debug("Duplicate config found: %s", next_config)
                 next_configs.append(next_config)
@@ -359,7 +359,7 @@ class _PositionConstructionCallback:
         _, operand = x
         self.state += 1
 
-        if isinstance(operand, _NamedIntConstant):
+        if isinstance(operand, NamedIntConstant):
             operand = str(operand)  # Convert _NamedIntConstant to str
 
         follow: Follow = {}

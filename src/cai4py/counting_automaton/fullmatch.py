@@ -29,11 +29,13 @@ def fullmatch(
     sc_class: Type[SuperConfigBase],  # Adjusted to accept a class type
     automaton: pca.PositionCountingAutomaton,
     w: str,
+    counter_type: CounterType,
     cache_type: Literal["lru", "flush_on_full", "none"] = "lru",
-    counter_type: CounterType = CounterType.SPARSE_COUNTING_SET,
     sample_interval: int = 0,  # if > 0, sample cache stats every N characters
 ) -> tuple[bool, list]:
-    super_config = sc_class.get_initial(automaton)  # Use class method directly
+    super_config = sc_class.get_initial(
+        automaton, counter_type
+    )  # Use class method directly
 
     # Fast path: when caching is disabled, avoid pickling/unpickling entirely.
     # This removes large per-character overhead and mirrors the BVA matcher flow.
@@ -95,7 +97,7 @@ def main(args: argparse.Namespace) -> None:
     counter_type = {
         "bit-vector": CounterType.BIT_VECTOR,
         "sparse-counting-set": CounterType.SPARSE_COUNTING_SET,
-    }
+    }[args.counter_type]
     automaton = pca.PositionCountingAutomaton.create(
         args.regex, expansion_type=args.expansion_type
     )
@@ -103,7 +105,7 @@ def main(args: argparse.Namespace) -> None:
     t0 = time.perf_counter()
 
     is_match, cache_history = fullmatch(
-        sc_class, automaton, args.input_string, args.cache_type
+        sc_class, automaton, args.input_string, counter_type, args.cache_type
     )
     t1 = time.perf_counter()
     duration = t1 - t0

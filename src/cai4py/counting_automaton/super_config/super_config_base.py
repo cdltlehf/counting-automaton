@@ -31,9 +31,12 @@ class SuperConfigBase(abc.ABC):
 
     @classmethod
     def get_computation(
-        cls, automaton: PositionCountingAutomaton, w: str
+        cls,
+        automaton: PositionCountingAutomaton,
+        w: str,
+        counter_type: CounterType,
     ) -> Iterator["SuperConfigBase"]:
-        super_config = cls.get_initial(automaton)
+        super_config = cls.get_initial(automaton, counter_type)
         yield super_config
         for symbol in w:
             super_config = super_config.update(symbol)
@@ -42,7 +45,7 @@ class SuperConfigBase(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def get_initial(
-        cls, automaton: PositionCountingAutomaton
+        cls, automaton: PositionCountingAutomaton, counter_type: CounterType
     ) -> "SuperConfigBase":
         pass
 
@@ -51,7 +54,9 @@ class SuperConfigBase(abc.ABC):
             return self.is_final()
 
         last_super_config = None
-        for super_config in self.get_computation(self.automaton, w):
+        for super_config in self.get_computation(
+            self.automaton, w, self.counter_type
+        ):
             last_super_config = super_config
         assert last_super_config is not None
         return last_super_config.is_final()

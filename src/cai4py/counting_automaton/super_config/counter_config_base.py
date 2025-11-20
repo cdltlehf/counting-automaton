@@ -32,7 +32,7 @@ def follow_to_r_terms(
     symbol: str,
     current_states: OrderedSet[State],
     automaton: PositionCountingAutomaton,
-    satisfies: Callable[[State, Guard[CounterVariable]], bool],
+    satisfies: Callable[[State, Guard], bool],
     state_scopes: Mapping[State, set[CounterVariable]],
 ) -> tuple[
     OrderedSet[State],
@@ -72,13 +72,11 @@ def follow_to_r_terms(
                     ]
                 )
 
-                operation = action.get(
-                    counter_variable, CounterOperationComponent.NO_OPERATION
-                )
+                operation = action[counter_variable]
                 r_terms[current_state].add(operation)
-                if operation in {
-                    CounterOperationComponent.INCREASE,
-                    CounterOperationComponent.NO_OPERATION,
+                if operation.type in {
+                    CounterOperationComponent.Type.INCREASE,
+                    CounterOperationComponent.Type.NO_OPERATION,
                 }:
                     current_state_to_reference_count[current_state] += 1
     return (
@@ -167,9 +165,9 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
             for current_state, operations in r_terms.items():
                 logger.debug("Current state %d", current_state)
                 for operation in operations:
-                    assert operation != CounterOperationComponent.INACTIVATE
+                    assert operation.type != CounterOperationComponent.Type.INACTIVATE
 
-                    if operation == CounterOperationComponent.ACTIVATE_OR_RESET:
+                    if operation.type == CounterOperationComponent.Type.ACTIVATE_OR_RESET:
                         logger.debug("Activating or resetting")
                         is_one_added = True
                         continue
@@ -180,7 +178,7 @@ class StateToCountingSet(dd[State, _T], Hashable, Generic[_T]):
                     current_state_to_reference_count[current_state] -= 1
                     assert current_state_to_reference_count[current_state] >= 0
 
-                    if operation == CounterOperationComponent.INCREASE:
+                    if operation.type == CounterOperationComponent.Type.INCREASE:
                         logger.debug("Increasing")
                         current_counting_set.increase()
                     else:
@@ -250,9 +248,9 @@ class CounterConfigBase(
 
     @classmethod
     def get_initial(
-        cls, automaton: PositionCountingAutomaton
+        cls, automaton: PositionCountingAutomaton, counter_type: CounterType
     ) -> "CounterConfigBase[_T]":
-        return cls(automaton, OrderedSet([INITIAL_STATE]), {})
+        return cls(automaton, OrderedSet([INITIAL_STATE]), {}, counter_type)
 
     def __getitem__(self, counter: CounterVariable) -> StateToCountingSet[_T]:
         low, high = self.counters[counter]
@@ -275,7 +273,7 @@ class CounterConfigBase(
             jsonified[str(counter)] = state_to_counting_set.to_json()
         return jsonified
 
-    def satisfies(self, state: State, guard: Guard[CounterVariable]) -> bool:
+    def satisfies(self, state: State, guard: Guard) -> bool:
         for counter_variable, predicates in guard.items():
             if len(predicates) == 0:
                 continue
@@ -374,11 +372,13 @@ class CounterConfigBase(
         logger.debug("Removed next states: %s", list(removed_next_states))
         for next_state in removed_next_states:
             next_states.remove(next_state)
+        CounterConfigBase: type["CounterConfigBase"] = self.__class__
 
-        next_counter_config = self.__class__(
+        next_counter_config = CounterConfigBase(
             self.automaton,
             next_states,
             counter_variable_to_next_state_to_counting_set,
+            self.counter_type,
         )
         return next_counter_config
 

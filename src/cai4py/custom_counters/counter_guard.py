@@ -57,11 +57,9 @@ class Guard(dd[CounterVariable, list[CounterPredicate]], Hashable):
             return False
         return hash(self) == hash(other)
 
-    def __call__(self, counter: CounterBase | None) -> bool:
-        if counter is None:
-            return False
-
-        for _, predicates in self.items():
+    def __call__(self, counters: dict[CounterVariable, CounterBase]) -> bool:
+        for counter_var, predicates in self.items():
+            counter = counters.get(counter_var)
 
             logger.log(VERBOSE, ComputationStep.EVAL_PREDICATE.value)
 
