@@ -3,6 +3,7 @@
 import logging
 import unittest
 import warnings
+from pathlib import Path
 
 from cai4py.utils import load_test_cases
 from cai4py.scripts.analysis.computation_info import run_and_trace
@@ -16,8 +17,10 @@ class TestSuperConfig(unittest.TestCase):
         logging.basicConfig(level=logging.INFO)
         warnings.simplefilter(action="ignore", category=FutureWarning)
         self.maxDiff = None  # pylint: disable=invalid-name
-        dataset_path = "../data/test-cases/example.txt"
-        self.test_cases = load_test_cases(dataset_path)
+        test_dir = Path(__file__).parent
+        dataset_path = test_dir / "regexes.txt"
+        with open(str(dataset_path), "r", encoding="utf-8") as f:
+            self.test_cases = [line[:-1] for line in f.readlines()]
         self.timeout = 1
 
     def test_super_config(self):

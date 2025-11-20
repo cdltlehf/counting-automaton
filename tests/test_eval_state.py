@@ -1,5 +1,5 @@
 import unittest
-from cai4py.parser_tools.parser import SubPattern
+from cai4py.parser_tools.parser import SubPattern, State as ParserState
 from cai4py.parser_tools.constants import LITERAL
 from cai4py.counting_automaton.position_counting_automaton import (
     PositionCountingAutomaton,
@@ -10,7 +10,8 @@ from cai4py.counting_automaton.position_counting_automaton import (
 class TestEvalState(unittest.TestCase):
     def test_eval_state_with_literal(self):
         # Create a SubPattern with a LITERAL opcode
-        subpattern = SubPattern(None, data=[(LITERAL, ord("a"))])
+        parser_state = ParserState()
+        subpattern = SubPattern(parser_state, data=[(LITERAL, ord("a"))])
 
         # Create a PositionCountingAutomaton instance
         automaton = PositionCountingAutomaton(
