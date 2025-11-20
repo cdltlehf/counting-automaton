@@ -12,7 +12,7 @@ class CountingSet(CounterBase):
 
     _data_collection = DataCollection()
 
-    def __init__(self, lower_bound: int, upper_bound: int) -> "CountingSet":
+    def __init__(self, lower_bound: int, upper_bound: int):
 
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound

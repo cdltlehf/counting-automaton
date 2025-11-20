@@ -2,20 +2,25 @@
 
 import numpy as np
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import logging
 import re
+from concurrent.futures import TimeoutError
 import sys
-
+from cai4py.counting_automaton.computation_logging import VERBOSE
+from cai4py.counting_automaton.position_counting_automaton import (
+    PositionCountingAutomaton,
+)
+from cai4py.counting_automaton.super_config.counter_config import (
+    SparseCounterConfig,
+)
+from cai4py.counting_automaton.super_config.super_config import SuperConfig
+from cai4py.custom_counters.counter_type import CounterType
+from cai4py.instrumentation.utils import (
+    run_with_timeout,
+)
+from cai4py.counting_automaton.fullmatch import fullmatch
 from memory_profiler import memory_usage
 from tqdm import tqdm
-
-from cai4py.counting_automaton._logging import VERBOSE
-import cai4py.counting_automaton.super_config as sc
-from cai4py.instrumentation.constants import THROUGHPUT_THRES
-from cai4py.instrumentation.utils import run_with_timeout
-from cai4py.counting_automaton.fullmatch import fullmatch
-import cai4py.counting_automaton.position_counting_automaton as pca
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +31,10 @@ class VerboseFilter(logging.Filter):
 
 
 def main(args: argparse.Namespace) -> None:
+    sc_class = {
+        "sparse_counter_config": SparseCounterConfig,
+        "super_config": SuperConfig,
+    }
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
@@ -43,10 +52,10 @@ def main(args: argparse.Namespace) -> None:
             start=1,
         ):
             regex = regex[:-1]  # strip newline
-            print(regex, file=sys.stderr)
+            print(f"Processing regex {i}: {regex}", file=sys.stderr)
             try:
                 automaton = run_with_timeout(
-                    func=pca.PositionCountingAutomaton.create,
+                    func=PositionCountingAutomaton.create,
                     args=(regex, args.expansion_type),
                     timeout=10,
                 )
@@ -84,7 +93,7 @@ def main(args: argparse.Namespace) -> None:
                                 args=(
                                     fullmatch,
                                     (
-                                        sc.SparseCounterConfig,
+                                        sc_class,
                                         automaton,
                                         random_str,
                                         args.cache_type,
@@ -122,6 +131,12 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--super-config-class",
+        required=True,
+        type=str,
+        choices=["sparse_counter_config", "super_config"],
+    )
     parser.add_argument("--random-string-dir", required=True, type=str)
     parser.add_argument("--regex-file", required=True, type=str)
     parser.add_argument("--log-file", required=True, type=str)

@@ -30,6 +30,7 @@ def fullmatch(
     automaton: pca.PositionCountingAutomaton,
     w: str,
     cache_type: Literal["lru", "flush_on_full", "none"] = "lru",
+    counter_type: CounterType = CounterType.SPARSE_COUNTING_SET,
     sample_interval: int = 0,  # if > 0, sample cache stats every N characters
 ) -> tuple[bool, list]:
     super_config = sc_class.get_initial(automaton)  # Use class method directly
@@ -91,6 +92,10 @@ def main(args: argparse.Namespace) -> None:
         "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
         "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
     }[method]
+    counter_type = {
+        "bit-vector": CounterType.BIT_VECTOR,
+        "sparse-counting-set": CounterType.SPARSE_COUNTING_SET,
+    }
     automaton = pca.PositionCountingAutomaton.create(
         args.regex, expansion_type=args.expansion_type
     )

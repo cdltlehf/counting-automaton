@@ -4,15 +4,15 @@ import abc
 from collections import defaultdict as dd
 from copy import copy
 import logging
-from typing import Callable, Generic, Iterator, Mapping, Optional, TypeVar, IO
+from typing import Callable, Generic, Iterator, Mapping, Optional, TypeVar
 
-from cai4py.collections import OrderedSet
+from cai4py.more_collections import OrderedSet
 
-from ..counter_vector import CounterOperationComponent
-from ..counter_vector import Guard
+from ..counter_map import CounterOperationComponent
+from ..counter_map import Guard
 from ..counting_set import CountingSet
-from .._logging import ComputationStepMark
-from .._logging import VERBOSE
+from ..computation_logging import ComputationStepMark
+from ..computation_logging import VERBOSE
 from ..position_counting_automaton import CounterVariable
 from ..position_counting_automaton import FINAL_STATE
 from ..position_counting_automaton import INITIAL_STATE
@@ -38,22 +38,18 @@ class KeyToCountingSet(
 
     def __init__(
         self,
-        key_constructor: Callable[
-            [int, Optional[int], IO], StateToCountingSet[_T]
-        ],
+        key_constructor: Callable[[int, Optional[int]], StateToCountingSet[_T]],
         value_constructor: Callable[
-            [int, Optional[int], IO], MultiHeadCountingSetBase[_T]
+            [int, Optional[int]], MultiHeadCountingSetBase[_T]
         ],
         low: int,
         high: Optional[int],
-        log_file: IO,
     ) -> None:
-        super().__init__(lambda: value_constructor(low, high, log_file))
+        super().__init__(lambda: value_constructor(low, high))
         self.low = low
         self.high = high
         self._key_constructor = key_constructor
         self._value_constructor = value_constructor
-        self._log_file = log_file
 
     def to_json(self) -> dict[str, list[int]]:
         return {
@@ -63,6 +59,25 @@ class KeyToCountingSet(
     def __str__(self) -> str:
         return str(self.to_json())
 
+    def get_num_keys(self) -> int:
+        num_keys = 0
+        for state_to_counting_set in self.keys():
+            for counting_set in state_to_counting_set.values():
+                num_keys += len(list(counting_set))
+        return num_keys
+
+    def get_synchronization_degree(self) -> int:
+        synchronization_degree = 0
+        for state_to_counting_set in self.keys():
+            synchronization_degree = max(
+                synchronization_degree,
+                max(
+                    max(counting_set)
+                    for counting_set in state_to_counting_set.values()
+                ),
+            )
+        return synchronization_degree
+
     def apply_next_state_to_r_terms(
         self,
         next_state_to_r_terms: dd[
@@ -71,14 +86,11 @@ class KeyToCountingSet(
         current_state_to_reference_count: dd[State, int],
     ) -> tuple["KeyToCountingSet[_T]", set[State]]:
         next_key_to_counting_set = KeyToCountingSet(
-            self._key_constructor,
-            self._value_constructor,
-            self.low,
-            self.high,
-            self._log_file,
+            self._key_constructor, self._value_constructor, self.low, self.high
         )
 
         new_states: set[State] = set()
+        next_states: set[State] = set(next_state_to_r_terms.keys())
         removed_next_states: set[State] = set()
         states_of_removed_arcs: set[State] = set()
 
@@ -113,7 +125,7 @@ class KeyToCountingSet(
             VERBOSE,
             ComputationStepMark.START_DETERMINIZED_KEY_COMPUTATION.value,
         )
-        new_key = self._key_constructor(self.low, self.high, self._log_file)
+        new_key = self._key_constructor(self.low, self.high)
         for state in new_states:
             removed_next_states.remove(state)
             new_key[state].add_zero()
@@ -178,6 +190,24 @@ class KeyToCountingSet(
             removed_next_states &= some_removed_next_states
             logger.debug("Next key: %s", next_key)
 
+        removed_key: set[StateToCountingSet[_T]] = set()
+        for next_key, next_value in next_key_to_counting_set.items():
+            if next_value.is_empty():
+                removed_key.add(next_key)
+
+        logger.debug("Removed keys: %s", list(removed_key))
+        for next_key in removed_key:
+            next_key_to_counting_set.pop(next_key)
+
+        for next_state in next_states:
+            flag = True
+            for next_key in next_key_to_counting_set:
+                if next_state in next_key:
+                    flag = False
+                    break
+            if flag:
+                removed_next_states.add(next_state)
+
         logger.debug("Removed next states: %s", list(removed_next_states))
         return next_key_to_counting_set, removed_next_states
 
@@ -197,7 +227,6 @@ class DeterminizedCounterConfigBase(
         counter_to_key_to_counting_set: dict[
             CounterVariable, KeyToCountingSet[_T]
         ],
-        log_file: IO,
     ) -> None:
         super().__init__(automaton)
 
@@ -208,36 +237,31 @@ class DeterminizedCounterConfigBase(
 
         self.states = states
         self._counter_to_key_to_counting_set = counter_to_key_to_counting_set
-        self._log_file = log_file
 
     @staticmethod
     def _key_constructor(
-        low: int, high: Optional[int], log_file: IO
+        low: int, high: Optional[int]
     ) -> StateToCountingSet[_T]:
         raise NotImplementedError()
 
     @staticmethod
     def _value_constructor(
-        low: int, high: Optional[int], log_file: IO
+        low: int, high: Optional[int]
     ) -> MultiHeadCountingSetBase[_T]:
         raise NotImplementedError()
 
     @classmethod
     def get_initial(
-        cls, automaton: PositionCountingAutomaton, log_file: IO
+        cls, automaton: PositionCountingAutomaton
     ) -> "DeterminizedCounterConfigBase[_T]":
-        return cls(automaton, OrderedSet([INITIAL_STATE]), {}, log_file)
+        return cls(automaton, OrderedSet([INITIAL_STATE]), {})
 
     def __getitem__(self, counter: CounterVariable) -> KeyToCountingSet[_T]:
         low, high = self.counters[counter]
         return self._counter_to_key_to_counting_set.get(
             counter,
             KeyToCountingSet(
-                self._key_constructor,
-                self._value_constructor,
-                low,
-                high,
-                self._log_file,
+                self._key_constructor, self._value_constructor, low, high
             ),
         )
 
@@ -367,7 +391,7 @@ class DeterminizedCounterConfigBase(
                     current_state_to_reference_count,
                 )
             )
-            removed_next_states &= some_removed_next_states
+            removed_next_states |= some_removed_next_states
             counter_variable_to_next_key_to_counting_set[counter_variable] = (
                 next_key_to_counting_set
             )
@@ -380,9 +404,22 @@ class DeterminizedCounterConfigBase(
             self.automaton,
             next_states,
             counter_variable_to_next_key_to_counting_set,
-            self._log_file,
         )
         return next_counter_config
+
+    def get_num_keys(self) -> dict[CounterVariable, int]:
+        num_keys = {}
+        for counter_variable, key_to_counting_set in self.items():
+            num_keys[counter_variable] = key_to_counting_set.get_num_keys()
+        return num_keys
+
+    def get_synchronization_degrees(self) -> dict[CounterVariable, int]:
+        synchronization_degrees = {}
+        for counter_variable, key_to_counting_set in self.items():
+            synchronization_degrees[counter_variable] = (
+                key_to_counting_set.get_synchronization_degree()
+            )
+        return synchronization_degrees
 
     def is_final(self) -> bool:
         for current_state in self.states:

@@ -2,7 +2,8 @@ import sys
 import traceback
 import time
 import multiprocessing
-from multiprocessing.queues import Empty  # type: ignore
+from multiprocessing.queues import Empty
+from typing import Literal  # type: ignore
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
 from cai4py.counting_automaton.position_counting_automaton import (
     PositionCountingAutomaton,
@@ -79,14 +80,17 @@ def time_matching(
     sc_class: type[SuperConfigBase],
     automaton: PositionCountingAutomaton,
     random_str: str,
-    cache_type: Literlal["lru", "flush_on_full", "none"]
+    cache_type: Literal["lru", "flush_on_full", "none"],
     counter_type: CounterType,
 ) -> tuple[float, list]:
     t0 = time.perf_counter()
     match_found, cache_history = fullmatch(
+        sc_class,
         automaton,
         random_str,
+        cache_type,
         counter_type,
+        sample_interval=0 if cache_type == "none" else 5,
     )
     if not match_found:
         # Raise runtime error because all inputs should match (there are some edge cases where Xeger generates non-matching strings)

@@ -1,19 +1,25 @@
 """Time matching with the position counting automaton and random strings"""
 
+import sys
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
+
 import argparse
 import logging
 import re
 import sys
 
-from tqdm import tqdm
-
-from cai4py.counting_automaton._logging import VERBOSE
+from cai4py.counting_automaton.computation_logging import VERBOSE
+from cai4py.custom_counters.counter_type import CounterType
 import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
-from cai4py.instrumentation.constants import THROUGHPUT_THRES
-from cai4py.instrumentation.utils import get_matching_timeout
-from cai4py.instrumentation.utils import run_with_timeout
-from cai4py.instrumentation.utils import time_matching
+from tqdm import tqdm
+
+from cai4py.instrumentation.utils import (
+    NoMatchError,
+    get_matching_timeout,
+    run_with_timeout,
+    time_matching,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +67,8 @@ def main(args: argparse.Namespace) -> None:
             start=1,
         ):
             regex = regex[:-1]  # strip newline
-            print(regex)
+            with open("regex.txt", "w", encoding="utf-8") as debug_regex_file:
+                debug_regex_file.write(regex)
             try:
                 automaton = run_with_timeout(
                     func=pca.PositionCountingAutomaton.create,
@@ -83,6 +90,8 @@ def main(args: argparse.Namespace) -> None:
             except TimeoutError as e:
                 print(e, file=sys.stderr)
                 continue
+            if automaton is None:
+                raise RuntimeError("Automaton creation failed")
             for j in range(1, args.num_strings_per_regex + 1):
                 try:
                     with open(
@@ -91,6 +100,10 @@ def main(args: argparse.Namespace) -> None:
                         encoding=args.input_encoding,
                     ) as random_str_file:
                         random_str = random_str_file.read()
+                        with open(
+                            "string.txt", "w", encoding="utf-8"
+                        ) as debug_str_file:
+                            debug_str_file.write(random_str)
                         num_bytes = len(random_str.encode("utf-8"))
                         matching_timeout = get_matching_timeout(num_bytes)
                         sample_interval = getattr(args, "sample_interval", 0)

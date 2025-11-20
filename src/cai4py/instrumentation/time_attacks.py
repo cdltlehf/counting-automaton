@@ -6,6 +6,10 @@ import re
 from typing import Type
 import sys
 
+from cai4py.counting_automaton.computation_logging import VERBOSE
+from cai4py.custom_counters.counter_type import CounterType
+from cai4py.instrumentation.constants import THROUGHPUT_THRES
+from cai4py.instrumentation.utils import run_with_timeout
 from tqdm import tqdm
 
 from cai4py.counting_automaton._logging import VERBOSE
@@ -82,16 +86,22 @@ def main(args: argparse.Namespace) -> None:
                 ) as attack_str_file:
                     try:
                         attack_str = attack_str_file.read()
-                        num_bytes = len(attack_str.encode(args.input_encoding))
                     except UnicodeDecodeError as e:
                         print(e, file=sys.stderr)
                         continue
-                    duration, _ = time_matching(
-                        sc_class,
-                        automaton,
-                        attack_str,
-                        args.cache_type,
-                    )
+                    try:
+                        duration, cache_history = time_matching(
+                            sc_class,
+                            automaton,
+                            attack_str,
+                            args.cache_type,
+                            CounterType.BIT_VECTOR,
+                        )
+                    except TimeoutError as e:
+                        print(e, file=sys.stderr)
+                        timing_log_file.write(f"{i}\t{THROUGHPUT_THRES/1e6}\n")
+                        continue
+                    num_bytes = len(attack_str.encode(args.input_encoding))
                     timing_log_file.write(
                         f"{i}\t{num_bytes / 1000 / duration}\n"
                     )
