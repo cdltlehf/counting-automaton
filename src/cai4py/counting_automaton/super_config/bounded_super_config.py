@@ -1,7 +1,6 @@
 """BoundedSuperConfig"""
 
 from cai4py.custom_counters.counter_type import CounterType
-from ..position_counting_automaton import PositionCountingAutomaton
 from .super_config import SuperConfig
 
 
@@ -9,9 +8,7 @@ class BoundedSuperConfig(SuperConfig):
     """Class for super-configurations using a set of configurations with
     bounds"""
 
-    def __init__(
-        self, automaton: PositionCountingAutomaton, counter_type: CounterType
-    ):
+    def __init__(self, automaton, counter_type: CounterType):
         super().__init__(automaton, counter_type)
         self.automaton = automaton
 

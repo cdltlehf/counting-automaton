@@ -4,9 +4,9 @@ from collections import defaultdict as dd
 from collections.abc import Hashable
 from copy import copy
 from enum import Enum
-from typing import Any, Iterable, Mapping, Optional, TypeVar
+from typing import Any, Iterable, Mapping, Optional
 
-from cai4py.counting_automaton.position_counting_automaton import (
+from cai4py.counting_automaton.types import (
     CounterVariable,
 )
 from cai4py.custom_counters.counter_base import CounterBase

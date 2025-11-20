@@ -30,19 +30,13 @@ from cai4py.parser_tools.utils import expand_counters
 from cai4py.parser_tools.constants import (
     NamedIntConstant,
 )
+from cai4py.counting_automaton.types import CounterVariable, State
 
 from ..utils.util_logging import setup_debugger
-from .counter_map import Action, CounterMap, Guard
+from .counter_map import Action, Guard
 from .computation_logging import VERBOSE, ComputationStep
 
 logger = setup_debugger(__name__)
-
-State = NewType("State", int)
-CounterVariable = NewType("CounterVariable", int)
-SymbolPredicate = Any
-Arc = tuple[Guard[CounterVariable], Action[CounterVariable], State]
-Follow = dict[State, OrderedSet[Arc]]
-Config = tuple[State, dict[CounterVariable, CounterBase]]
 
 
 Range = tuple[int, Optional[int]]
