@@ -37,14 +37,17 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
     ):
         super().__init__(automaton, counter_type)
 
-        self._configs: dict[
-            State, OrderedSet[dict[CounterVariable, CounterBase]]
-        ] = defaultdict(OrderedSet[dict[CounterVariable, CounterBase]])
+        # Internal storage: list of counter dicts per state (dict[CounterVariable, CounterBase]).
+        # Using a list avoids the need for hashability (dict is unhashable) while preserving order.
+        self._configs: dict[State, list[dict[CounterVariable, CounterBase]]] = (
+            defaultdict(list)
+        )
 
-        initial_config = automaton.get_initial_config()
-        initial_state, counting_state = initial_config
-
-        self._configs.update({initial_state: OrderedSet([counting_state])})
+        initial_state, counting_state = automaton.get_initial_config()
+        # Pre-populate counters dict with inactive placeholders for each automaton counter variable.
+        for counter_var in automaton.counters.keys():
+            counting_state[counter_var] = counter_type.create_counter(0, 0)
+        self._configs[initial_state] = [counting_state]
 
     @classmethod
     def get_initial(
@@ -52,26 +55,21 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
     ) -> "SuperConfig":
         return cls(automaton, counter_type)
 
-    """
-        Resets all configs of the automaton. Allows multiple strings to be run on an automaton
-        created for a single regex without having to rebuild the automaton.
-    """
+    # Reset all configs of the automaton so multiple strings can be matched without rebuilding.
 
     def _internal_config_reset(self):
-        self._configs = dict()
-
-        initial_config = self.automaton.get_initial_config()
-        initial_state, initial_counters = initial_config
-
-        self._configs.update({initial_state: OrderedSet([initial_counters])})
-
+        self._configs = {}
+        initial_state, initial_counters = self.automaton.get_initial_config()
+        for counter_var in self.automaton.counters.keys():
+            initial_counters[counter_var] = self.counter_type.create_counter(0, 0)
+        self._configs[initial_state] = [initial_counters]
         self.counter_type.get_data_collection()
 
     def __iter__(self) -> Iterator[Config]:
-        for state, set_of_counter_dicts in self._configs.items():
+        for state, counters_list in self._configs.items():
             if state == FINAL_STATE:
                 continue
-            for counters in set_of_counter_dicts:
+            for counters in counters_list:
                 yield (state, counters)
 
     def to_json(self) -> list[tuple[int, list[Optional[int]]]]:
@@ -87,17 +85,17 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
         return s
 
     def __len__(self) -> int:
-        return sum(map(len, self._configs.values()))
+        return sum(len(v) for v in self._configs.values())
 
     def __contains__(self, config: object) -> bool:
         if not isinstance(config, tuple):
             return False
         state, counter = config
-        return counter in self._configs[state]
+        return state in self._configs and any(
+            counter is c for c in self._configs[state]
+        )
 
-    """
-        Get superconfigs.
-    """
+    # Get superconfigs.
 
     @classmethod
     def get_computation(
@@ -113,9 +111,7 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
             super_config = super_config.update(symbol)
             yield super_config
 
-    """
-        Match given word using the automaton.
-    """
+    # Match given word using the automaton.
 
     def match(self, w: str):
 
@@ -132,7 +128,7 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
             if len(self._configs) <= 0:
                 return (False, self.counter_type.get_data_collection())
 
-            logger.debug(f"Super Config: {super_config}")
+            logger.debug("Super Config: %s", super_config)
             last_super_config = super_config
 
         assert last_super_config is not None
@@ -143,61 +139,70 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
             self.counter_type.get_data_collection(),
         )
 
-    """
-        Use given symbol to traverse edges of automaton 
-        to create a superconfig.
-    """
+    # Use given symbol to traverse edges of automaton and create a new superconfig.
 
     def update(self, symbol: str) -> "SuperConfig":
         assert len(symbol) == 1
 
-        next_super_config = dict()
+        next_super_config: dict[State, dict[CounterVariable, CounterBase]] = {}
         for config in self:
             # Get a config
             next_configs = self.automaton.get_next_configs(
                 config, symbol, self.counter_type
             )
 
-            logger.debug(f"\t\t\tNext Configs: {next_configs}")
+            logger.debug("\t\t\tNext Configs: %s", next_configs)
             for state, counters in next_configs:
 
                 if state in next_super_config:
+                    # Merge counters dict by variable; perform value-level unions when needed.
+                    merged: dict[CounterVariable, CounterBase] = {}
                     old_counters = next_super_config[state]
-
-                    # Perform union of counters
-                    if counters is not None:
-                        match self.counter_type:
-                            case CounterType.BIT_VECTOR:
-                                assert isinstance(counters, BitVector)
-                                assert isinstance(old_counters, BitVector)
-                                next_super_config[state] = BitVector.union(
-                                    old_counters, counters
-                                )
-                            case CounterType.NAIVE_COUNTER:
-                                assert isinstance(counters, NaiveCounter)
-                                assert isinstance(old_counters, NaiveCounter)
-                                next_super_config[state] = NaiveCounter.union(
-                                    old_counters, counters
-                                )
-                            case CounterType.COUNTING_SET:
-                                assert isinstance(counters, CountingSet)
-                                assert isinstance(old_counters, CountingSet)
-                                next_super_config[state] = CountingSet.union(
-                                    old_counters, counters
-                                )
-                            case _:
+                    all_vars = (
+                        set(old_counters.keys()) | set(counters.keys())
+                        if counters is not None
+                        else set(old_counters.keys())
+                    )
+                    for var in all_vars:
+                        c_old = old_counters.get(var)
+                        c_new = (
+                            counters.get(var) if counters is not None else None
+                        )
+                        if c_old is not None and c_new is not None:
+                            if self.counter_type == CounterType.BIT_VECTOR:
+                                assert isinstance(
+                                    c_old, BitVector
+                                ) and isinstance(c_new, BitVector)
+                                merged[var] = BitVector.union(c_old, c_new)
+                            elif self.counter_type == CounterType.NAIVE_COUNTER:
+                                assert isinstance(
+                                    c_old, NaiveCounter
+                                ) and isinstance(c_new, NaiveCounter)
+                                merged[var] = NaiveCounter.union(c_old, c_new)
+                            elif self.counter_type == CounterType.COUNTING_SET:
+                                assert isinstance(
+                                    c_old, CountingSet
+                                ) and isinstance(c_new, CountingSet)
+                                merged[var] = CountingSet.union(c_old, c_new)
+                            else:
                                 raise RuntimeError("Unknown Counter Type!")
-
+                        else:
+                            merged[var] = c_old if c_old is not None else c_new  # type: ignore
+                    next_super_config[state] = merged
                 else:
-                    next_super_config[state] = counters
+                    next_super_config[state] = (
+                        counters if counters is not None else {}
+                    )
 
-        if len(next_super_config) <= 0:
-            self._configs = next_super_config
+        if len(next_super_config) == 0:
+            self._configs = {}
             return self
 
-        logger.debug(f"\nMatching the symbol: {symbol}\n{next_super_config}")
+        logger.debug("\nMatching the symbol: %s\n%s", symbol, next_super_config)
 
-        self._configs = next_super_config
+        self._configs = {
+            state: [counters] for state, counters in next_super_config.items()
+        }
         return self
 
     def is_final(self) -> bool:

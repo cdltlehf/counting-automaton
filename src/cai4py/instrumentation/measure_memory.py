@@ -1,12 +1,15 @@
 """Time matching with the position counting automaton and random strings"""
 
-import numpy as np
 import argparse
 import logging
 import re
-from concurrent.futures import TimeoutError
 import sys
+
+from memory_profiler import memory_usage
+from tqdm import tqdm
+
 from cai4py.counting_automaton.computation_logging import VERBOSE
+from cai4py.counting_automaton.fullmatch import fullmatch
 from cai4py.counting_automaton.position_counting_automaton import (
     PositionCountingAutomaton,
 )
@@ -15,12 +18,7 @@ from cai4py.counting_automaton.super_config.counter_config import (
 )
 from cai4py.counting_automaton.super_config.super_config import SuperConfig
 from cai4py.custom_counters.counter_type import CounterType
-from cai4py.instrumentation.utils import (
-    run_with_timeout,
-)
-from cai4py.counting_automaton.fullmatch import fullmatch
-from memory_profiler import memory_usage
-from tqdm import tqdm
+from cai4py.instrumentation.utils import run_with_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +32,11 @@ def main(args: argparse.Namespace) -> None:
     sc_class = {
         "sparse_counter_config": SparseCounterConfig,
         "super_config": SuperConfig,
-    }
+    }[args.super_config_class]
+    counter_type = {
+        "bit-vector": CounterType.BIT_VECTOR,
+        "sparse-counting-set": CounterType.SPARSE_COUNTING_SET,
+    }[args.counter_type]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
@@ -84,22 +86,37 @@ def main(args: argparse.Namespace) -> None:
                         def measure_memory_used_during_matching(
                             automaton, random_str, args
                         ):
-                            peak_mem_usage = run_with_timeout(
-                                func=lambda func, args: memory_usage(
-                                    (func, args),  # type: ignore
-                                    max_usage=True,
-                                    retval=False,
-                                ),
-                                args=(
-                                    fullmatch,
+                            # peak_mem_usage = run_with_timeout(
+                            #     func=lambda func, args: memory_usage(
+                            #         (func, args),  # type: ignore
+                            #         max_usage=True,
+                            #         retval=False,
+                            #     ),
+                            #     args=(
+                            #         fullmatch,
+                            #         (
+                            #             sc_class,
+                            #             automaton,
+                            #             random_str,
+                            #             counter_type,
+                            #             args.cache_type,
+                            #         ),
+                            #     ),
+                            #     timeout=1 / THROUGHPUT_THRES * num_bytes + 3,
+                            # )
+                            peak_mem_usage = memory_usage(
+                                (
+                                    fullmatch,  # type: ignore
                                     (
                                         sc_class,
                                         automaton,
                                         random_str,
+                                        counter_type,
                                         args.cache_type,
                                     ),
                                 ),
-                                timeout=1 / THROUGHPUT_THRES * num_bytes + 3,
+                                max_usage=True,
+                                retval=False,
                             )
                             assert isinstance(peak_mem_usage, float)
                             return (
@@ -156,5 +173,12 @@ if __name__ == "__main__":
         type=str,
         choices=["none", "lru", "flush_on_full"],
         default="none",
+    )
+    parser.add_argument(
+        "--counter-type",
+        type=str,
+        required=False,
+        default="sparse-counting-set",
+        choices=["bit-vector", "sparse-counting-set"],
     )
     main(parser.parse_args())

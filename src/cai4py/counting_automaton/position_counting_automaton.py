@@ -180,9 +180,9 @@ class PositionCountingAutomaton:
         config: Config,
         symbol: str,
         counter_type: CounterType,
-    ) -> OrderedSet[Config]:
+    ) -> list[Config]:
         current_state, counters = config
-        next_configs: OrderedSet[Config] = OrderedSet()
+        next_configs: list[Config] = []
 
         if current_state == FINAL_STATE:
             return next_configs
@@ -213,13 +213,13 @@ class PositionCountingAutomaton:
             assert next_counters is None or isinstance(next_counters, dict)
 
             logger.debug("\t\tArc (%s, %s)", adjacent_state, next_counters)
-            if next_counters == {}:
-                next_config: tuple[
-                    State, dict[CounterVariable, CounterBase]
-                ] = (adjacent_state, next_counters)
-                if __debug__ and next_config in next_configs:
-                    logger.debug("Duplicate config found: %s", next_config)
-                next_configs.append(next_config)
+            next_config: Config = (
+                adjacent_state,
+                next_counters,
+            )
+            if __debug__ and next_config in next_configs:
+                logger.debug("Duplicate config found: %s", next_config)
+            next_configs.append(next_config)
 
         logger.debug("\t\tEnd of following!")
         return next_configs

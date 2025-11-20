@@ -7,7 +7,8 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--log-file outputs/csa/snort3/inner/peak-mem-usage.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30
+	--num-strings-per-regex 30 \
+	--super-config-class "sparse_counter_config"
 
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir generated/counters/polyglot-random-strings \
@@ -15,7 +16,8 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--log-file outputs/csa/polyglot/inner/peak-mem-usage.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30
+	--num-strings-per-regex 30 \
+	--super-config-class "sparse_counter_config"
 
 # Counter expansion
 mkdir -p outputs/csa/snort3/full
@@ -27,7 +29,8 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--log-file outputs/csa/snort3/full/peak-mem-usage.tsv \
 	--expansion-type full \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30
+	--num-strings-per-regex 30 \
+	--super-config-class "sparse_counter_config"
 
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir generated/counters/polyglot-random-strings \
@@ -35,4 +38,5 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--log-file outputs/csa/polyglot/full/peak-mem-usage.tsv \
 	--expansion-type full \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30
+	--num-strings-per-regex 30 \
+	--super-config-class "sparse_counter_config"

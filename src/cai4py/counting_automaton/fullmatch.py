@@ -59,15 +59,16 @@ def fullmatch(
         get_next_super_config, maxsize=1024
     )
     pickled_super_config = pickle.dumps(super_config)
-    cache_history = []
+    cache_history: list = []
     for i, symbol in enumerate(w):
+        # Load current super_config before processing symbol for accurate logging/state.
+        current_super_config = pickle.loads(pickled_super_config)
         logger.debug("Processing symbol: %s", symbol)
-        logger.debug("Current configs: %s", super_config)
-
+        logger.debug("Current configs: %s", current_super_config)
         pickled_super_config = cached_get_next_super_config[cache_type](
             pickled_super_config, symbol
         )
-        logger.debug("Next configs: %s", pickled_super_config)
+        # Optionally could log next state; omitted to reduce overhead.
         # Sample cache stats at specified intervals
         if sample_interval > 0 and (i + 1) % sample_interval == 0:
             try:
@@ -77,23 +78,23 @@ def fullmatch(
                 cache_history.append((i + 1, cache_info))
             except AttributeError as e:
                 print(e, file=sys.stderr)
-    if super_config.is_final():
-        return True, cache_history
-    return False, cache_history
+    # Load final super_config after processing all symbols
+    super_config = pickle.loads(pickled_super_config)
+    # Capture final cache stats once matching is complete.
+    try:
+        final_cache_info = cached_get_next_super_config[cache_type].cache_info()
+    except AttributeError:
+        final_cache_info = None
+    if final_cache_info is not None:
+        print(f"final_cache_info: {final_cache_info}")
+    return super_config.is_final(), cache_history
 
 
 def main(args: argparse.Namespace) -> None:
-    method: str = args.method
     sc_class: Type[sc.SuperConfigBase] = {
-        "super_config": sc.SuperConfig,
-        "bounded_super_config": sc.BoundedSuperConfig,
-        "counter_config": sc.CounterConfig,
-        "bounded_counter_config": sc.BoundedCounterConfig,
-        "sparse_counter_config": sc.SparseCounterConfig,
-        "determinized_counter_config": sc.DeterminizedCounterConfig,
-        "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
-        "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
-    }[method]
+        "SuperConfig": sc.SuperConfig,
+        "SparseCounterConfig": sc.SparseCounterConfig,
+    }[args.super_config_class]
     counter_type = {
         "bit-vector": CounterType.BIT_VECTOR,
         "sparse-counting-set": CounterType.SPARSE_COUNTING_SET,
@@ -122,19 +123,13 @@ if __name__ == "__main__":
         logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--method",
+        "--super-config-class",
         type=str,
         required=False,
-        default="sparse_counter_config",
+        default="SparseCounterConfig",
         choices=[
-            "super_config",
-            "bounded_super_config",
-            "counter_config",
-            "bounded_counter_config",
-            "sparse_counter_config",
-            "determinized_counter_config",
-            "determinized_bounded_counter_config",
-            "determinized_sparse_counter_config",
+            "SuperConfig",
+            "SparseCounterConfig",
         ],
     )
     parser.add_argument("--input-string", required=True, type=str)
@@ -154,5 +149,11 @@ if __name__ == "__main__":
         required=False,
         default="sparse-counting-set",
         choices=["bit-vector", "sparse-counting-set"],
+    )
+    parser.add_argument(
+        "--sample-interval",
+        type=int,
+        default=0,
+        help="Sample cache stats every N characters if > 0",
     )
     main(parser.parse_args())

@@ -84,8 +84,13 @@ class Action(dd[CounterVariable, CounterOperationComponent], Hashable):
                 self[variable].upper_bound,
             )
             action = self[variable]
-            counter = counters[variable]
-            new_counter = action(counter, counter_type)
+            # Allow activation when counter variable is not yet present.
+            if variable not in counters and action.type == action.Type.ACTIVATE_OR_RESET:  # type: ignore[attr-defined]
+                # Create a placeholder counter (will be reset inside action call).
+                counters[variable] = counter_type.create_counter(0, 0)
+            counter = counters.get(variable)
+            assert counter is not None or action.type == action.Type.INACTIVATE  # type: ignore[attr-defined]
+            new_counter = action(counter, counter_type)  # type: ignore[arg-type]
             if new_counter is not None:
                 new_counters[variable] = new_counter
             else:
