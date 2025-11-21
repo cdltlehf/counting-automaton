@@ -91,8 +91,8 @@ def time_matching(
         sc_class,
         automaton,
         random_str,
-        cache_type,
         counter_type,
+        cache_type,
         sample_interval=0 if cache_type == "none" else 5,
     )
     if not match_found:
