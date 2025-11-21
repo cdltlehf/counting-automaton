@@ -30,12 +30,12 @@ class VerboseFilter(logging.Filter):
 
 def main(args: argparse.Namespace) -> None:
     sc_class = {
-        "sparse_counter_config": SparseCounterConfig,
-        "super_config": SuperConfig,
+        "SparseCounterConfig": SparseCounterConfig,
+        "SuperConfig": SuperConfig,
     }[args.super_config_class]
     counter_type = {
-        "bit-vector": CounterType.BIT_VECTOR,
-        "sparse-counting-set": CounterType.SPARSE_COUNTING_SET,
+        "bitvector": CounterType.BIT_VECTOR,
+        "counting-set": CounterType.SPARSE_COUNTING_SET,
     }[args.counter_type]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
@@ -113,6 +113,7 @@ def main(args: argparse.Namespace) -> None:
                                         random_str,
                                         counter_type,
                                         args.cache_type,
+                                        args.sample_interval,
                                     ),
                                 ),
                                 max_usage=True,
@@ -152,7 +153,7 @@ if __name__ == "__main__":
         "--super-config-class",
         required=True,
         type=str,
-        choices=["sparse_counter_config", "super_config"],
+        choices=["SuperConfig", "SparseCounterConfig"],
     )
     parser.add_argument("--random-string-dir", required=True, type=str)
     parser.add_argument("--regex-file", required=True, type=str)
@@ -177,8 +178,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--counter-type",
         type=str,
+        required=True,
+        choices=["bitvector", "counting-set"],
+    )
+    parser.add_argument(
+        "--sample-interval",
+        type=int,
         required=False,
-        default="sparse-counting-set",
-        choices=["bit-vector", "sparse-counting-set"],
+        default=0,
+        help="Interval at which to sample cache statistics. 0 means no sampling.",
     )
     main(parser.parse_args())

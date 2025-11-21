@@ -135,7 +135,10 @@ if __name__ == "__main__":
     parser.add_argument("--input-string", required=True, type=str)
     parser.add_argument("--regex", required=True, type=str)
     parser.add_argument(
-        "--expansion-type", required=True, type=str, choices=["inner", "outer"]
+        "--expansion-type",
+        required=True,
+        type=str,
+        choices=["inner", "outer", "full"],
     )
     parser.add_argument(
         "--cache-type",
@@ -146,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--counter-type",
         type=str,
-        required=False,
+        required=True,
         default="sparse-counting-set",
         choices=["bit-vector", "sparse-counting-set"],
     )

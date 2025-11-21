@@ -67,6 +67,7 @@ def main(args: argparse.Namespace) -> None:
             start=1,
         ):
             regex = regex[:-1]  # strip newline
+            print(f"Processing regex {i}: {regex}")
             with open("regex.txt", "w", encoding="utf-8") as debug_regex_file:
                 debug_regex_file.write(regex)
             try:
@@ -100,6 +101,8 @@ def main(args: argparse.Namespace) -> None:
                         encoding=args.input_encoding,
                     ) as random_str_file:
                         random_str = random_str_file.read()
+                        if re.fullmatch(regex, random_str) is None:
+                            continue  # Skip non-matching strings
                         with open(
                             "string.txt", "w", encoding="utf-8"
                         ) as debug_str_file:
@@ -131,6 +134,14 @@ def main(args: argparse.Namespace) -> None:
                                 f"{i}\t{j}\t{THROUGHPUT_THRES/1e6}\n"
                             )
                             break
+                        except NoMatchError as e:
+                            if re.fullmatch(regex, random_str) is not None:
+                                raise NoMatchError(
+                                    "No match was found, but one should have been found."
+                                ) from e  # Re-raise if string should match
+                            assert re.fullmatch(regex, random_str) is None
+                            print(e, file=sys.stderr)
+                            continue
                         if result is None:
                             continue
                         assert isinstance(result, tuple) and len(result) == 2
@@ -212,5 +223,11 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help="Output file for cache utilization history (only used if --sample-interval > 0)",
+    )
+    parser.add_argument(
+        "--counter-type",
+        type=str,
+        required=True,
+        choices=["counting-set", "bitvector"],
     )
     main(parser.parse_args())

@@ -14,6 +14,7 @@ from cai4py.custom_counters.bit_vector import BitVector
 from cai4py.custom_counters.counter_base import CounterBase
 from cai4py.custom_counters.counter_type import CounterType
 from cai4py.custom_counters.counting_set import CountingSet
+from cai4py.custom_counters.sparse_counting_set import SparseCountingSet
 from cai4py.custom_counters.naive_counter import NaiveCounter
 from cai4py.more_collections import OrderedSet
 
@@ -61,7 +62,9 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
         self._configs = {}
         initial_state, initial_counters = self.automaton.get_initial_config()
         for counter_var in self.automaton.counters.keys():
-            initial_counters[counter_var] = self.counter_type.create_counter(0, 0)
+            initial_counters[counter_var] = self.counter_type.create_counter(
+                0, 0
+            )
         self._configs[initial_state] = [initial_counters]
         self.counter_type.get_data_collection()
 
@@ -184,6 +187,16 @@ class SuperConfig(SuperConfigBase, Collection[Config]):
                                     c_old, CountingSet
                                 ) and isinstance(c_new, CountingSet)
                                 merged[var] = CountingSet.union(c_old, c_new)
+                            elif (
+                                self.counter_type
+                                == CounterType.SPARSE_COUNTING_SET
+                            ):
+                                assert isinstance(
+                                    c_old, SparseCountingSet
+                                ) and isinstance(c_new, SparseCountingSet)
+                                merged[var] = SparseCountingSet.union(
+                                    c_old, c_new
+                                )
                             else:
                                 raise RuntimeError("Unknown Counter Type!")
                         else:
