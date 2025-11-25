@@ -1,67 +1,73 @@
-POLYGLOT_RANDOM_STRINGS_DIR="generated/ambiguous/polyglot-random-strings"
+POLYGLOT_AMBIGUOUS_RANDOM_STRING_DIR="generated/ambiguous/polyglot-random-strings"
+POLYGLOT_UNAMBIGUOUS_RANDOM_STRING_DIR="generated/unambiguous/polyglot-random-strings"
 POLYGLOT_AMBIGUOUS="polyglot/ambiguous.txt"
 POLYGLOT_UNAMBIGUOUS="polyglot/unambiguous.txt"
+mkdir -p outputs/csa/polyglot/full/ambiguous
+mkdir -p outputs/csa/polyglot/full/unambiguous
 
+# python -O -m cai4py.instrumentation.time_random \
+# 	--random-string-dir $POLYGLOT_AMBIGUOUS_RANDOM_STRING_DIR \
+# 	--regex-file $POLYGLOT_AMBIGUOUS\
+# 	--timing-log-file outputs/csa/polyglot/full/ambiguous/random-throughputs.tsv \
+# 	--expansion-type full \
+# 	--input-encoding "utf-8" \
+# 	--num-strings-per-regex 30 \
+# 	--cache-type "none" \
+# 	--super-config-class "SuperConfig" \
+# 	--counter-type "none" &
+# python -O -m cai4py.instrumentation.time_random \
+# 	--random-string-dir $POLYGLOT_AMBIGUOUS_RANDOM_STRING_DIR \
+# 	--regex-file $POLYGLOT_UNAMBIGUOUS\
+# 	--timing-log-file outputs/csa/polyglot/full/unambiguous/random-throughputs.tsv \
+# 	--expansion-type full \
+# 	--input-encoding "utf-8" \
+# 	--num-strings-per-regex 30 \
+# 	--cache-type "none" \
+# 	--super-config-class "SuperConfig" \
+# 	--counter-type "none" &
+# python -O -m cai4py.instrumentation.measure_memory \
+# 	--random-string-dir $POLYGLOT_AMBIGUOUS_RANDOM_STRING_DIR \
+# 	--regex-file $POLYGLOT_AMBIGUOUS\
+# 	--log-file outputs/csa/polyglot/full/ambiguous/memory-usage.tsv \
+# 	--expansion-type full \
+# 	--input-encoding "utf-8" \
+# 	--num-strings-per-regex 30 \
+# 	--cache-type "none" \
+# 	--super-config-class "SuperConfig" \
+# 	--counter-type "none" &
+# python -O -m cai4py.instrumentation.measure_memory \
+# 	--random-string-dir $POLYGLOT_AMBIGUOUS_RANDOM_STRING_DIR \
+# 	--regex-file $POLYGLOT_UNAMBIGUOUS\
+# 	--log-file outputs/csa/polyglot/full/unambiguous/memory-usage.tsv \
+# 	--expansion-type full \
+# 	--input-encoding "utf-8" \
+# 	--num-strings-per-regex 30 \
+# 	--cache-type "none" \
+# 	--super-config-class "SuperConfig" \
+# 	--counter-type "none" &
+# wait
 python -O -m cai4py.instrumentation.time_random \
-	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
+	--random-string-dir $POLYGLOT_AMBIGUOUS_RANDOM_STRING_DIR \
 	--regex-file $POLYGLOT_AMBIGUOUS\
 	--timing-log-file outputs/csa/polyglot/full/ambiguous/random-throughputs.tsv \
-	--expansion-type full \
+	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "none" \
+	--cache-type "flush_on_full" \
 	--super-config-class "SuperConfig" \
-	--counter-type "none" &
+	--sample-interval 2 \
+	--cache-history-log-file outputs/csa/polyglot/full/ambiguous/cache-timeline.tsv \
+	--counter-type "counting-set" 
 python -O -m cai4py.instrumentation.time_random \
-	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
-	--regex-file $POLYGLOT_UNAMBIGUOUS\
+	--random-string-dir $POLYGLOT_UNAMBIGUOUS_RANDOM_STRING_DIR \
+	--regex-file $POLYGLOT_UNAMBIGUOUS \
 	--timing-log-file outputs/csa/polyglot/full/unambiguous/random-throughputs.tsv \
-	--expansion-type full \
+	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "none" \
+	--cache-type "flush_on_full" \
 	--super-config-class "SuperConfig" \
-	--counter-type "none" &
-python -O -m cai4py.instrumentation.measure_memory \
-	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
-	--regex-file $POLYGLOT_AMBIGUOUS\
-	--log-file outputs/csa/polyglot/full/ambiguous/memory-usage.tsv \
-	--expansion-type full \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
-	--cache-type "none" \
-	--super-config-class "SuperConfig" \
-	--counter-type "none" &
-python -O -m cai4py.instrumentation.measure_memory \
-	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
-	--regex-file $POLYGLOT_UNAMBIGUOUS\
-	--log-file outputs/csa/polyglot/full/unambiguous/memory-usage.tsv \
-	--expansion-type full \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
-	--cache-type "none" \
-	--super-config-class "SuperConfig" \
-	--counter-type "none" &
+	--cache-history-log-file outputs/csa/polyglot/full/unambiguous/cache-timeline.tsv \
+	--sample-interval 2 \
+	--counter-type "counting-set" 
 wait
-python -O -m cai4py.instrumentation.time_random \
-	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
-	--regex-file $POLYGLOT_AMBIGUOUS\
-	--timing-log-file outputs/csa/polyglot/full/ambiguous/random-throughputs.tsv \
-	--expansion-type full \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
-	--cache-type "flush_on_full" \
-	--super-config-class "SuperConfig" \
-	--sample-interval 2 \
-	--counter-type "none" &
-python -O -m cai4py.instrumentation.time_random \
-	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
-	--regex-file $POLYGLOT_UNAMBIGUOUS\
-	--timing-log-file outputs/csa/polyglot/full/unambiguous/random-throughputs.tsv \
-	--expansion-type full \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
-	--cache-type "flush_on_full" \
-	--super-config-class "SuperConfig" \
-	--sample-interval 2 \
-	--counter-type "none" &

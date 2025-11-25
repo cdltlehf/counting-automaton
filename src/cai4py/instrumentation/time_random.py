@@ -206,4 +206,9 @@ if __name__ == "__main__":
         help="Output file for cache utilization history (only used if --sample-interval > 0)",
     )
     add_counter_type_argument(parser)
-    main(parser.parse_args())
+    args = parser.parse_args()
+    if args.sample_interval > 0 and not args.cache_history_log_file:
+        parser.error(
+            "--cache-history-log-file must be specified if --sample-interval > 0"
+        )
+    main(args)
