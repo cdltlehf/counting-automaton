@@ -8,6 +8,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
+	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/nested-counters/polyglot-random-strings \
@@ -17,6 +18,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
+	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
 wait
 # No need to repeat the inner expansion here since it was already done above

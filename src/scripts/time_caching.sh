@@ -13,6 +13,8 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
 	--cache-type "flush_on_full" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
@@ -22,6 +24,8 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
 	--cache-type "flush_on_full" &
 # Polyglot
 # Inner
@@ -32,6 +36,8 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
 	--cache-type "flush_on_full" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
@@ -41,6 +47,8 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
 	--cache-type "flush_on_full" &
 
 wait
@@ -55,6 +63,8 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
 	--cache-type "lru" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
@@ -64,6 +74,8 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
 	--cache-type "lru" &
 # Polyglot
 # Inner
@@ -74,6 +86,8 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
 	--cache-type "lru" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
@@ -83,5 +97,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
 	--cache-type "lru" &
 wait

@@ -1,6 +1,7 @@
 """Time matching with the position counting automaton and random strings"""
 
 import sys
+import os
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
 
 import argparse
@@ -19,6 +20,12 @@ from cai4py.instrumentation.utils import (
     get_matching_timeout,
     run_with_timeout,
     time_matching,
+    add_common_arguments,
+    add_super_config_argument,
+    add_counter_type_argument,
+    add_cache_type_argument,
+    add_random_string_arguments,
+    add_sample_interval_argument,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,17 +37,10 @@ class VerboseFilter(logging.Filter):
 
 
 def main(args: argparse.Namespace) -> None:
-    method: str = args.method
     sc_class: sc.SuperConfigBase = {
-        "super_config": sc.SuperConfig,
-        "bounded_super_config": sc.BoundedSuperConfig,
-        "counter_config": sc.CounterConfig,
-        "bounded_counter_config": sc.BoundedCounterConfig,
-        "sparse_counter_config": sc.SparseCounterConfig,
-        "determinized_counter_config": sc.DeterminizedCounterConfig,
-        "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
-        "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
-    }[method]
+        "SuperConfig": sc.SuperConfig,
+        "SparseCounterConfig": sc.SparseCounterConfig,
+    }[args.super_config_class]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
 
@@ -55,6 +55,8 @@ def main(args: argparse.Namespace) -> None:
         )
 
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
+        directory = args.timing_log_file.rsplit("/", 1)[0]
+        os.makedirs(directory, exist_ok=True)
         timing_log_file = open(args.timing_log_file, "w", encoding="utf-8")
         timing_log_file.write("Regex ID\tString ID\tThroughput (KB/sec)\n")
         for i, regex in enumerate(
@@ -110,6 +112,11 @@ def main(args: argparse.Namespace) -> None:
                         num_bytes = len(random_str.encode("utf-8"))
                         matching_timeout = get_matching_timeout(num_bytes)
                         sample_interval = getattr(args, "sample_interval", 0)
+                        counter_type = {
+                            "counting-set": CounterType.COUNTING_SET,
+                            "bitvector": CounterType.BIT_VECTOR,
+                            "none": CounterType.NONE,
+                        }[args.counter_type]
                         try:
                             result = run_with_timeout(
                                 func=time_matching,
@@ -118,6 +125,7 @@ def main(args: argparse.Namespace) -> None:
                                     automaton,
                                     random_str,
                                     args.cache_type,
+                                    counter_type,
                                     sample_interval,
                                 ),
                                 timeout=matching_timeout,
@@ -180,54 +188,22 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
+    add_super_config_argument(parser)
+    add_random_string_arguments(parser)
+    add_common_arguments(parser)
     parser.add_argument(
-        "--method",
-        type=str,
-        required=False,
-        choices=[
-            "super_config",
-            "bounded_super_config",
-            "counter_config",
-            "bounded_counter_config",
-            "sparse_counter_config",
-            "determinized_counter_config",
-            "determinized_bounded_counter_config",
-            "determinized_sparse_counter_config",
-        ],
-        default="sparse_counter_config",
-    )
-    parser.add_argument("--random-string-dir", required=True, type=str)
-    parser.add_argument("--regex-file", required=True, type=str)
-    parser.add_argument("--timing-log-file", required=True, type=str)
-    parser.add_argument("--num-strings-per-regex", required=True, type=int)
-    parser.add_argument(
-        "--expansion-type",
+        "--timing-log-file",
         required=True,
         type=str,
-        choices=["inner", "outer", "full"],
+        help="Output file for timing results",
     )
-    parser.add_argument(
-        "--input-encoding", required=True, choices=["utf-8", "latin1"]
-    )
-    parser.add_argument(
-        "--cache-type", required=True, choices=["lru", "flush_on_full", "none"]
-    )
-    parser.add_argument(
-        "--sample-interval",
-        type=int,
-        default=0,
-        help="Sample cache stats every N characters (0 = no sampling)",
-    )
+    add_cache_type_argument(parser, required=True)
+    add_sample_interval_argument(parser)
     parser.add_argument(
         "--cache-history-log-file",
         type=str,
         default=None,
         help="Output file for cache utilization history (only used if --sample-interval > 0)",
     )
-    parser.add_argument(
-        "--counter-type",
-        type=str,
-        required=True,
-        choices=["counting-set", "bitvector"],
-    )
+    add_counter_type_argument(parser)
     main(parser.parse_args())

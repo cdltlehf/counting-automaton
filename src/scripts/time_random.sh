@@ -15,7 +15,9 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "none" &
+	--cache-type "none" \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" &
 # Outer
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/counters/snort3-random-strings \
@@ -24,7 +26,9 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type outer \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "none" &
+	--cache-type "none" \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/counters/snort3-random-strings \
@@ -33,7 +37,9 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "none" &
+	--cache-type "none" \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" &
 wait
 
 # Polyglot
@@ -45,7 +51,9 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "none" &
+	--cache-type "none" \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" &
 # Outer
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/counters/polyglot-random-strings \
@@ -54,7 +62,9 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type outer \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "none" &
+	--cache-type "none" \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/counters/polyglot-random-strings \
@@ -63,6 +73,8 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "none" &
+	--cache-type "none" \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" &
 
 wait

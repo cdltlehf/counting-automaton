@@ -19,6 +19,9 @@ import cai4py.counting_automaton.super_config as sc
 from cai4py.instrumentation.utils import (
     run_with_timeout,
     time_matching,
+    add_common_arguments,
+    add_cache_type_argument,
+    add_super_config_argument,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,17 +33,10 @@ class VerboseFilter(logging.Filter):
 
 
 def main(args: argparse.Namespace) -> None:
-    method: str = args.method
     sc_class: Type[sc.SuperConfigBase] = {
-        "super_config": sc.SuperConfig,
-        "bounded_super_config": sc.BoundedSuperConfig,
-        "counter_config": sc.CounterConfig,
-        "bounded_counter_config": sc.BoundedCounterConfig,
-        "sparse_counter_config": sc.SparseCounterConfig,
-        "determinized_counter_config": sc.DeterminizedCounterConfig,
-        "determinized_bounded_counter_config": sc.DeterminizedBoundedCounterConfig,
-        "determinized_sparse_counter_config": sc.DeterminizedSparseCounterConfig,
-    }[method]
+        "SuperConfig": sc.SuperConfig,
+        "SparseCounterConfig": sc.SparseCounterConfig,
+    }[args.super_config_class]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
@@ -117,32 +113,19 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
+    add_super_config_argument(parser)
     parser.add_argument(
-        "--method",
+        "--attack-string-dir",
+        required=True,
         type=str,
-        required=False,
-        choices=[
-            "super_config",
-            "bounded_super_config",
-            "counter_config",
-            "bounded_counter_config",
-            "sparse_counter_config",
-            "determinized_counter_config",
-            "determinized_bounded_counter_config",
-            "determinized_sparse_counter_config",
-        ],
-        default="sparse_counter_config",
+        help="Directory containing attack strings",
     )
-    parser.add_argument("--attack-string-dir", required=True, type=str)
-    parser.add_argument("--regex-file", required=True, type=str)
-    parser.add_argument("--timing-log-file", required=True, type=str)
+    add_common_arguments(parser)
     parser.add_argument(
-        "--expansion-type", required=True, type=str, choices=["inner", "outer"]
+        "--timing-log-file",
+        required=True,
+        type=str,
+        help="Output file for timing results",
     )
-    parser.add_argument(
-        "--input-encoding", required=True, choices=["utf-8", "latin1"]
-    )
-    parser.add_argument(
-        "--cache-type", required=True, choices=["lru", "flush_on_full", "none"]
-    )
+    add_cache_type_argument(parser, required=True)
     main(parser.parse_args())

@@ -23,6 +23,8 @@ import cai4py.counting_automaton.position_counting_automaton as pca
 import cai4py.counting_automaton.super_config as sc
 from cai4py.instrumentation.utils import get_matching_timeout
 from cai4py.instrumentation.utils import run_with_timeout
+from cai4py.instrumentation.utils import add_common_arguments
+from cai4py.instrumentation.utils import add_random_string_arguments
 
 from .constants import OP_NAMES
 
@@ -205,10 +207,10 @@ if __name__ == "__main__":
             "determinized_bounded_counter_config",
             "determinized_sparse_counter_config",
         ],
+        help="Configuration method to use",
     )
-    parser.add_argument("--random-string-dir", required=True, type=str)
-    parser.add_argument("--regex-file", required=True, type=str)
-    parser.add_argument("--num-strings-per-regex", required=True, type=int)
+    add_random_string_arguments(parser)
+    add_common_arguments(parser)
     parser.add_argument(
         "--op-counts-output",
         required=True,
@@ -226,11 +228,5 @@ if __name__ == "__main__":
         required=True,
         type=str,
         help="Output .npy file to save CLONE sizes.",
-    )
-    parser.add_argument(
-        "--expansion-type",
-        required=True,
-        type=str,
-        choices=["inner", "outer", "all"],
     )
     main(parser.parse_args())

@@ -16,6 +16,7 @@ class CounterType(Enum):
     NAIVE_COUNTER = "Naive Counter"
     COUNTING_SET = "Counting-set"
     SPARSE_COUNTING_SET = "Sparse Counting-set"
+    NONE = "None"
 
     """
         Create a counter according to the necessary counter type.
@@ -31,6 +32,10 @@ class CounterType(Enum):
                 return CountingSet(lower_bound, upper_bound)
             case CounterType.SPARSE_COUNTING_SET:
                 return SparseCountingSet(lower_bound, upper_bound)
+            case CounterType.NONE:
+                raise Exception(
+                    "Counters cannot be created when CounterType is NONE!"
+                )
             case _:
                 raise Exception("Unknown Counter Type!")
 

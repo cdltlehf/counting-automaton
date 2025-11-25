@@ -5,43 +5,41 @@ POLYGLOT_UNAMBIGUOUS="polyglot/unambiguous.txt"
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_AMBIGUOUS\
-	--timing-log-file outputs/csa/polyglot/inner/ambiguous/random-throughputs.tsv \
-	--expansion-type inner \
+	--timing-log-file outputs/csa/polyglot/full/ambiguous/random-throughputs.tsv \
+	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set" &
-
+	--super-config-class "SuperConfig" \
+	--counter-type "none" &
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_UNAMBIGUOUS\
-	--timing-log-file outputs/csa/polyglot/inner/unambiguous/random-throughputs.tsv \
-	--expansion-type inner \
+	--timing-log-file outputs/csa/polyglot/full/unambiguous/random-throughputs.tsv \
+	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set" &
-
-wait
-
+	--super-config-class "SuperConfig" \
+	--counter-type "none" &
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_AMBIGUOUS\
-	--memory-log-file outputs/csa/polyglot/inner/ambiguous/memory-usage.tsv \
-	--expansion-type inner \
+	--log-file outputs/csa/polyglot/full/ambiguous/memory-usage.tsv \
+	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set" &
-
+	--super-config-class "SuperConfig" \
+	--counter-type "none" &
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_UNAMBIGUOUS\
-	--memory-log-file outputs/csa/polyglot/inner/unambiguous/memory-usage.tsv \
-	--expansion-type inner \
+	--log-file outputs/csa/polyglot/full/unambiguous/memory-usage.tsv \
+	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set" &
-
+	--super-config-class "SuperConfig" \
+	--counter-type "none" &
 wait

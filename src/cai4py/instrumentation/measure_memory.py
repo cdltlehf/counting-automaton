@@ -18,7 +18,15 @@ from cai4py.counting_automaton.super_config.counter_config import (
 )
 from cai4py.counting_automaton.super_config.super_config import SuperConfig
 from cai4py.custom_counters.counter_type import CounterType
-from cai4py.instrumentation.utils import run_with_timeout
+from cai4py.instrumentation.utils import (
+    run_with_timeout,
+    add_common_arguments,
+    add_super_config_argument,
+    add_counter_type_argument,
+    add_cache_type_argument,
+    add_random_string_arguments,
+    add_sample_interval_argument,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -149,43 +157,16 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
+    add_super_config_argument(parser)
+    add_random_string_arguments(parser)
+    add_common_arguments(parser)
     parser.add_argument(
-        "--super-config-class",
+        "--log-file",
         required=True,
         type=str,
-        choices=["SuperConfig", "SparseCounterConfig"],
+        help="Output file for memory usage results",
     )
-    parser.add_argument("--random-string-dir", required=True, type=str)
-    parser.add_argument("--regex-file", required=True, type=str)
-    parser.add_argument("--log-file", required=True, type=str)
-    parser.add_argument("--num-strings-per-regex", required=True, type=int)
-    parser.add_argument(
-        "--expansion-type",
-        required=True,
-        type=str,
-        choices=["inner", "outer", "full"],
-    )
-    parser.add_argument(
-        "--input-encoding", required=True, choices=["utf-8", "latin1"]
-    )
-    parser.add_argument(
-        "--cache-type",
-        required=False,
-        type=str,
-        choices=["none", "lru", "flush_on_full"],
-        default="none",
-    )
-    parser.add_argument(
-        "--counter-type",
-        type=str,
-        required=True,
-        choices=["bitvector", "counting-set"],
-    )
-    parser.add_argument(
-        "--sample-interval",
-        type=int,
-        required=False,
-        default=0,
-        help="Interval at which to sample cache statistics. 0 means no sampling.",
-    )
+    add_cache_type_argument(parser, required=False)
+    add_counter_type_argument(parser)
+    add_sample_interval_argument(parser)
     main(parser.parse_args())
