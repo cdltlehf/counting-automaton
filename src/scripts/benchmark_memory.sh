@@ -13,7 +13,7 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--super-config-class "SuperConfig" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_REGEX_FILE \
@@ -22,7 +22,7 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--super-config-class "SparseCounterConfig" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_REGEX_FILE \
@@ -31,7 +31,9 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--super-config-class "SuperConfig" \
-	--counter-type "bitvector"
+	--counter-type "bitvector" &
+
+wait
 
 # Do the same for SNORT3
 mkdir -p outputs/csa/snort3/inner
@@ -48,7 +50,7 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--super-config-class "SuperConfig" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
 	--regex-file $SNORT3_REGEX_FILE \
@@ -57,7 +59,7 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--super-config-class "SparseCounterConfig" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
 	--regex-file $SNORT3_REGEX_FILE \
@@ -66,4 +68,5 @@ python -O -m cai4py.instrumentation.measure_memory \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--super-config-class "SuperConfig" \
-	--counter-type "bitvector"
+	--counter-type "bitvector" &
+wait

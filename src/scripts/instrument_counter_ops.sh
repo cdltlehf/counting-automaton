@@ -7,7 +7,7 @@ python -O -m cai4py.instrumentation.instrument_counter_ops \
 	--op-counts-output outputs/csa/snort3/inner/op-name-to-counts.tsv \
 	--merge-sizes-output outputs/csa/snort3/inner/merge-sizes.npy \
 	--clone-sizes-output outputs/csa/snort3/inner/clone-sizes.npy \
-	--expansion-type inner
+	--expansion-type inner &
 python -O -m cai4py.instrumentation.instrument_counter_ops \
 	--random-string-dir generated/counters/polyglot-random-strings \
 	--regex-file polyglot/c-patterns-filtered.txt \
@@ -15,5 +15,6 @@ python -O -m cai4py.instrumentation.instrument_counter_ops \
 	--op-counts-output outputs/csa/polyglot/inner/op-name-to-counts.tsv \
 	--merge-sizes-output outputs/csa/polyglot/inner/merge-sizes.npy \
 	--clone-sizes-output outputs/csa/polyglot/inner/clone-sizes.npy \
-	--expansion-type inner
+	--expansion-type inner &
+wait
 # TODO: run with attack strings as well?

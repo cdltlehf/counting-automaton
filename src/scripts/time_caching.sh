@@ -13,7 +13,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "flush_on_full"
+	--cache-type "flush_on_full" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/counters/snort3-random-strings \
@@ -22,7 +22,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "flush_on_full"
+	--cache-type "flush_on_full" &
 # Polyglot
 # Inner
 python -O -m cai4py.instrumentation.time_random \
@@ -32,7 +32,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "flush_on_full"
+	--cache-type "flush_on_full" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/counters/polyglot-random-strings \
@@ -41,7 +41,9 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "flush_on_full"
+	--cache-type "flush_on_full" &
+
+wait
 
 # LRU cache
 # SNORT3
@@ -53,7 +55,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "lru"
+	--cache-type "lru" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/counters/snort3-random-strings \
@@ -62,7 +64,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "lru"
+	--cache-type "lru" &
 # Polyglot
 # Inner
 python -O -m cai4py.instrumentation.time_random \
@@ -72,7 +74,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "lru"
+	--cache-type "lru" &
 # Full
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/counters/polyglot-random-strings \
@@ -81,4 +83,5 @@ python -O -m cai4py.instrumentation.time_random \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
-	--cache-type "lru"
+	--cache-type "lru" &
+wait

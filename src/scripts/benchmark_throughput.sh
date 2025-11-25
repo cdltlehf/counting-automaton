@@ -15,7 +15,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_REGEX_FILE\
@@ -24,7 +24,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_REGEX_FILE\
@@ -33,7 +33,9 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "bitvector"
+	--counter-type "bitvector" &
+
+wait
 
 # Do the same for SNORT3
 
@@ -53,7 +55,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 # No need to repeat the inner expansion here since it was already done above
 
 # Benchmark standard bitvector and counting-set approaches
@@ -65,7 +67,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
 	--regex-file $SNORT3_REGEX_FILE\
@@ -74,7 +76,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "counting-set"
+	--counter-type "counting-set" &
 python -O -m cai4py.instrumentation.time_random \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
 	--regex-file $SNORT3_REGEX_FILE\
@@ -83,4 +85,5 @@ python -O -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 30 \
 	--cache-type "none" \
-	--counter-type "bitvector"
+	--counter-type "bitvector" &
+wait
