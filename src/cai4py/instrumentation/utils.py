@@ -145,7 +145,7 @@ def add_counter_type_argument(parser: argparse.ArgumentParser) -> None:
         "--counter-type",
         type=str,
         required=True,
-        choices=["bitvector", "counting-set"],
+        choices=["bitvector", "counting-set", "none"],
         help="Type of counter to use",
     )
 

@@ -44,6 +44,7 @@ def main(args: argparse.Namespace) -> None:
     counter_type = {
         "bitvector": CounterType.BIT_VECTOR,
         "counting-set": CounterType.SPARSE_COUNTING_SET,
+        "none": CounterType.NONE,
     }[args.counter_type]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())

@@ -121,37 +121,37 @@ def _expand_all_counters(subpat: SubPattern) -> SubPattern:
         if op in (MIN_REPEAT, MAX_REPEAT, POSSESSIVE_REPEAT):
             # av is (min, max, subpattern)
             lower_b, upper_b, subexpr = av
-            is_counter = not (lower_b == 0 and upper_b == 1) and not (
-                (lower_b == 0 or lower_b == 1) and upper_b == MAXREPEAT
-            )  # not ?, *, or +
             assert isinstance(lower_b, int)
             subexpr = _expand_all_counters(subexpr)
 
-            if is_counter:
-                expansion: list[tuple] = []
-                for _ in range(lower_b):
-                    assert not isinstance(subexpr, list)
-                    assert isinstance(subexpr, SubPattern)
-                    expansion.extend(subexpr.data)
-                if upper_b != MAXREPEAT:
-                    assert isinstance(upper_b, int)
-                    for i in range(upper_b - lower_b):
-                        expansion += [
+            expansion: list[tuple] = []
+            for _ in range(lower_b):
+                assert not isinstance(subexpr, list)
+                assert isinstance(subexpr, SubPattern)
+                expansion.extend(subexpr.data)
+            if upper_b != MAXREPEAT:
+                assert isinstance(upper_b, int)
+                for i in range(upper_b - lower_b):
+                    expansion += [
+                        (
                             (
-                                (
-                                    MAX_QUESTION
-                                    if op is MAX_REPEAT
-                                    else MIN_QUESTION
-                                ),
-                                subexpr,
-                            )
-                        ]
-                else:
-                    expansion += [(op, (0, MAXREPEAT, subexpr))]
-                for op, av in expansion:
-                    updated_tokens.append((op, av))
+                                MAX_QUESTION
+                                if op is MAX_REPEAT
+                                else MIN_QUESTION
+                            ),
+                            subexpr,
+                        )
+                    ]
             else:
-                updated_tokens.append((op, (lower_b, upper_b, subexpr)))
+                # Convert unbounded tail to * opcode instead of keeping as repeat
+                if op is MAX_REPEAT:
+                    expansion += [(MAX_STAR, subexpr)]
+                elif op is POSSESSIVE_REPEAT:
+                    expansion += [(POSSESSIVE_STAR, subexpr)]
+                else:  # MIN_REPEAT
+                    expansion += [(MIN_STAR, subexpr)]
+            for op, av in expansion:
+                updated_tokens.append((op, av))
         elif op is SUBPATTERN:
             # av is (groupnum, add_flags, del_flags, subpattern)
             groupnum, add_flags, del_flags, subexpr2 = av
