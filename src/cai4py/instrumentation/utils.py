@@ -19,8 +19,6 @@ from cai4py.custom_counters.counter_type import CounterType
 class NoMatchError(Exception):
     """Raised when no match is found during matching."""
 
-    pass
-
 
 def run_with_timeout(func, args=(), timeout=None):
     """Run a function with the given arguments in a separate process with a timeout.
@@ -87,6 +85,7 @@ def time_matching(
     cache_type: Literal["lru", "flush_on_full", "none"],
     counter_type: CounterType,
     sample_interval: int = 0,
+    raise_error_if_no_match=True,
 ) -> tuple[float, list]:
     t0 = time.perf_counter()
     match_found, cache_history = fullmatch(
@@ -97,7 +96,7 @@ def time_matching(
         cache_type,
         sample_interval=0 if cache_type == "none" else sample_interval,
     )
-    if not match_found:
+    if not match_found and raise_error_if_no_match:
         # Raise runtime error because all inputs should match (there are some edge cases where Xeger generates non-matching strings)
         raise NoMatchError("String did not match the automaton")
     t1 = time.perf_counter()

@@ -3,12 +3,9 @@
 import sys
 import os
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
-
 import argparse
 import logging
 import re
-import sys
-
 from cai4py.counting_automaton.computation_logging import VERBOSE
 from cai4py.custom_counters.counter_type import CounterType
 import cai4py.counting_automaton.position_counting_automaton as pca

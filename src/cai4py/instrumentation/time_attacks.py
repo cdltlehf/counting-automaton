@@ -9,7 +9,11 @@ import sys
 from cai4py.counting_automaton.computation_logging import VERBOSE
 from cai4py.custom_counters.counter_type import CounterType
 from cai4py.instrumentation.constants import THROUGHPUT_THRES
-from cai4py.instrumentation.utils import run_with_timeout
+from cai4py.instrumentation.utils import (
+    NoMatchError,
+    add_counter_type_argument,
+    run_with_timeout,
+)
 from tqdm import tqdm
 
 from cai4py.counting_automaton._logging import VERBOSE
@@ -37,6 +41,10 @@ def main(args: argparse.Namespace) -> None:
         "SuperConfig": sc.SuperConfig,
         "SparseCounterConfig": sc.SparseCounterConfig,
     }[args.super_config_class]
+    counter_type = {
+        "counting-set": CounterType.COUNTING_SET,
+        "bitvector": CounterType.BIT_VECTOR,
+    }[args.counter_type]
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         num_regexes = len(regex_file.readlines())
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
@@ -86,17 +94,21 @@ def main(args: argparse.Namespace) -> None:
                         print(e, file=sys.stderr)
                         continue
                     try:
-                        duration, cache_history = time_matching(
+                        duration, _ = time_matching(
                             sc_class,
                             automaton,
                             attack_str,
                             args.cache_type,
-                            CounterType.BIT_VECTOR,
+                            counter_type,
+                            raise_error_if_no_match=False,  # don't raise an error if there is no match
                         )
                     except TimeoutError as e:
                         print(e, file=sys.stderr)
                         timing_log_file.write(f"{i}\t{THROUGHPUT_THRES/1e6}\n")
                         continue
+                    except NoMatchError as e:
+                        print(e, file=sys.stderr)
+                        raise Exception("This should not happen")
                     num_bytes = len(attack_str.encode(args.input_encoding))
                     timing_log_file.write(
                         f"{i}\t{num_bytes / 1000 / duration}\n"
@@ -113,6 +125,7 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
+    add_counter_type_argument(parser)
     add_super_config_argument(parser)
     parser.add_argument(
         "--attack-string-dir",
