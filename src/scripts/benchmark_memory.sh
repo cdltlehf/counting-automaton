@@ -4,6 +4,7 @@ mkdir -p outputs/bva/polyglot/inner
 
 POLYGLOT_RANDOM_STRINGS_DIR="generated/counters/polyglot-random-strings"
 POLYGLOT_REGEX_FILE="polyglot/c-patterns-filtered.txt"
+
 python -O -m cai4py.instrumentation.measure_memory \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_REGEX_FILE \

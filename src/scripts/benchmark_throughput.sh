@@ -5,17 +5,6 @@ mkdir -p outputs/bva/polyglot/inner
 POLYGLOT_RANDOM_STRINGS_DIR="generated/counters/polyglot-random-strings"
 POLYGLOT_REGEX_FILE="polyglot/c-patterns-filtered.txt"
 
-# Benchmark inner vs outer expansion for counting-set approach
-python -O -m cai4py.instrumentation.time_random \
-	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
-	--regex-file $POLYGLOT_REGEX_FILE\
-	--timing-log-file outputs/csa/polyglot/outer/random-throughputs.tsv \
-	--expansion-type outer \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
-	--cache-type "none" \
-	--counter-type "counting-set"
-# No need to repeat the inner expansion here since it was already done above
 
 # Benchmark standard bitvector and counting-set approaches
 python -O -m cai4py.instrumentation.time_random \

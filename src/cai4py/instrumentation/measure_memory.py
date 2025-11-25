@@ -42,7 +42,7 @@ def main(args: argparse.Namespace) -> None:
     with open(args.regex_file, "r", encoding="utf-8") as regex_file:
         mem_usage_log_file = open(args.log_file, "w", encoding="utf-8")
         mem_usage_log_file.write(
-            "Regex ID\tString ID\tPeak memory usage (MiB)\n"
+            "Regex ID\tString ID\tPeak Memory Usage (MiB)\n"
         )
         for i, regex in enumerate(
             tqdm(
