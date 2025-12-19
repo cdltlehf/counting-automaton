@@ -62,10 +62,14 @@ def main(args: argparse.Namespace) -> None:
             regex = regex[:-1]  # strip newline
             print(f"Processing regex {i}: {regex}")
             try:
+                from cai4py.instrumentation.constants import (
+                    AUTOMATON_CREATION_TIMEOUT,
+                )
+
                 automaton = run_with_timeout(
                     func=pca.PositionCountingAutomaton.create,
                     args=(regex, args.expansion_type),
-                    timeout=10,
+                    timeout=AUTOMATON_CREATION_TIMEOUT,
                 )
                 assert isinstance(automaton, pca.PositionCountingAutomaton)
                 if automaton is None:

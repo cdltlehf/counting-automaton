@@ -65,10 +65,14 @@ def main(args: argparse.Namespace) -> None:
             regex = regex[:-1]  # strip newline
             print(f"Processing regex {i}: {regex}", file=sys.stderr)
             try:
+                from cai4py.instrumentation.constants import (
+                    AUTOMATON_CREATION_TIMEOUT,
+                )
+
                 automaton = run_with_timeout(
                     func=PositionCountingAutomaton.create,
                     args=(regex, args.expansion_type),
-                    timeout=10,
+                    timeout=AUTOMATON_CREATION_TIMEOUT,
                 )
             except TimeoutError as e:
                 print(e, file=sys.stderr)

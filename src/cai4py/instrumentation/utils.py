@@ -75,7 +75,9 @@ def run_with_timeout(func, args=(), timeout=None):
 
 
 def get_matching_timeout(num_bytes: int) -> float:
-    return num_bytes / THROUGHPUT_THRES + 1
+    from cai4py.instrumentation.constants import MATCHING_TIMEOUT_BUFFER
+
+    return num_bytes / THROUGHPUT_THRES + MATCHING_TIMEOUT_BUFFER
 
 
 def time_matching(
