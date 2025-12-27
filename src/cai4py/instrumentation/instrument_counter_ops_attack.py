@@ -1,6 +1,7 @@
 """
-Count the operations performed during matching and track the sizes
-and densities counting-sets during merges and clones.
+Instrument counter operations using EvilStrGen-generated attack strings.
+Reads one attack string per regex ID and records operation counts,
+merge-set sizes, and clone-set sizes during matching.
 """
 
 import argparse
@@ -25,7 +26,6 @@ import cai4py.counting_automaton.super_config as sc
 from cai4py.instrumentation.utils import get_matching_timeout
 from cai4py.instrumentation.utils import run_with_timeout
 from cai4py.instrumentation.utils import add_common_arguments
-from cai4py.instrumentation.utils import add_random_string_arguments
 
 from .constants import OP_NAMES
 
@@ -44,12 +44,12 @@ class VerboseFilter(logging.Filter):
 def instrument_matching(
     sc_class,
     automaton: pca.PositionCountingAutomaton,
-    random_str: str,
+    attack_str: str,
     op_counts: list[dict[str, int]],
     overall_merge_set_sizes: list[tuple[int, float, int, float]],
     overall_clone_set_sizes: list[tuple[int, float]],
 ):
-    fullmatch(sc_class, automaton, random_str, CounterType.COUNTING_SET, "none")
+    fullmatch(sc_class, automaton, attack_str, CounterType.COUNTING_SET, "none")
     # Save the operation count in the list for this run
     assert len(op_name_to_count) == len(
         OP_NAMES
@@ -105,9 +105,11 @@ def main(args: argparse.Namespace) -> None:
     op_counts: list[dict[str, int]] = []
     overall_merge_set_sizes = []
     overall_clone_set_sizes = []
-    with open(args.regex_file, "r", encoding="utf-8") as regex_file:
+
+    # Read regexes
+    with open(args.regex_file, "r", encoding=args.input_encoding) as regex_file:
         num_regexes = len(regex_file.readlines())
-    with open(args.regex_file, "r", encoding="utf-8") as regex_file:
+    with open(args.regex_file, "r", encoding=args.input_encoding) as regex_file:
         for i, regex in enumerate(
             tqdm(
                 regex_file,
@@ -141,50 +143,49 @@ def main(args: argparse.Namespace) -> None:
                 print(e, file=sys.stderr)
                 continue
 
-            for j in range(1, args.num_strings_per_regex + 1):
-                try:
-                    with open(
-                        f"{args.random_string_dir}/{i}/{j}.txt",
-                        "r",
-                        encoding="utf-8",
-                    ) as random_str_file:
-                        # Initialize instrumentation variables
-                        reset_instrumentation_variables()
-                        random_str = random_str_file.read()
-                except FileNotFoundError as e:
-                    print(e, file=sys.stderr)
-                    continue
+            attack_path = f"{args.attack_string_dir}/{i}.txt"
+            try:
+                with open(
+                    attack_path, "r", encoding=args.input_encoding
+                ) as attack_str_file:
+                    reset_instrumentation_variables()
+                    attack_str = attack_str_file.read()
+            except FileNotFoundError as e:
+                print(e, file=sys.stderr)
+                continue
 
-                num_bytes = len(random_str.encode("utf-8"))
-                assert num_bytes >= 0
+            num_bytes = len(attack_str.encode(args.input_encoding))
+            assert num_bytes >= 0
 
-                # Run matching with a timeout
-                matching_timeout = get_matching_timeout(num_bytes)
-                try:
-                    (
+            # Run matching with a timeout
+            matching_timeout = get_matching_timeout(num_bytes)
+            try:
+                (
+                    op_counts,
+                    overall_merge_set_sizes,
+                    overall_clone_set_sizes,
+                ) = run_with_timeout(
+                    instrument_matching,
+                    args=(
+                        sc_class,
+                        automaton,
+                        attack_str,
                         op_counts,
                         overall_merge_set_sizes,
                         overall_clone_set_sizes,
-                    ) = run_with_timeout(
-                        instrument_matching,
-                        args=(
-                            sc_class,
-                            automaton,
-                            random_str,
-                            op_counts,
-                            overall_merge_set_sizes,
-                            overall_clone_set_sizes,
-                        ),
-                        timeout=matching_timeout,
-                    )  # type: ignore
-                except TimeoutError as e:
-                    print(e, file=sys.stderr)
-                    break
-        pd.DataFrame(data=op_counts, columns=OP_NAMES).to_csv(
-            args.op_counts_output, index=False
-        )
-        np.save(args.merge_sizes_output, overall_merge_set_sizes)
-        np.save(args.clone_sizes_output, overall_clone_set_sizes)
+                    ),
+                    timeout=matching_timeout,
+                )  # type: ignore
+            except TimeoutError as e:
+                print(e, file=sys.stderr)
+                continue
+
+    # Persist outputs
+    pd.DataFrame(data=op_counts, columns=OP_NAMES).to_csv(
+        args.op_counts_output, index=False
+    )
+    np.save(args.merge_sizes_output, overall_merge_set_sizes)
+    np.save(args.clone_sizes_output, overall_clone_set_sizes)
 
 
 if __name__ == "__main__":
@@ -210,8 +211,13 @@ if __name__ == "__main__":
         ],
         help="Configuration method to use",
     )
-    add_random_string_arguments(parser)
     add_common_arguments(parser)
+    parser.add_argument(
+        "--attack-string-dir",
+        required=True,
+        type=str,
+        help="Directory containing EvilStrGen attack strings: {regex_id}.txt",
+    )
     parser.add_argument(
         "--op-counts-output",
         required=True,
