@@ -18,15 +18,14 @@ from cai4py.counting_automaton.super_config.counter_config import (
 )
 from cai4py.counting_automaton.super_config.super_config import SuperConfig
 from cai4py.custom_counters.counter_type import CounterType
-from cai4py.instrumentation.utils import (
-    run_with_timeout,
-    add_common_arguments,
-    add_super_config_argument,
-    add_counter_type_argument,
-    add_cache_type_argument,
-    add_random_string_arguments,
-    add_sample_interval_argument,
-)
+from cai4py.instrumentation.constants import AUTOMATON_CREATION_TIMEOUT
+from cai4py.instrumentation.utils import add_cache_type_argument
+from cai4py.instrumentation.utils import add_common_arguments
+from cai4py.instrumentation.utils import add_counter_type_argument
+from cai4py.instrumentation.utils import add_random_string_arguments
+from cai4py.instrumentation.utils import add_sample_interval_argument
+from cai4py.instrumentation.utils import add_super_config_argument
+from cai4py.instrumentation.utils import run_with_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +45,12 @@ def main(args: argparse.Namespace) -> None:
         "counting-set": CounterType.SPARSE_COUNTING_SET,
         "none": CounterType.NONE,
     }[args.counter_type]
-    with open(args.regex_file, "r", encoding="utf-8") as regex_file:
+    with open(args.regex_file, "r", encoding=args.input_encoding) as regex_file:
         num_regexes = len(regex_file.readlines())
-    with open(args.regex_file, "r", encoding="utf-8") as regex_file:
-        mem_usage_log_file = open(args.log_file, "w", encoding="utf-8")
+    with open(args.regex_file, "r", encoding=args.input_encoding) as regex_file:
+        mem_usage_log_file = open(
+            args.log_file, "w", encoding=args.input_encoding
+        )
         mem_usage_log_file.write(
             "Regex ID\tString ID\tPeak Memory Usage (MiB)\n"
         )
@@ -65,9 +66,6 @@ def main(args: argparse.Namespace) -> None:
             regex = regex[:-1]  # strip newline
             print(f"Processing regex {i}: {regex}", file=sys.stderr)
             try:
-                from cai4py.instrumentation.constants import (
-                    AUTOMATON_CREATION_TIMEOUT,
-                )
 
                 automaton = run_with_timeout(
                     func=PositionCountingAutomaton.create,
@@ -93,8 +91,6 @@ def main(args: argparse.Namespace) -> None:
                         "r",
                         encoding=args.input_encoding,
                     ) as random_str_file:
-                        random_str = random_str_file.read()
-                        num_bytes = len(random_str.encode("utf-8"))
 
                         def measure_memory_used_during_matching(
                             automaton, random_str, args
@@ -135,13 +131,13 @@ def main(args: argparse.Namespace) -> None:
                             assert isinstance(peak_mem_usage, float)
                             return (
                                 peak_mem_usage * 1e6
-                                - len(random_str.encode("utf-8"))
+                                - len(random_str.encode(args.input_encoding))
                             ) / 1e6
 
                         try:
                             peak_mem_usage = (
                                 measure_memory_used_during_matching(
-                                    automaton, random_str, args
+                                    automaton, random_str_file.read(), args
                                 )
                             )
                             mem_usage_log_file.write(

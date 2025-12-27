@@ -7,7 +7,7 @@ import logging
 # fmt: off
 from typing import Callable, Generic, Hashable, Iterator, Mapping, Optional, TypeVar
 
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 
 from ...custom_counters.counter_operation_component import CounterOperationComponent
 from ...custom_counters.counter_guard import Guard

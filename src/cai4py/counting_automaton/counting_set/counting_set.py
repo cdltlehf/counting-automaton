@@ -5,7 +5,7 @@ import logging
 from typing import Iterable, Iterator, Optional, TypeVar
 import warnings
 
-from cai4py.more_collections import Node, SortedLinkedList
+from cai4py.collections import Node, SortedLinkedList
 
 # import op_name_to_count and merge_set_sizes, clone_set_sizes from computation_logging
 from ..instrumentation_vars import (

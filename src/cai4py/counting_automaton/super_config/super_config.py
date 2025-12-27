@@ -16,7 +16,7 @@ from cai4py.custom_counters.counter_type import CounterType
 from cai4py.custom_counters.counting_set import CountingSet
 from cai4py.custom_counters.sparse_counting_set import SparseCountingSet
 from cai4py.custom_counters.naive_counter import NaiveCounter
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 
 from ...custom_counters.counter_map import CounterMap
 from ...utils.util_logging import setup_debugger

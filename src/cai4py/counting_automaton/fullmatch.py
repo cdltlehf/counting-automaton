@@ -13,7 +13,7 @@ from cai4py.counting_automaton._logging import VERBOSE
 import cai4py.counting_automaton.position_counting_automaton as pca
 from cai4py.counting_automaton.super_config.super_config import SuperConfig
 from cai4py.custom_counters.counter_type import CounterType
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 from cai4py.counting_automaton.super_config import SuperConfigBase
 import cai4py.counting_automaton.super_config as sc
 
@@ -85,8 +85,6 @@ def fullmatch(
         final_cache_info = cached_get_next_super_config[cache_type].cache_info()
     except AttributeError:
         final_cache_info = None
-    if final_cache_info is not None:
-        print(f"final_cache_info: {final_cache_info}")
     return super_config.is_final(), cache_history
 
 

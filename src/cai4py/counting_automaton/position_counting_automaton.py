@@ -11,7 +11,7 @@ from cai4py.custom_counters.counter_base import CounterBase
 from cai4py.custom_counters.counter_base import CounterVariable
 from cai4py.custom_counters.counter_guard import Guard
 from cai4py.custom_counters.counter_type import CounterType
-from cai4py.more_collections import OrderedSet
+from cai4py.collections import OrderedSet
 from cai4py.parser_tools import fold
 from cai4py.parser_tools import MAX_PLUS
 from cai4py.parser_tools import MAX_QUESTION

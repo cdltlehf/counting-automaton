@@ -100,8 +100,18 @@ def main(args: argparse.Namespace) -> None:
                         encoding=args.input_encoding,
                     ) as random_str_file:
                         random_str = random_str_file.read()
-                        if re.fullmatch(regex, random_str) is None:
-                            continue  # Skip non-matching strings
+                        try:
+                            if (
+                                run_with_timeout(
+                                    re.fullmatch,
+                                    args=(regex, random_str),
+                                    timeout=5,
+                                )
+                                is None
+                            ):
+                                continue  # Skip non-matching strings
+                        except TimeoutError:
+                            continue  # Skip strings that time out during re matching
                         with open(
                             "string.txt", "w", encoding="utf-8"
                         ) as debug_str_file:
@@ -140,11 +150,31 @@ def main(args: argparse.Namespace) -> None:
                             )
                             break
                         except NoMatchError as e:
-                            if re.fullmatch(regex, random_str) is not None:
-                                raise NoMatchError(
-                                    "No match was found, but one should have been found."
-                                ) from e  # Re-raise if string should match
-                            assert re.fullmatch(regex, random_str) is None
+                            try:
+                                if (
+                                    run_with_timeout(
+                                        re.fullmatch,
+                                        args=(regex, random_str),
+                                        timeout=5,
+                                    )
+                                    is not None
+                                ):
+                                    raise NoMatchError(
+                                        "No match was found, but one should have been found."
+                                    ) from e  # Re-raise if string should match
+                            except TimeoutError:
+                                pass
+                            try:
+                                assert (
+                                    run_with_timeout(
+                                        re.fullmatch,
+                                        args=(regex, random_str),
+                                        timeout=5,
+                                    )
+                                    is None
+                                )
+                            except TimeoutError:
+                                pass
                             print(e, file=sys.stderr)
                             continue
                         if result is None:

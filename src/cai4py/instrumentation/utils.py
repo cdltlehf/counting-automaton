@@ -35,12 +35,6 @@ def run_with_timeout(func, args=(), timeout=None):
         The return value of the function.
     """
 
-    print(
-        f"\rRunning function '{func.__name__}' with timeout {timeout:.9f} seconds.",
-        end="",
-        flush=True,
-    )
-
     def target_func(args: tuple, out: multiprocessing.Queue):
         try:
             result = func(*args)
@@ -87,7 +81,7 @@ def time_matching(
     cache_type: Literal["lru", "flush_on_full", "none"],
     counter_type: CounterType,
     sample_interval: int = 0,
-    raise_error_if_no_match=True,
+    raise_error_if_no_match=False,
 ) -> tuple[float, list]:
     t0 = time.perf_counter()
     match_found, cache_history = fullmatch(
@@ -178,6 +172,16 @@ def add_random_string_arguments(parser: argparse.ArgumentParser) -> None:
         required=True,
         type=int,
         help="Number of random strings to test per regex",
+    )
+
+
+def add_attack_string_argument(parser: argparse.ArgumentParser) -> None:
+    """Add arguments for random string benchmarking."""
+    parser.add_argument(
+        "--attack-string-dir",
+        required=True,
+        type=str,
+        help="Directory containing attack test strings",
     )
 
 
