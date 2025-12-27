@@ -1,6 +1,6 @@
 mkdir -p outputs/csa/snort3/inner
 mkdir -p outputs/csa/polyglot/inner
-python -O -m cai4py.instrumentation.instrument_counter_ops \
+python -OO -m cai4py.instrumentation.instrument_counter_ops \
 	--random-string-dir generated/counters/snort3-random-strings \
 	--regex-file snort3/c-patterns-filtered.txt \
 	--num-strings-per-regex 30 \
@@ -8,7 +8,7 @@ python -O -m cai4py.instrumentation.instrument_counter_ops \
 	--merge-sizes-output outputs/csa/snort3/inner/merge-sizes.npy \
 	--clone-sizes-output outputs/csa/snort3/inner/clone-sizes.npy \
 	--expansion-type inner &
-python -O -m cai4py.instrumentation.instrument_counter_ops \
+python -OO -m cai4py.instrumentation.instrument_counter_ops \
 	--random-string-dir generated/counters/polyglot-random-strings \
 	--regex-file polyglot/c-patterns-filtered.txt \
 	--num-strings-per-regex 30 \

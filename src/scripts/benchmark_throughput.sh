@@ -7,7 +7,7 @@ POLYGLOT_REGEX_FILE="polyglot/c-patterns-filtered.txt"
 
 
 # Benchmark standard bitvector and counting-set approaches
-python -O -m cai4py.instrumentation.time_random \
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_REGEX_FILE\
 	--timing-log-file outputs/ce/polyglot/full/random-throughputs.tsv \
@@ -17,7 +17,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--cache-type "none" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
-python -O -m cai4py.instrumentation.time_random \
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_REGEX_FILE\
 	--timing-log-file outputs/csa/polyglot/inner/random-throughputs.tsv \
@@ -27,7 +27,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--cache-type "none" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
-python -O -m cai4py.instrumentation.time_random \
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
 	--regex-file $POLYGLOT_REGEX_FILE\
 	--timing-log-file outputs/bva/polyglot/inner/random-throughputs.tsv \
@@ -50,7 +50,7 @@ SNORT3_RANDOM_STRINGS_DIR="generated/counters/snort3-random-strings"
 SNORT3_REGEX_FILE="snort3/c-patterns-filtered.txt"
 
 # Benchmark inner vs outer expansion for counting-set approach
-python -O -m cai4py.instrumentation.time_random \
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
 	--regex-file $SNORT3_REGEX_FILE\
 	--timing-log-file outputs/csa/snort3/outer/random-throughputs.tsv \
@@ -63,7 +63,7 @@ python -O -m cai4py.instrumentation.time_random \
 # No need to repeat the inner expansion here since it was already done above
 
 # Benchmark standard bitvector and counting-set approaches
-python -O -m cai4py.instrumentation.time_random \
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
 	--regex-file $SNORT3_REGEX_FILE\
 	--timing-log-file outputs/ce/snort3/full/random-throughputs.tsv \
@@ -73,7 +73,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--cache-type "none" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
-python -O -m cai4py.instrumentation.time_random \
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
 	--regex-file $SNORT3_REGEX_FILE\
 	--timing-log-file outputs/csa/snort3/inner/random-throughputs.tsv \
@@ -83,7 +83,7 @@ python -O -m cai4py.instrumentation.time_random \
 	--cache-type "none" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
-python -O -m cai4py.instrumentation.time_random \
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
 	--regex-file $SNORT3_REGEX_FILE\
 	--timing-log-file outputs/bva/snort3/inner/random-throughputs.tsv \

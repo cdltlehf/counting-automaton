@@ -1,47 +1,51 @@
 # Benchmark inner vs outer expansion for counting-set approach
 
-python -O -m cai4py.instrumentation.time_random \
+# TIMING TESTS on FULL nested dataset
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/nested-counters/polyglot-random-strings \
 	--regex-file polyglot/nested-c-patterns-filtered.txt \
 	--timing-log-file outputs/csa/polyglot/outer/random-throughputs.tsv \
 	--expansion-type outer \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 3 \
 	--cache-type "none" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
-python -O -m cai4py.instrumentation.time_random \
+python -OO -m cai4py.instrumentation.time_random \
 	--random-string-dir generated/nested-counters/polyglot-random-strings \
 	--regex-file polyglot/nested-c-patterns-filtered.txt \
 	--timing-log-file outputs/csa/polyglot/inner/random-throughputs.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 3 \
 	--cache-type "none" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
 wait
-# No need to repeat the inner expansion here since it was already done above
 
-# Benchmark inner vs outer expansion for counting-set approach
-python -O -m cai4py.instrumentation.measure_memory \
+# MEMORY MEASUREMENT on SMALL SAMPLE ONLY (100 regexes max to keep profiling fast)
+# Sample first 100 nested regexes  
+head -100 polyglot/nested-c-patterns-filtered.txt > /tmp/nested-sample-100.txt
+
+python -OO -m cai4py.instrumentation.measure_memory \
 	--random-string-dir generated/nested-counters/polyglot-random-strings \
-	--regex-file polyglot/nested-c-patterns-filtered.txt \
+	--regex-file /tmp/nested-sample-100.txt \
 	--log-file outputs/csa/polyglot/outer/nested-peak-mem-usage.tsv \
 	--expansion-type outer \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 3 \
 	--cache-type "none" \
 	--counter-type "counting-set" \
 	--super-config-class "SparseCounterConfig" &
-python -O -m cai4py.instrumentation.measure_memory \
+python -OO -m cai4py.instrumentation.measure_memory \
 	--random-string-dir generated/nested-counters/polyglot-random-strings \
-	--regex-file polyglot/nested-c-patterns-filtered.txt \
+	--regex-file /tmp/nested-sample-100.txt \
 	--log-file outputs/csa/polyglot/inner/nested-peak-mem-usage.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 3 \
 	--cache-type "none" \
 	--counter-type "counting-set" \
 	--super-config-class "SparseCounterConfig" &
 wait
+rm -f /tmp/nested-sample-100.txt
