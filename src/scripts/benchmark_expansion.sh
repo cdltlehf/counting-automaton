@@ -7,7 +7,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/polyglot/outer/random-throughputs.tsv \
 	--expansion-type outer \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 3 \
+	--num-strings-per-regex 5 \
 	--cache-type "none" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
@@ -17,7 +17,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/polyglot/inner/random-throughputs.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 3 \
+	--num-strings-per-regex 5 \
 	--cache-type "none" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" &
@@ -33,7 +33,7 @@ python -OO -m cai4py.instrumentation.measure_memory \
 	--log-file outputs/csa/polyglot/outer/nested-peak-mem-usage.tsv \
 	--expansion-type outer \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 3 \
+	--num-strings-per-regex 5 \
 	--cache-type "none" \
 	--counter-type "counting-set" \
 	--super-config-class "SparseCounterConfig" &
@@ -43,7 +43,7 @@ python -OO -m cai4py.instrumentation.measure_memory \
 	--log-file outputs/csa/polyglot/inner/nested-peak-mem-usage.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 3 \
+	--num-strings-per-regex 5 \
 	--cache-type "none" \
 	--counter-type "counting-set" \
 	--super-config-class "SparseCounterConfig" &

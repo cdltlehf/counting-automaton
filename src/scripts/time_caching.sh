@@ -12,7 +12,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/snort3/inner/random-throughputs.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 5 \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
 	--cache-type "flush_on_full" &
@@ -23,7 +23,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/snort3/full/random-throughputs.tsv \
 	--expansion-type full \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 5 \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
 	--cache-type "flush_on_full" &
@@ -35,7 +35,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/polyglot/inner/random-throughputs.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 5 \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
 	--cache-type "flush_on_full" &
@@ -46,7 +46,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/polyglot/full/random-throughputs.tsv \
 	--expansion-type full \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 5 \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
 	--cache-type "flush_on_full" &
@@ -62,7 +62,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/snort3/inner/random-throughputs.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 5 \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
 	--cache-type "lru" &
@@ -73,7 +73,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/snort3/full/random-throughputs.tsv \
 	--expansion-type full \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 5 \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
 	--cache-type "lru" &
@@ -85,7 +85,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/polyglot/inner/random-throughputs.tsv \
 	--expansion-type inner \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 5 \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
 	--cache-type "lru" &
@@ -96,7 +96,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--timing-log-file outputs/csa/polyglot/full/random-throughputs.tsv \
 	--expansion-type full \
 	--input-encoding "utf-8" \
-	--num-strings-per-regex 30 \
+	--num-strings-per-regex 5 \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
 	--cache-type "lru" &
