@@ -39,7 +39,6 @@ python -OO -m cai4py.instrumentation.time_random \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "bitvector" > logs/throughput-polyglot-bva-inner.txt 2>&1 &
 
-wait
 
 # Do the same for SNORT3
 

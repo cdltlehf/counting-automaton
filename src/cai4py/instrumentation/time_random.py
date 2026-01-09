@@ -100,18 +100,6 @@ def main(args: argparse.Namespace) -> None:
                         encoding=args.input_encoding,
                     ) as random_str_file:
                         random_str = random_str_file.read()
-                        try:
-                            if (
-                                run_with_timeout(
-                                    re.fullmatch,
-                                    args=(regex, random_str),
-                                    timeout=5,
-                                )
-                                is None
-                            ):
-                                continue  # Skip non-matching strings
-                        except TimeoutError:
-                            continue  # Skip strings that time out during re matching
                         with open(
                             "string.txt", "w", encoding="utf-8"
                         ) as debug_str_file:
