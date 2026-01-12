@@ -28,6 +28,7 @@ from cai4py.instrumentation.utils import add_common_arguments
 from cai4py.instrumentation.utils import add_random_string_arguments
 
 from .constants import OP_NAMES
+from .constants import AUTOMATON_CREATION_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ def main(args: argparse.Namespace) -> None:
                 automaton = run_with_timeout(
                     func=pca.PositionCountingAutomaton.create,
                     args=(regex, args.expansion_type),
-                    timeout=10,
+                    timeout=AUTOMATON_CREATION_TIMEOUT,
                 )
                 assert isinstance(automaton, pca.PositionCountingAutomaton)
                 if automaton is None:
@@ -159,7 +160,7 @@ def main(args: argparse.Namespace) -> None:
                 assert num_bytes >= 0
 
                 # Run matching with a timeout
-                matching_timeout = get_matching_timeout(num_bytes)
+                matching_timeout = get_matching_timeout(num_bytes) + 30
                 try:
                     (
                         op_counts,
