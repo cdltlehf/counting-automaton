@@ -54,7 +54,7 @@ def run_with_timeout(func, args=(), timeout=None):
     if proc.is_alive():
         proc.terminate()
         proc.join()
-        raise TimeoutError("Function timed out and was terminated")
+        raise TimeoutError(f"Function {func} timed out and was terminated")
     if proc.exitcode != 0:
         print(args)
         print(proc.exitcode)
