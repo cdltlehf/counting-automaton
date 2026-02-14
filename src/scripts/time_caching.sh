@@ -1,103 +1,71 @@
-mkdir -p outputs/csa/snort3/inner
-mkdir -p outputs/csa/polyglot/inner
+# Create necessary output directories
 mkdir -p outputs/csa/snort3/full
 mkdir -p outputs/csa/polyglot/full
+mkdir -p logs
 
-# Flush on full cache
+# Flush on full cache - Full expansion only
 # SNORT3
-# Inner
-python -OO -m cai4py.instrumentation.time_random \
-	--random-string-dir generated/counters/snort3-random-strings \
-	--regex-file snort3/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/snort3/inner/random-throughputs.tsv \
-	--expansion-type inner \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 5 \
-	--super-config-class "SparseCounterConfig" \
-	--counter-type "counting-set" \
-	--cache-type "flush_on_full" &
-# Full
-python -OO -m cai4py.instrumentation.time_random \
-	--random-string-dir generated/counters/snort3-random-strings \
-	--regex-file snort3/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/snort3/full/random-throughputs.tsv \
+python -OO -m cai4py.instrumentation.time_attacks \
+	--attack-string-dir generated/ambiguous/snort3-attack-strings \
+	--regex-file snort3/c-patterns-filtered-ambiguous.txt \
+	--timing-log-file outputs/csa/snort3/full/attack-throughputs-flush_on_full.tsv \
 	--expansion-type full \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 5 \
+	--input-encoding "latin1" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
-	--cache-type "flush_on_full" &
+	--cache-type "flush_on_full" > logs/caching-snort3-full-flush_on_full.txt 2>&1 &
 # Polyglot
-# Inner
-python -OO -m cai4py.instrumentation.time_random \
-	--random-string-dir generated/counters/polyglot-random-strings \
-	--regex-file polyglot/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/polyglot/inner/random-throughputs.tsv \
-	--expansion-type inner \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 5 \
-	--super-config-class "SparseCounterConfig" \
-	--counter-type "counting-set" \
-	--cache-type "flush_on_full" &
-# Full
-python -OO -m cai4py.instrumentation.time_random \
-	--random-string-dir generated/counters/polyglot-random-strings \
-	--regex-file polyglot/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/polyglot/full/random-throughputs.tsv \
+python -OO -m cai4py.instrumentation.time_attacks \
+	--attack-string-dir generated/ambiguous/polyglot-attack-strings \
+	--regex-file polyglot/c-patterns-filtered-ambiguous.txt \
+	--timing-log-file outputs/csa/polyglot/full/attack-throughputs-flush_on_full.tsv \
 	--expansion-type full \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 5 \
+	--input-encoding "latin1" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
-	--cache-type "flush_on_full" &
+	--cache-type "flush_on_full" > logs/caching-polyglot-full-flush_on_full.txt 2>&1 &
 
-wait
-
-# LRU cache
+# LRU cache - Full expansion only
 # SNORT3
-# Inner
-python -OO -m cai4py.instrumentation.time_random \
-	--random-string-dir generated/counters/snort3-random-strings \
-	--regex-file snort3/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/snort3/inner/random-throughputs.tsv \
-	--expansion-type inner \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 5 \
-	--super-config-class "SparseCounterConfig" \
-	--counter-type "counting-set" \
-	--cache-type "lru" &
-# Full
-python -OO -m cai4py.instrumentation.time_random \
-	--random-string-dir generated/counters/snort3-random-strings \
-	--regex-file snort3/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/snort3/full/random-throughputs.tsv \
+python -OO -m cai4py.instrumentation.time_attacks \
+	--attack-string-dir generated/ambiguous/snort3-attack-strings \
+	--regex-file snort3/c-patterns-filtered-ambiguous.txt \
+	--timing-log-file outputs/csa/snort3/full/attack-throughputs-lru.tsv \
 	--expansion-type full \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 5 \
+	--input-encoding "latin1" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
-	--cache-type "lru" &
+	--cache-type "lru" > logs/caching-snort3-full-lru.txt 2>&1 &
 # Polyglot
-# Inner
-python -OO -m cai4py.instrumentation.time_random \
-	--random-string-dir generated/counters/polyglot-random-strings \
-	--regex-file polyglot/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/polyglot/inner/random-throughputs.tsv \
-	--expansion-type inner \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 5 \
-	--super-config-class "SparseCounterConfig" \
-	--counter-type "counting-set" \
-	--cache-type "lru" &
-# Full
-python -OO -m cai4py.instrumentation.time_random \
-	--random-string-dir generated/counters/polyglot-random-strings \
-	--regex-file polyglot/c-patterns-filtered.txt \
-	--timing-log-file outputs/csa/polyglot/full/random-throughputs.tsv \
+python -OO -m cai4py.instrumentation.time_attacks \
+	--attack-string-dir generated/ambiguous/polyglot-attack-strings \
+	--regex-file polyglot/c-patterns-filtered-ambiguous.txt \
+	--timing-log-file outputs/csa/polyglot/full/attack-throughputs-lru.tsv \
 	--expansion-type full \
-	--input-encoding "utf-8" \
-	--num-strings-per-regex 5 \
+	--input-encoding "latin1" \
 	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" \
-	--cache-type "lru" &
+	--cache-type "lru" > logs/caching-polyglot-full-lru.txt 2>&1 &
+
+# No caching - Full expansion only
+# SNORT3
+python -OO -m cai4py.instrumentation.time_attacks \
+	--attack-string-dir generated/ambiguous/snort3-attack-strings \
+	--regex-file snort3/c-patterns-filtered-ambiguous.txt \
+	--timing-log-file outputs/csa/snort3/full/attack-throughputs-none.tsv \
+	--expansion-type full \
+	--input-encoding "latin1" \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
+	--cache-type "none" > logs/caching-snort3-full-none.txt 2>&1 &
+# Polyglot
+python -OO -m cai4py.instrumentation.time_attacks \
+	--attack-string-dir generated/ambiguous/polyglot-attack-strings \
+	--regex-file polyglot/c-patterns-filtered-ambiguous.txt \
+	--timing-log-file outputs/csa/polyglot/full/attack-throughputs-none.tsv \
+	--expansion-type full \
+	--input-encoding "latin1" \
+	--super-config-class "SparseCounterConfig" \
+	--counter-type "counting-set" \
+	--cache-type "none" > logs/caching-polyglot-full-none.txt 2>&1 &
 wait
