@@ -59,9 +59,9 @@ python -OO -m cai4py.instrumentation.time_attacks \
 	--expansion-type inner \
 	--input-encoding "latin1" \
 	--cache-type "flush_on_full" \
-	--super-config-class "SparseCounterConfig" \
 	--sample-interval 2 \
 	--cache-history-log-file outputs/csa/polyglot/inner/ambiguous/cache-timeline.tsv \
+	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" > logs/log3.txt 2>&1 &
 python -OO -m cai4py.instrumentation.time_attacks \
 	--attack-string-dir $POLYGLOT_UNAMBIGUOUS_ATTACK_STRING_DIR \
@@ -70,34 +70,34 @@ python -OO -m cai4py.instrumentation.time_attacks \
 	--expansion-type inner \
 	--input-encoding "latin1" \
 	--cache-type "flush_on_full" \
-	--super-config-class "SparseCounterConfig" \
 	--cache-history-log-file outputs/csa/polyglot/inner/unambiguous/cache-timeline.tsv \
 	--sample-interval 2 \
+	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" > logs/log4.txt 2>&1 &
 
 wait
 
-# # Instrument counter operations using EvilStrGen attack strings (ambiguous and unambiguous)
-# python -OO -m cai4py.instrumentation.instrument_counter_ops_attack \
-# 	--method sparse_counter_config \
-# 	--regex-file $POLYGLOT_AMBIGUOUS \
-# 	--expansion-type inner \
-# 	--input-encoding "latin1" \
-# 	--attack-string-dir $POLYGLOT_AMBIGUOUS_ATTACK_STRING_DIR \
-# 	--op-counts-output outputs/csa/polyglot/inner/ambiguous/op-counts-attack.csv \
-# 	--merge-sizes-output outputs/csa/polyglot/inner/ambiguous/merge-sizes-attack.npy \
-# 	--clone-sizes-output outputs/csa/polyglot/inner/ambiguous/clone-sizes-attack.npy \
-# 	> logs/log7.txt 2>&1 &
-# python -OO -m cai4py.instrumentation.instrument_counter_ops_attack \
-# 	--method sparse_counter_config \
-# 	--regex-file $POLYGLOT_UNAMBIGUOUS \
-# 	--expansion-type inner \
-# 	--input-encoding "latin1" \
-# 	--attack-string-dir $POLYGLOT_UNAMBIGUOUS_ATTACK_STRING_DIR \
-# 	--op-counts-output outputs/csa/polyglot/inner/unambiguous/op-counts-attack.csv \
-# 	--merge-sizes-output outputs/csa/polyglot/inner/unambiguous/merge-sizes-attack.npy \
-# 	--clone-sizes-output outputs/csa/polyglot/inner/unambiguous/clone-sizes-attack.npy \
-# 	> logs/log8.txt 2>&1 &
+# Instrument counter operations using EvilStrGen attack strings (ambiguous and unambiguous)
+python -OO -m cai4py.instrumentation.instrument_counter_ops_attack \
+	--method sparse_counter_config \
+	--regex-file $POLYGLOT_AMBIGUOUS \
+	--expansion-type inner \
+	--input-encoding "latin1" \
+	--attack-string-dir $POLYGLOT_AMBIGUOUS_ATTACK_STRING_DIR \
+	--op-counts-output outputs/csa/polyglot/inner/ambiguous/op-counts-attack.csv \
+	--merge-sizes-output outputs/csa/polyglot/inner/ambiguous/merge-sizes-attack.npy \
+	--clone-sizes-output outputs/csa/polyglot/inner/ambiguous/clone-sizes-attack.npy \
+	> logs/log7.txt 2>&1 &
+python -OO -m cai4py.instrumentation.instrument_counter_ops_attack \
+	--method sparse_counter_config \
+	--regex-file $POLYGLOT_UNAMBIGUOUS \
+	--expansion-type inner \
+	--input-encoding "latin1" \
+	--attack-string-dir $POLYGLOT_UNAMBIGUOUS_ATTACK_STRING_DIR \
+	--op-counts-output outputs/csa/polyglot/inner/unambiguous/op-counts-attack.csv \
+	--merge-sizes-output outputs/csa/polyglot/inner/unambiguous/merge-sizes-attack.npy \
+	--clone-sizes-output outputs/csa/polyglot/inner/unambiguous/clone-sizes-attack.npy \
+	> logs/log8.txt 2>&1 &
 
 wait
 echo "✅ Benchmark complete"

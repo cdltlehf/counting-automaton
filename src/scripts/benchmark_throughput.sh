@@ -36,7 +36,7 @@ python -OO -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 5 \
 	--cache-type "none" \
-	--super-config-class "SparseCounterConfig" \
+	--super-config-class "SuperConfig" \
 	--counter-type "bitvector" > logs/throughput-polyglot-bva-inner.txt 2>&1 &
 
 
@@ -92,6 +92,6 @@ python -OO -m cai4py.instrumentation.time_random \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 5 \
 	--cache-type "none" \
-	--super-config-class "SparseCounterConfig" \
+	--super-config-class "SuperConfig" \
 	--counter-type "bitvector" > logs/throughput-snort3-bva-inner.txt 2>&1 &
 wait

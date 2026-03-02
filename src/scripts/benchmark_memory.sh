@@ -14,7 +14,7 @@ python -OO -m cai4py.instrumentation.measure_avg_memory \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 5 \
-	--super-config-class "SuperConfig" \
+	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" > logs/memory-polyglot-ce-full.txt 2>&1 &
 python -OO -m cai4py.instrumentation.measure_avg_memory \
 	--random-string-dir $POLYGLOT_RANDOM_STRINGS_DIR \
@@ -53,7 +53,7 @@ python -OO -m cai4py.instrumentation.measure_avg_memory \
 	--expansion-type full \
 	--input-encoding "utf-8" \
 	--num-strings-per-regex 5 \
-	--super-config-class "SuperConfig" \
+	--super-config-class "SparseCounterConfig" \
 	--counter-type "counting-set" > logs/memory-snort3-ce-full.txt 2>&1 &
 python -OO -m cai4py.instrumentation.measure_avg_memory \
 	--random-string-dir $SNORT3_RANDOM_STRINGS_DIR \
